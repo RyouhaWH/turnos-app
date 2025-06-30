@@ -14,7 +14,20 @@ type Props = {
   datos: Persona[];
 };
 
-export default function ShiftsAGGrid({ shifts }) {
+type RawTurno = {
+  nombre: string
+  fecha: string
+  turno: string
+}
+
+type FormatoTabular = {
+  id: string
+  nombre: string
+  [dia: string]: string
+}
+
+
+export default function ShiftsAGGridHorizontal({ shifts }) {
 
     console.log('📦 Datos recibidos:', shifts);
     // Si no hay datos, prevenimos errores

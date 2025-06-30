@@ -18,16 +18,7 @@ class EmployeesAlertaMovilSeeder extends Seeder
         $rol = Rol::firstOrCreate(['nombre' => 'AlertaMovil']);
 
 
-        $patrulleros = [
-            "Ricardo Mardones Soto",
-            "Hugo Guajardo Aguayo",
-            "Manuel Vega Vega",
-            "Jaime Moncada Ovalle",
-            "Ivan Cifuentes Vidal",
-            "Patricio Carvajal Campos",
-            "Luis Noa Pino",
-            "Hugo Gonzalez Martínez",
-            "Hugo Alarcon Godoy",
+        $patrullerosAmzoma = [
             "Baltasar Mercado Maldonado",
             "Jaime Ramirez Troncozo",
             "Jorge Delgado Mena",
@@ -45,6 +36,28 @@ class EmployeesAlertaMovilSeeder extends Seeder
             "Cesar Vasquez Barrera",
             "Juan Rojas Urra"
         ];
+
+        $patrulleros = [
+            "Ricardo Mardones Soto",
+            "Hugo Guajardo Aguayo",
+            "Manuel Vega Vega",
+            "Jaime Moncada Ovalle",
+            "Ivan Cifuentes Vidal",
+            "Patricio Carvajal Campos",
+            "Luis Noa Pino",
+            "Hugo Gonzalez Martínez",
+            "Hugo Alarcon Godoy",
+        ];
+
+
+        foreach($patrullerosAmzoma as $patrullero)
+        {
+            Employees::create([
+                'name' => ucwords(strtolower($patrullero)),
+                'amzoma'=>true,
+                'rol_id'=> $rol->id
+            ]);
+        }
 
         foreach($patrulleros as $patrullero)
         {

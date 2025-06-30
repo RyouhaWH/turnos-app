@@ -8,7 +8,7 @@ class TurnController extends Controller
 {
     public function index()
     {
-        $path = storage_path('app/turnos/turnos_mes_julio.csv');
+        $path = storage_path('app/turnos/julio_alertaMovil.csv');
 
         if (!file_exists($path)) {
             return response()->json(['error' => 'Archivo no encontrado'], 404);
