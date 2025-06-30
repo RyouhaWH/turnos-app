@@ -29,25 +29,25 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('staff');
     })->name('staff-personal');
 
-    Route::get('shifts/create', function () {
-        $ruta  = storage_path('app/turnos/julio_alertaMovil.csv');
-        $datos = [];
+    // Route::get('shifts/create', function () {
+    //     $ruta  = storage_path('app/turnos/julio_alertaMovil.csv');
+    //     $datos = [];
 
-        if (file_exists($ruta)) {
-            $file    = fopen($ruta, 'r');
-            $headers = fgetcsv($file); // Primera fila: encabezados
+    //     if (file_exists($ruta)) {
+    //         $file    = fopen($ruta, 'r');
+    //         $headers = fgetcsv($file); // Primera fila: encabezados
 
-            while (($line = fgetcsv($file)) !== false) {
-                $datos[] = array_combine($headers, $line);
-            }
+    //         while (($line = fgetcsv($file)) !== false) {
+    //             $datos[] = array_combine($headers, $line);
+    //         }
 
-            fclose($file);
-        }
+    //         fclose($file);
+    //     }
 
-        return Inertia::render('shifts/create', [
-            'shifts' => $datos,
-        ]);
-    })->name('create-shifts');
+    //     return Inertia::render('shifts/create', [
+    //         'shifts' => $datos,
+    //     ]);
+    // })->name('create-shifts');
 
     Route::get('shifts', function () {
 
