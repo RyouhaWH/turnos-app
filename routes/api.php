@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\TurnController;
+use App\Models\Shifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use League\Csv\Reader;
@@ -21,5 +22,21 @@ Route::get('montly-shifts', function () {
 
     $records = iterator_to_array($csv->getRecords());
     return response()->json($records);
+});
+
+Route::get('/api/turnos', function () {
+    $turnos = Shifts::all()->groupBy('nombre');
+    $result = [];
+
+    foreach ($turnos as $nombre => $grupito) {
+        $fila = ['nombre' => $nombre];
+        foreach ($grupito as $turno) {
+            $dia = \Carbon\Carbon::parse($turno->fecha)->day;
+            $fila[(string)$dia] = $turno->turno;
+        }
+        $result[] = $fila;
+    }
+
+    return response()->json($result);
 });
 

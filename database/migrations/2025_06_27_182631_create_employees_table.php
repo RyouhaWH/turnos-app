@@ -18,7 +18,6 @@ return new class extends Migration
             $table->foreignId('rol_id')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
-
     }
 
     /**

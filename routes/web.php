@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\ShiftImportController;
+use App\Models\Shifts;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use League\Csv\Reader;
@@ -24,34 +26,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('personal', function () {
 
-
-
         return Inertia::render('staff');
     })->name('staff-personal');
 
+    Route::get('shifts/create', function () {
+        $ruta  = storage_path('app/turnos/julio_alertaMovil.csv');
+        $datos = [];
 
-    // Route::get('shifts/create', function () {
-    //     $ruta  = storage_path('app/turnos/julio_alertaMovil.csv');
-    //     $datos = [];
+        if (file_exists($ruta)) {
+            $file    = fopen($ruta, 'r');
+            $headers = fgetcsv($file); // Primera fila: encabezados
 
-    //     if (file_exists($ruta)) {
-    //         $file    = fopen($ruta, 'r');
-    //         $headers = fgetcsv($file); // Primera fila: encabezados
+            while (($line = fgetcsv($file)) !== false) {
+                $datos[] = array_combine($headers, $line);
+            }
 
-    //         while (($line = fgetcsv($file)) !== false) {
-    //             $datos[] = array_combine($headers, $line);
-    //         }
+            fclose($file);
+        }
 
-    //         fclose($file);
-    //     }
+        return Inertia::render('shifts/create', [
+            'shifts' => $datos,
+        ]);
+    })->name('create-shifts');
 
-
-    //     return Inertia::render('shifts/create', [
-    //         'shifts' => $datos,
-    //     ]);
-    // })->name('create-shifts');
-
-    Route::get('shifts', function (){
+    Route::get('shifts', function () {
 
         $path = storage_path('app/turnos/julio_alertaMovil.csv'); // o donde esté el archivo
 
@@ -63,17 +61,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Agrupar por nombre y días
         $agrupados = [];
 
-
         foreach ($registros as $fila) {
             $nombre = $fila['Nombre'] ?? $fila["\ufeffnombre"] ?? 'SinNombre';
-            $fecha = $fila['Fecha'];
-            $turno = strtoupper($fila['Turno']);
+            $fecha  = $fila['Fecha'];
+            $turno  = strtoupper($fila['Turno']);
 
             $dia = (int) date('d', strtotime($fecha)); // 1..31
 
-            if (!isset($agrupados[$nombre])) {
+            if (! isset($agrupados[$nombre])) {
                 $agrupados[$nombre] = [
-                    'id' => Str::slug($nombre, '_'),
+                    'id'     => Str::slug($nombre, '_'),
                     'nombre' => $nombre,
                 ];
             }
@@ -88,6 +85,33 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
 
     })->name('create-shifts');
+
+    // routes/web.php o routes/api.php
+    Route::get('/import-shifts', [ShiftImportController::class, 'index']);
+    // Route::post('/import-shifts-csv', [ShiftImportController::class, 'importar']);
+    Route::post('import-shifts-csv', function (Request $request) {
+
+        dd('hola mundo');
+    });
+
+    //importar turnos desde agGrid
+    Route::post('/api/turnos/actualizar', function (Request $request) {
+        $data = $request->validate([
+            'nombre' => 'required|string',
+            'fecha'  => 'required|date',
+            'turno'  => 'required|in:M,T,N',
+        ]);
+
+        Shifts::updateOrCreate([
+            'nombre' => $data['nombre'],
+            'fecha'  => $data['fecha'],
+        ], [
+            'turno' => $data['turno'],
+        ]);
+
+        return response()->json(['message' => 'Turno actualizado']);
+    });
+
 });
 
 require __DIR__ . '/settings.php';

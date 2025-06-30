@@ -13,13 +13,12 @@ return new class extends Migration
     {
         Schema::create('shifts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('employee_id')->constrained()->onDelete('cascade');
             $table->date('date');
             $table->string('shift', 10); // M, T, N, LM, etc.
             $table->text('comments')->nullable();
             $table->foreignId('edited_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
-            $table->unique(['user_id', 'fecha']); // un turno por persona por día
         });
     }
 

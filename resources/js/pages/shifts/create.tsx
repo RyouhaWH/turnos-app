@@ -1,9 +1,9 @@
+import { Button } from '@/components/ui/button';
 import AgGridHorizontal from '@/components/ui/excel-shift-horizontal';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
-// import contarTurnos from '@/lib/shift-counter';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -66,6 +66,11 @@ export default function ShiftsManager({ shifts }: any) {
                                     <span>{cantidad}</span>
                                 </div>
                             ))}
+                        </div>
+                        <div className='mx-auto'>
+                            <Button className='' disabled >
+                                Actualizar Cambios
+                            </Button>
                         </div>
                     </div>
                 </div>
