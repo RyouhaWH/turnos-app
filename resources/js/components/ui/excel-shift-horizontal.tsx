@@ -62,7 +62,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
                 headerName: `${d.dia}\n${d.nombre}`,
                 field: d.dia,
                 editable: true,
-                width: 60,
+                width: 46,
                 cellStyle: { textAlign: 'center' },
                 headerClass: 'ag-custom-header',
                 cellClass: d.isFinDeSemana ? 'fin-de-semana' : '',
@@ -108,6 +108,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
             defaultColDef={{ resizable: true }}
             onCellValueChanged={handleCellChange}
             onGridReady={handleGridReady}
+            rowHeight={28}
         />
     )
 }

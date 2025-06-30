@@ -174,15 +174,23 @@
 }
 
 .ag-theme-alpine .fin-de-semana {
-  background-color: #fafafb !important; /* gris claro */
+  background-color: #eaeaeb !important; /* gris claro */
 }
 
 .ag-theme-alpine .ag-custom-header .ag-header-cell-label {
   white-space: pre-line !important;
   text-align: center;
-  justify-content: center;
-  line-height: 1.2;
-  font-size: 0.75rem;
+  justify-content: baseline;
+  line-height: 1.6;
+  font-size: 0.7rem;
+}
+
+.ag-theme-alpine .ag-cell {
+  padding-top: 2px !important;
+  padding-bottom: 2px !important;
+  padding-left: 2px !important;
+  padding-right:2px !important;
+  font-size: 13px; /* también puedes ajustar la fuente si quieres más compactación */
 }
 
 
