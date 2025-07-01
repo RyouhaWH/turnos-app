@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ShiftImportController;
 use App\Models\Shifts;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use League\Csv\Reader;
@@ -87,15 +88,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('create-shifts');
 
     // routes/web.php o routes/api.php
-    Route::get('/import-shifts', [ShiftImportController::class, 'index']);
-    // Route::post('/import-shifts-csv', [ShiftImportController::class, 'importar']);
-    Route::post('import-shifts-csv', function (Request $request) {
+    Route::get('/upload-csv', [ShiftImportController::class, 'index']);
+    Route::post('/upload-csv', [ShiftImportController::class, 'upload']);
 
-        dd('hola mundo');
-    });
+    Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
+
 
     //importar turnos desde agGrid
-    Route::post('/api/turnos/actualizar', function (Request $request) {
+    Route::post('turnos/actualizar', function (Request $request) {
         $data = $request->validate([
             'nombre' => 'required|string',
             'fecha'  => 'required|date',

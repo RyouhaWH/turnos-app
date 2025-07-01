@@ -1,10 +1,8 @@
 <?php
-
 namespace Database\Seeders;
 
 use App\Models\Employees;
 use App\Models\Rol;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class EmployeesAlertaMovilSeeder extends Seeder
@@ -16,7 +14,6 @@ class EmployeesAlertaMovilSeeder extends Seeder
     {
 
         $rol = Rol::firstOrCreate(['nombre' => 'AlertaMovil']);
-
 
         $patrullerosAmzoma = [
             "Baltasar Mercado Maldonado",
@@ -34,7 +31,7 @@ class EmployeesAlertaMovilSeeder extends Seeder
             "Michael Mellado Yañez",
             "Emilio Acuña Lizama",
             "Cesar Vasquez Barrera",
-            "Juan Rojas Urra"
+            "Juan Rojas Urra",
         ];
 
         $patrulleros = [
@@ -49,25 +46,34 @@ class EmployeesAlertaMovilSeeder extends Seeder
             "Hugo Alarcon Godoy",
         ];
 
+        foreach ($patrullerosAmzoma as $nombre) {
 
-        foreach($patrullerosAmzoma as $patrullero)
-        {
-            Employees::create([
-                'name' => ucwords(strtolower($patrullero)),
-                'amzoma'=>true,
-                'rol_id'=> $rol->id
-            ]);
+            $nombreFormateado = ucwords(strtolower($nombre));
+
+            $existe = Employees::where('name', $nombreFormateado)->exists();
+
+            if (! $existe) {
+                Employees::create([
+                    'name' => $nombreFormateado,
+                    'amzoma' => true,
+                    'rol_id' => $rol->id
+                ]);
+            }
         }
 
-        foreach($patrulleros as $patrullero)
-        {
-            Employees::create([
-                'name' => ucwords(strtolower($patrullero)),
-                'amzoma'=>true,
-                'rol_id'=> $rol->id
-            ]);
+        foreach ($patrulleros as $nombre) {
+
+            $nombreFormateado = ucwords(strtolower($nombre));
+
+            $existe = Employees::where('name', $nombreFormateado)->exists();
+
+            if (! $existe) {
+                Employees::create([
+                    'name' => $nombreFormateado,
+                    'amzoma' => false,
+                    'rol_id' => $rol->id,
+                ]);
+            }
         }
-
-
     }
 }

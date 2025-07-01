@@ -19,15 +19,27 @@ export default function UploadShifts() {
     const [file, setFile] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
+    const testPostButton = async () => {
+        try {
+            const response = await axios.post('/import-shifts-csv');
+            console.log('✅ Respuesta del endpoint:', response.data);
+        } catch (error: any) {
+            console.error('❌ Error al probar endpoint:', error.response?.data || error.message);
+        }
+    };
+
     const handleUpload = async () => {
+
         if (!file) return;
 
         const formData = new FormData();
         formData.append('archivo', file);
         setIsLoading(true);
 
+        console.log(formData)
+
         try {
-            const response = await axios.post('import-shifts-csv', formData, {
+            const response = await axios.post('/import-shifts-v2', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -55,6 +67,8 @@ export default function UploadShifts() {
                     <Button onClick={handleUpload} disabled={!file || isLoading}>
                         {isLoading ? 'Importando...' : 'Importar'}
                     </Button>
+
+                    <Button onClick={testPostButton}>probar endpoint</Button>
                 </div>
             </div>
             <Toaster />

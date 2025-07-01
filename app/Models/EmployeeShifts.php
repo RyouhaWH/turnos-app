@@ -7,9 +7,10 @@ class EmployeeShifts extends Model
 {
     protected $fillable = [
         'id',
-        'fecha',
-        'turno',
-        'observacion',
+        'employee_id',
+        'date',
+        'shifts',
+        'comments',
     ];
     public function employee()
     {

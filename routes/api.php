@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\TurnController;
-use App\Models\Shifts;
+use App\Models\EmployeeShifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use League\Csv\Reader;
@@ -15,17 +15,21 @@ Route::get('/test', function () {
 });
 
 Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
+
 Route::get('montly-shifts', function () {
-    $csvPath = storage_path('app/data/turnos.csv'); // asegúrate de tenerlo aquí
+
+    $csvPath = storage_path('app/turnos/julio_alertaMovil.csv'); // asegúrate de tenerlo aquí
     $csv = Reader::createFromPath($csvPath, 'r');
     $csv->setHeaderOffset(0); // usa la primera fila como encabezado
 
     $records = iterator_to_array($csv->getRecords());
+
     return response()->json($records);
 });
 
-Route::get('/api/turnos', function () {
-    $turnos = Shifts::all()->groupBy('nombre');
+Route::get('/turnos', function () {
+
+    $turnos = EmployeeShifts::all()->groupBy('employee_id');
     $result = [];
 
     foreach ($turnos as $nombre => $grupito) {
@@ -39,4 +43,7 @@ Route::get('/api/turnos', function () {
 
     return response()->json($result);
 });
+
+
+
 

@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Employees;
+use App\Models\EmployeeShifts;
 use Illuminate\Http\Request;
 
 class TurnController extends Controller
@@ -24,6 +26,8 @@ class TurnController extends Controller
         $headers[0] = preg_replace('/\x{FEFF}/u', '', $headers[0]);
 
         $data = [];
+
+
         foreach (array_slice($rows, 1) as $row) {
             if (count($row) !== count($headers)) {
                 continue;
@@ -38,6 +42,7 @@ class TurnController extends Controller
 
             $data[] = $item;
         }
+
 
         return response()->json($data);
     }

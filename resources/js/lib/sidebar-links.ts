@@ -22,8 +22,8 @@ const mainNavItems: NavItem[] = [
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
+        title: 'Subir turnos',
+        href: '/upload-csv',
         icon: Folder,
     },
     {
