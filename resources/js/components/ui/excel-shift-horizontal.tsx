@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useEffect, useCallback } from 'react'
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -11,7 +11,7 @@ interface TurnoData {
 }
 
 interface Props {
-    rowData: any[]
+    rowData: TurnoData[]
     onResumenChange: (resumen: Record<string, number>) => void
 }
 
@@ -26,7 +26,10 @@ const diasDelMes = Array.from({ length: 31 }, (_, i) => {
     }
 })
 
-const contarTurnos = (datos: any[]): Record<string, number> => {
+const contarTurnos = (datos: string[]): Record<string, number> => {
+
+    console.log(datos)
+
     const conteo: Record<string, number> = {}
 
     for (const fila of datos) {
@@ -74,30 +77,42 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
 
     const gridRef = useRef<AgGridReact<TurnoData>>(null)
 
-    useEffect(() => {
 
-        if (gridRef.current && gridRef.current.api) {
-            handleCellChange()
-            gridRef.current.api.sizeColumnsToFit()
-        }
-    }, [rowData])
 
-    const handleCellChange = () => {
+
+    // const handleCellChange = () => {
+    //     if (!gridRef.current) return
+
+    //     const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
+    //     const resumenActual = contarTurnos(datosActuales)
+
+    //     onResumenChange(resumenActual)
+    // }
+
+    const handleCellChange = useCallback(() => {
         if (!gridRef.current) return
 
         const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
         const resumenActual = contarTurnos(datosActuales)
 
         onResumenChange(resumenActual)
-    }
+    }, [onResumenChange])
 
-    const handleGridReady = (params: any) => {
+    const handleGridReady = (params: unknown) => {
         const datos: TurnoData[] = [];
-        params.api.forEachNode((node: any) => {
+        params.api.forEachNode((node: unknown) => {
             if (node.data) datos.push(node.data);
         });
         onResumenChange(contarTurnos(datos));
     };
+
+    useEffect(() => {
+
+        if (gridRef.current && gridRef.current.api) {
+            handleCellChange()
+            gridRef.current.api.sizeColumnsToFit()
+        }
+    }, [rowData, handleCellChange])
 
     return (
 
