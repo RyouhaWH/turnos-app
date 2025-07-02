@@ -10,6 +10,7 @@ class TurnController extends Controller
 {
     public function index()
     {
+
         $path = storage_path('app/turnos/julio_alertaMovil.csv');
 
         if (!file_exists($path)) {
@@ -46,4 +47,24 @@ class TurnController extends Controller
 
         return response()->json($data);
     }
+
+    // public function index()
+    // {
+    //     dd('hola mundo');
+
+    //     $data = $this->getShiftsAlertaMovil();
+
+
+    //     return response()->json($data);
+    // }
+
+    // public function getShiftsAlertaMovil(): array
+    // {
+    //     $data = EmployeeShifts::whereYear('date', 2025)
+    //                   ->whereMonth('date', 07)
+    //                   ->get();
+
+
+    //     return $data();
+    // }
 }

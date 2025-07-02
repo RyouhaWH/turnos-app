@@ -4,6 +4,7 @@ import TurnColumn from '@/components/turn-column'
 import TurnPerDate from '@/components/turn-per-date';
 
 export default function Welcome() {
+
     const { auth } = usePage<SharedData>().props;
 
     return (
