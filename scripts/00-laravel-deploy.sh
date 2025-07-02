@@ -9,6 +9,7 @@ npm install
 echo "Building assets..."
 npm run build
 
+
 echo "Caching config..."
 php artisan config:cache
 
