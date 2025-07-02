@@ -28,8 +28,6 @@ const diasDelMes = Array.from({ length: 31 }, (_, i) => {
 
 const contarTurnos = (datos: string[]): Record<string, number> => {
 
-    console.log(datos)
-
     const conteo: Record<string, number> = {}
 
     for (const fila of datos) {
@@ -114,6 +112,18 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
         }
     }, [rowData, handleCellChange])
 
+    const onCellClicked = (event) => {
+
+         // Evitamos que se dispare al hacer clic en la columna "Nombre"
+        if (event.colDef.field === 'nombre') return;
+
+        const dia = event.colDef.field; // día del mes, por ejemplo "01"
+        const funcionario = event.data.nombre;
+        const turno = event.value;                   // Turno en esa celda
+
+        console.log(`El funcionario "${funcionario}" el día "${dia}" tiene el turno "${turno}"`);
+    };
+
     return (
 
         <AgGridReact
@@ -121,6 +131,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
             rowData={rowData}
             columnDefs={columnDefs}
             defaultColDef={{ resizable: true }}
+            onCellClicked={onCellClicked}
             onCellValueChanged={handleCellChange}
             onGridReady={handleGridReady}
             rowHeight={28}
