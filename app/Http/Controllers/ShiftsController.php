@@ -8,6 +8,11 @@ use Illuminate\Http\Request;
 class ShiftsController extends Controller
 {
 
+    public function index()
+    {
+        return Inertia::render('shifts-manager');
+    }
+
     public function store(Request $request)
     {
         $request->validate([

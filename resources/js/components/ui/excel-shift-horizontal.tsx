@@ -10,6 +10,13 @@ interface TurnoData {
     [key: string]: string
 }
 
+interface ModifiedShift {
+
+    nombre: string,
+    dia: Date,
+    turno: string
+}
+
 interface Props {
     rowData: TurnoData[]
     onResumenChange: (resumen: Record<string, number>) => void
@@ -18,8 +25,11 @@ interface Props {
 const diasDelMes = Array.from({ length: 31 }, (_, i) => {
     const date = new Date(2025, 6, i + 1) // julio = mes 6 (base 0)
     const diaSemana = date.getDay()
+    const mes = date.getMonth()
+    const year = date.getFullYear()
     const diasCortos = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
     return {
+        fecha: date,
         dia: (i + 1).toString(),
         nombre: diasCortos[diaSemana],
         isFinDeSemana: diaSemana === 0 || diaSemana === 6,
@@ -75,26 +85,30 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
 
     const gridRef = useRef<AgGridReact<TurnoData>>(null)
 
+    const handleCellChange = useCallback((e: CellValueChangedEvent) => {
 
-
-
-    // const handleCellChange = () => {
-    //     if (!gridRef.current) return
-
-    //     const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
-    //     const resumenActual = contarTurnos(datosActuales)
-
-    //     onResumenChange(resumenActual)
-    // }
-
-    const handleCellChange = useCallback(() => {
         if (!gridRef.current) return
 
         const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
         const resumenActual = contarTurnos(datosActuales)
 
+        const funcionario = e.data.nombre;
+        const dia = diasDelMes[(e.colDef.field)].fecha
+        const diaAnterior = new Date(dia);
+        diaAnterior.setDate(dia.getDate() - 1);
+
+        // Formato YYYY-MM-DD
+        const fechaFormateada = diaAnterior.toISOString().split('T')[0];
+        const turno = e.value
+
+
+
+        console.log(`Has cambiado el turno del "${fechaFormateada}" del funcionario: "${funcionario}" para el turno: "${turno}"`)
+
         onResumenChange(resumenActual)
     }, [onResumenChange])
+
+
 
     const handleGridReady = (params: unknown) => {
         const datos: TurnoData[] = [];
@@ -114,7 +128,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
 
     const onCellClicked = (event) => {
 
-         // Evitamos que se dispare al hacer clic en la columna "Nombre"
+        // Evitamos que se dispare al hacer clic en la columna "Nombre"
         if (event.colDef.field === 'nombre') return;
 
         const dia = event.colDef.field; // día del mes, por ejemplo "01"

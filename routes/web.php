@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ShiftImportController;
+use App\Http\Controllers\ShiftsController;
 use App\Models\Shifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -30,25 +31,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('staff');
     })->name('staff-personal');
 
-    // Route::get('shifts/create', function () {
-    //     $ruta  = storage_path('app/turnos/julio_alertaMovil.csv');
-    //     $datos = [];
-
-    //     if (file_exists($ruta)) {
-    //         $file    = fopen($ruta, 'r');
-    //         $headers = fgetcsv($file); // Primera fila: encabezados
-
-    //         while (($line = fgetcsv($file)) !== false) {
-    //             $datos[] = array_combine($headers, $line);
-    //         }
-
-    //         fclose($file);
-    //     }
-
-    //     return Inertia::render('shifts/create', [
-    //         'shifts' => $datos,
-    //     ]);
-    // })->name('create-shifts');
+    Route::get('/turnos', [ShiftsController::class, 'index']);
 
     Route::get('shifts', function () {
 
@@ -80,6 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         $formateado = array_values($agrupados);
+
+        // return response()->json($agrupados);
 
         return Inertia::render('shifts/create', [
             'turnos' => $formateado,

@@ -1,19 +1,17 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Employees;
 use App\Models\EmployeeShifts;
-use Illuminate\Http\Request;
+use League\Csv\Reader;
 
 class TurnController extends Controller
 {
+    //api
     public function index()
     {
-
         $path = storage_path('app/turnos/julio_alertaMovil.csv');
 
-        if (!file_exists($path)) {
+        if (! file_exists($path)) {
             return response()->json(['error' => 'Archivo no encontrado'], 404);
         }
 
@@ -23,11 +21,10 @@ class TurnController extends Controller
         }
 
         // Limpieza del BOM
-        $headers = $rows[0];
+        $headers    = $rows[0];
         $headers[0] = preg_replace('/\x{FEFF}/u', '', $headers[0]);
 
         $data = [];
-
 
         foreach (array_slice($rows, 1) as $row) {
             if (count($row) !== count($headers)) {
@@ -36,35 +33,47 @@ class TurnController extends Controller
 
             $item = array_combine($headers, $row);
 
-            // Filtra turnos válidos
-            if (!in_array($item['Turno'], ['N', 'M', 'T'])) {
+            // Filtra para mostrar solo turnos omitiendo libres
+            if (! in_array($item['Turno'], ['N', 'M', 'T'])) {
                 continue;
             }
 
             $data[] = $item;
         }
 
-
         return response()->json($data);
     }
 
-    // public function index()
-    // {
-    //     dd('hola mundo');
+    public function getFilteredShiftsFromCSV()
+    {
+        $csvPath = storage_path('app/turnos/julio_alertaMovil.csv');
+        $csv     = Reader::createFromPath($csvPath, 'r');
+        // usa la primera fila como encabezado
+        $csv->setHeaderOffset(0);
 
-    //     $data = $this->getShiftsAlertaMovil();
+        $records = iterator_to_array($csv->getRecords());
 
+        return response()->json($records);
+    }
 
-    //     return response()->json($data);
-    // }
+    public function getShiftsFromDB()
+    {
+        $turnos = EmployeeShifts::all()->groupBy('employee_id');
+        $result = [];
 
-    // public function getShiftsAlertaMovil(): array
-    // {
-    //     $data = EmployeeShifts::whereYear('date', 2025)
-    //                   ->whereMonth('date', 07)
-    //                   ->get();
+        foreach ($turnos as $nombre => $grupito) {
+            $fila = ['nombre' => $nombre];
+            foreach ($grupito as $turno) {
+                $dia                 = \Carbon\Carbon::parse($turno->fecha)->day;
+                $fila[(string) $dia] = $turno->turno;
+            }
+            $result[] = $fila;
+        }
 
-
-    //     return $data();
-    // }
+        if (! empty($result)) {
+            return response()->json($result);
+        } else {
+            return response('no hay turnos en base de datos');
+        }
+    }
 }

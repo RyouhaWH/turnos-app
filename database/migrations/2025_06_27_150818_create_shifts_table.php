@@ -11,15 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('shifts', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('employee_id')->constrained()->onDelete('cascade');
-            $table->date('date');
-            $table->string('shift', 10); // M, T, N, LM, etc.
-            $table->text('comments')->nullable();
-            $table->foreignId('edited_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-        });
+        // Schema::create('shifts', function (Blueprint $table) {
+        //     $table->id();
+        //     $table->foreignId('employee_id')->constrained()->onDelete('cascade');
+        //     $table->date('date');
+        //     $table->string('shift', 10); // M, T, N, LM, etc.
+        //     $table->text('comments')->nullable();
+        //     $table->foreignId('edited_by')->nullable()->constrained('users')->nullOnDelete();
+        //     $table->timestamps();
+        // });
     }
 
     /**
