@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
+import ListaCambios from './shift-change-list';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -16,6 +17,12 @@ interface TurnoData {
     id: string;
     nombre: string;
     [key: string]: string;
+}
+
+interface ChangeShift {
+
+    name: string,
+
 }
 
 const contarTurnos = (datos: TurnoData[]): TurnoResumen => {
@@ -38,12 +45,19 @@ export default function ShiftsManager({ shifts }: any) {
     const { props } = usePage<{ turnos: TurnoData[] }>();
     const rowData = props.turnos;
 
-    const [resumen, setResumen] = useState<Record<string, number>>({});
+    const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
 
     // Esta función se mantiene estable entre renders
-    const handleResumenUpdate = useCallback((nuevoResumen: TurnoResumen) => {
-        setResumen(nuevoResumen);
+    const handleResumenUpdate = useCallback((ResumenCambios) => {
+
+        console.log(ResumenCambios)
+        setResumen(ResumenCambios);
     }, []);
+
+    // Aquí llamas a tu endpoint o lógica de guardar cambios en DB
+    const handleActualizarCambios = () => {
+        console.log("Actualizando con estos cambios:", resumen);
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -53,24 +67,18 @@ export default function ShiftsManager({ shifts }: any) {
                 <div className="flex flex-1 gap-4 overflow-hidden">
                     {/* Tabla */}
                     <div className="ag-theme-alpine flex-1 overflow-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <AgGridHorizontal rowData={rowData} onResumenChange={handleResumenUpdate} />
+                        <AgGridHorizontal
+                            rowData={rowData}
+                            onResumenChange={handleResumenUpdate} />
                     </div>
 
                     {/* Resumen fijo */}
-                    <div className="relative w-[220px] shrink-0">
+                    <div className="relative w-[420px] shrink-0">
                         <div className="sticky  max-h-[calc(100vh-2rem)] overflow-y-auto p-3 text-sm">
                             <h2 className="mb-2 text-center font-bold">Resumen</h2>
-                            {Object.entries(resumen).map(([turno, cantidad]) => (
-                                <div key={turno} className="flex justify-between border-b py-1 text-gray-700">
-                                    <span>{turno}</span>
-                                    <span>{cantidad}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className='mx-auto'>
-                            <Button className='' disabled >
-                                Actualizar Cambios
-                            </Button>
+                            <ListaCambios
+                                cambios={resumen}
+                                onActualizar={handleActualizarCambios}/>
                         </div>
                     </div>
                 </div>

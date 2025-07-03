@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react'
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react'
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
 ModuleRegistry.registerModules([AllCommunityModule]);
@@ -19,7 +19,7 @@ interface ModifiedShift {
 
 interface Props {
     rowData: TurnoData[]
-    onResumenChange: (resumen: Record<string, number>) => void
+    onResumenChange: (resumen: Record<string, Record<string, Date>>) => void
 }
 
 const diasDelMes = Array.from({ length: 31 }, (_, i) => {
@@ -60,6 +60,8 @@ const contarTurnos = (datos: string[]): Record<string, number> => {
 }
 
 export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
+
+    const [cambios, setCambios] = useState<Record<string, Record<string, Date>>>({});
 
     const columnDefs = useMemo<ColDef[]>(() => {
         return [
@@ -103,9 +105,31 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
 
 
 
-        console.log(`Has cambiado el turno del "${fechaFormateada}" del funcionario: "${funcionario}" para el turno: "${turno}"`)
+        setCambios(prev => {
 
-        onResumenChange(resumenActual)
+            const prevCambios = { ...prev };
+
+            const clave = funcionario
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/\s+/g, '_')
+                .toLowerCase();
+
+            if (!prevCambios[clave]) {
+                prevCambios[clave] = {};
+            }
+
+
+
+            prevCambios[clave.toString()][fechaFormateada.toString()] = turno;
+
+            onResumenChange(prevCambios)
+            return prevCambios;
+        });
+
+
+        // console.log(`Has cambiado el turno del "${fechaFormateada}" del funcionario: "${funcionario}" para el turno: "${turno}"`)
+
     }, [onResumenChange])
 
 
@@ -115,7 +139,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
         params.api.forEachNode((node: unknown) => {
             if (node.data) datos.push(node.data);
         });
-        onResumenChange(contarTurnos(datos));
+        // onResumenChange(contarTurnos(datos));
     };
 
     useEffect(() => {
@@ -124,6 +148,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
             handleCellChange()
             gridRef.current.api.sizeColumnsToFit()
         }
+
     }, [rowData, handleCellChange])
 
     const onCellClicked = (event) => {
