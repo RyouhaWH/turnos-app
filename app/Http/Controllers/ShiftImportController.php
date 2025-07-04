@@ -13,7 +13,7 @@ class ShiftImportController extends Controller
         return Inertia::render('shifts/upload-csv-v2');
     }
 
-    public function importFromStorage()
+    public function importFromStorageToDatabase()
     {
 
         $path = storage_path('app/turnos/julio_alertaMovil.csv');
