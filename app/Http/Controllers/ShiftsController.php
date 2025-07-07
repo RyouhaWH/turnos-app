@@ -14,18 +14,24 @@ class ShiftsController extends Controller
 
     public function index()
     {
-        return Inertia::render('shifts-manager');
+        return Inertia::render('welcome');
     }
 
+    /**
+     * Traer los turnos de todas las facciones del día de hoy.
+     * pedir en un selector, el día deseado y con el filtrar.
+     */
+    public function getDailyShifts()
+    {
+        return Inertia::render('shifts/daily');
+    }
 
     public function getShifts()
     {
         $data = $this->getShiftsfromDB();
-        dd($data);
+        $data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
-        $data = empty($data) ? $this->getShiftsfromCSV();
-
-        $formateado = array_values($agrupados);
+        $formateado = array_values($data);
 
         return Inertia::render('shifts/create', [
             'turnos' => $formateado,

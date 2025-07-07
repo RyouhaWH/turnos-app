@@ -30,14 +30,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
-    Route::get('/turnos', [ShiftsController::class, 'index']);
+    Route::get('turnos', [ShiftsController::class, 'index']);
+    Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
 
-    /**
-     * Por algún motivo al refactorizar manda error 500 de server.
-     * por lo que ver más adelante.
-     */
-    // Route::get('shifts', [ShiftsController::class, 'getShifts'])
-    //     ->name('create-shifts');
 
     Route::get('shifts', function () {
 

@@ -1,6 +1,5 @@
 import { type SharedData } from '@/types';
 import { Head, Link, usePage } from '@inertiajs/react';
-import TurnColumn from '@/components/turn-column'
 import TurnPerDate from '@/components/turn-per-date';
 
 export default function Welcome() {
