@@ -9,7 +9,7 @@ class EmployeeShifts extends Model
         'id',
         'employee_id',
         'date',
-        'shifts',
+        'shift',
         'comments',
     ];
     public function employee()

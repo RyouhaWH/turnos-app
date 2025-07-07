@@ -18,9 +18,10 @@ export interface CambiosPorFuncionario {
 interface Props {
   cambios: CambiosPorFuncionario;
   onActualizar?: () => void;
+  isProcesing: Boolean;
 }
 
-const ListaCambios: React.FC<Props> = ({ cambios, onActualizar }) => {
+const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) => {
   const formatNombre = (nombreCrudo: string) => {
     const limpio = nombreCrudo.replace(/_/g, " ").trim();
     const partes = limpio.split(" ");
@@ -70,7 +71,7 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar }) => {
         )}
       </CardContent>
       <div className="p-4 border-t">
-        <Button onClick={onActualizar} className="w-full" disabled={Object.keys(cambios).length === 0}>
+        <Button onClick={onActualizar} className="w-full" disabled={Object.keys(cambios).length === 0 || isProcesing}>
           Actualizar cambios
         </Button>
       </div>

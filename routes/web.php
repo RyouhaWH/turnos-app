@@ -2,11 +2,13 @@
 
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
+use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\Shifts;
 use function Pest\Laravel\json;
 use function PHPUnit\Framework\isEmpty;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use League\Csv\Reader;
@@ -30,7 +32,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/turnos', [ShiftsController::class, 'index']);
 
+    /**
+     * Por algún motivo al refactorizar manda error 500 de server.
+     * por lo que ver más adelante.
+     */
+    // Route::get('shifts', [ShiftsController::class, 'getShifts'])
+    //     ->name('create-shifts');
+
     Route::get('shifts', function () {
+
+        $agrupados = [];
 
         $shiftsEloquent = EmployeeShifts::whereMonth('date', 7)
             ->whereYear('date', 2025)
@@ -52,6 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $fecha  = $fila['Fecha'];
                 $turno  = strtoupper($fila['Turno']);
 
+                // dd(mb_convert_case(mb_strtolower($nombre, 'UTF-8'), MB_CASE_TITLE, 'UTF-8'));
+
                 $dia = (int) date('d', strtotime($fecha)); // 1..31
 
                 if (! isset($agrupados[$nombre])) {
@@ -61,7 +74,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ];
                 }
 
-                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC']) ? $turno : '';
+                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 'A', 'Z', '1', '2', '3']) ? $turno : '';
             }
 
             $formateado = array_values($agrupados);
@@ -71,37 +84,32 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ]);
         } else {
 
-            $agrupados = $shiftsEloquent->toArray();
+            foreach ($shiftsEloquent->toArray() as $shifts) {
+                foreach ($shifts as $shift) {
 
-            foreach ($agrupados as $shift) {
+                    $nombre = $shift['employee']['name'];
+                    $nombre = mb_strtoupper($nombre, 'UTF-8');
+                    $fecha  = $shift['date'];
+                    $turno  = strtoupper($shift['shift']);
+                    $employee_id = $shift['employee_id'];
 
-                $nombre = $shift->employee->name ?? 'SinNombre';
+                    $dia = (int) date('d', strtotime($fecha)); // 1..31
 
-                dd($shift[0]['employee']);
+                    if (! isset($agrupados[$nombre])) {
+                        $agrupados[$nombre] = [
+                            'id'     => Str::slug($nombre, '_'),
+                            'nombre' => $nombre,
+                        ];
+                    }
 
-                $fecha  = $shift->date;
-                $turno  = strtoupper($shift->shift);
-
-                dd($nombre, $dia, $turno);
-
-
-                $dia = (int) date('d', strtotime($fecha)); // 1..31
-
-
-                if (! isset($agrupados[$nombre])) {
-                    $agrupados[$nombre] = [
-                        'id'     => Str::slug($nombre, '_'),
-                        'nombre' => $nombre,
-                    ];
+                    $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 'A', 'Z', '1', '2', '3']) ? $turno : '';
                 }
-
-                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC']) ? $turno : '';
             }
 
             $formateado = array_values($agrupados);
 
             return Inertia::render('shifts/create', [
-                'turnos' => $shiftsEloquent,
+                'turnos' => $formateado,
             ]);
         }
     })->name('create-shifts');
@@ -114,20 +122,48 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //importar turnos desde agGrid
     Route::post('turnos/actualizar', function (Request $request) {
-        $data = $request->validate([
-            'nombre' => 'required|string',
-            'fecha'  => 'required|date',
-            'turno'  => 'required|in:M,T,N',
-        ]);
 
-        Shifts::updateOrCreate([
-            'nombre' => $data['nombre'],
-            'fecha'  => $data['fecha'],
-        ], [
-            'turno' => $data['turno'],
-        ]);
+        $user = auth()->user()->name;
 
-        return response()->json(['message' => 'Turno actualizado']);
+
+        $cambios = $request->input('cambios');
+
+        // Verificamos si vienen cambios
+        if (! is_array($cambios) || empty($cambios)) {
+            return response()->json(['message' => 'No hay cambios para guardar'], 400);
+        }
+
+        foreach ($cambios as $nombreCompleto => $fechas) {
+            foreach ($fechas as $fecha => $turno) {
+
+
+                // Validar turno si quieres
+                if (! in_array(strtoupper($turno), ['M', 'T', 'N', 'F', 'L', 'LM', 'S', 'V', 'LC', 'C', 'A'])) {
+                    continue;
+                }
+
+                $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
+
+                // Buscar empleado
+                $empleado = Employees::where('name', $nombreCompleto)
+                    ->first();
+
+
+                //Guardar o actualizar
+                EmployeeShifts::updateOrCreate(
+                    [
+                        'employee_id' => $empleado->id,
+                        'date'       => $fecha,
+                    ],
+                    [
+                        'shift' => strtoupper($turno),
+                        'comments' => 'hola mundo',
+                    ]
+                );
+            }
+        }
+
+        return back()->with('success', 'Cambios guardados correctamente.');
     });
 
 });

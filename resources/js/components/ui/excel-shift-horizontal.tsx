@@ -89,6 +89,8 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
 
     const handleCellChange = useCallback((e: CellValueChangedEvent) => {
 
+        if (!e || !gridRef.current) return;
+
         if (!gridRef.current) return
 
         const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
