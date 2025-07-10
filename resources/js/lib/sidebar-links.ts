@@ -10,7 +10,7 @@ const mainNavItems: NavItem[] = [
     },
     {
         title: 'Turnos',
-        href: route('create-shifts'),
+        href: route('shifts'),
         icon: Calendar1,
     },
     {
@@ -28,7 +28,7 @@ const footerNavItems: NavItem[] = [
     },
     {
         title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
+        href: '',
         icon: BookOpen,
     },
 

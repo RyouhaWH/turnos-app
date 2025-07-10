@@ -5,16 +5,17 @@ use App\Models\EmployeeShifts;
 use App\Models\Shifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use League\Csv\Reader;
+use Illuminate\Support\Str;
+
 
 class ShiftsController extends Controller
 {
 
     public function index()
     {
-        return Inertia::render('welcome');
+        return Inertia::render('shifts/index');
     }
 
     /**
@@ -26,9 +27,10 @@ class ShiftsController extends Controller
         return Inertia::render('shifts/daily');
     }
 
-    public function getShifts()
+    public function getMonthlyShifts()
     {
         $data = $this->getShiftsfromDB();
+
         $data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
         $formateado = array_values($data);
@@ -70,10 +72,7 @@ class ShiftsController extends Controller
 
         foreach ($shiftsEloquent->toArray() as $shifts) {
 
-
             foreach ($shifts as $shift) {
-
-
 
                 $nombre = $shift['employee']['name'];
                 $fecha  = $shift['date'];
@@ -88,17 +87,14 @@ class ShiftsController extends Controller
                         'nombre' => $nombre,
                     ];
 
-                    dd($agrupados);
                 }
 
-                dd($agrupados);
-
                 $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC']) ? $turno : '';
-
             }
         }
 
         return $agrupados;
+
     }
 
     public function getShiftsfromCSV(): array

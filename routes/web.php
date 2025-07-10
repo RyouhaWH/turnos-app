@@ -30,84 +30,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
-    Route::get('turnos', [ShiftsController::class, 'index']);
+    //para tener turnos
+    Route::get('turnos', [ShiftsController::class, 'index'])
+        ->name('shifts');
     Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
+    Route::get('turnos-mes', [ShiftsController::class, 'getMonthlyShifts'])
+        ->name('create-shifts');
 
-
-    Route::get('shifts', function () {
-
-        $agrupados = [];
-
-        $shiftsEloquent = EmployeeShifts::whereMonth('date', 7)
-            ->whereYear('date', 2025)
-            ->with('employee') // si tienes la relación definida
-            ->get()
-            ->groupBy('employee_id');
-
-        if ($shiftsEloquent->isEmpty()) {
-
-            $path = storage_path('app/turnos/julio_alertaMovil.csv');
-
-            $csv = Reader::createFromPath($path, 'r');
-            $csv->setHeaderOffset(0); // usa la primera fila como cabecera
-
-            $registros = iterator_to_array($csv->getRecords());
-
-            foreach ($registros as $fila) {
-                $nombre = $fila['Nombre'] ?? $fila["\ufeffnombre"] ?? 'SinNombre';
-                $fecha  = $fila['Fecha'];
-                $turno  = strtoupper($fila['Turno']);
-
-                // dd(mb_convert_case(mb_strtolower($nombre, 'UTF-8'), MB_CASE_TITLE, 'UTF-8'));
-
-                $dia = (int) date('d', strtotime($fecha)); // 1..31
-
-                if (! isset($agrupados[$nombre])) {
-                    $agrupados[$nombre] = [
-                        'id'     => Str::slug($nombre, '_'),
-                        'nombre' => $nombre,
-                    ];
-                }
-
-                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 'A', 'Z', '1', '2', '3']) ? $turno : '';
-            }
-
-            $formateado = array_values($agrupados);
-
-            return Inertia::render('shifts/create', [
-                'turnos' => $formateado,
-            ]);
-        } else {
-
-            foreach ($shiftsEloquent->toArray() as $shifts) {
-                foreach ($shifts as $shift) {
-
-                    $nombre = $shift['employee']['name'];
-                    $nombre = mb_strtoupper($nombre, 'UTF-8');
-                    $fecha  = $shift['date'];
-                    $turno  = strtoupper($shift['shift']);
-                    $employee_id = $shift['employee_id'];
-
-                    $dia = (int) date('d', strtotime($fecha)); // 1..31
-
-                    if (! isset($agrupados[$nombre])) {
-                        $agrupados[$nombre] = [
-                            'id'     => Str::slug($nombre, '_'),
-                            'nombre' => $nombre,
-                        ];
-                    }
-
-                    $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 'A', 'Z', '1', '2', '3']) ? $turno : '';
-                }
-            }
-
-            $formateado = array_values($agrupados);
-
-            return Inertia::render('shifts/create', [
-                'turnos' => $formateado,
-            ]);
-        }
-    })->name('create-shifts');
 
     // routes/web.php o routes/api.php
     Route::get('/upload-csv', [ShiftImportController::class, 'index']);
