@@ -5,15 +5,14 @@ use App\Models\EmployeeShifts;
 use App\Models\Shifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use League\Csv\Reader;
-use Illuminate\Support\Str;
-
 
 class ShiftsController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
         return Inertia::render('shifts/index');
     }
@@ -27,9 +26,11 @@ class ShiftsController extends Controller
         return Inertia::render('shifts/daily');
     }
 
-    public function getMonthlyShifts()
+    public function getMonthlyShifts($id)
     {
-        $data = $this->getShiftsfromDB();
+        $data = $this->getShiftsfromDB($id);
+
+        dd($data);
 
         $data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
@@ -60,12 +61,15 @@ class ShiftsController extends Controller
         return redirect()->back()->with('success', 'Turno guardado');
     }
 
-    public function getShiftsfromDB(): array
+    public function getShiftsfromDB($rolId): array
     {
         $agrupados = [];
 
         $shiftsEloquent = EmployeeShifts::whereMonth('date', 7)
             ->whereYear('date', 2025)
+            ->whereHas('employee', function ($query) use ($rolId) {
+                $query->where('rol_id', $rolId);
+            })
             ->with('employee') // si tienes la relación definida
             ->get()
             ->groupBy('employee_id');
@@ -89,7 +93,7 @@ class ShiftsController extends Controller
 
                 }
 
-                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC']) ? $turno : '';
+                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 1, 2, 3, 0]) ? $turno : '';
             }
         }
 

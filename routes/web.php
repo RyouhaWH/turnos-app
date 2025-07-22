@@ -34,7 +34,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('turnos', [ShiftsController::class, 'index'])
         ->name('shifts');
     Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
-    Route::get('turnos-mes', [ShiftsController::class, 'getMonthlyShifts'])
+    Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])
         ->name('create-shifts');
 
 

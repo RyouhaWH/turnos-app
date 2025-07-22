@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Employees;
 use App\Models\Rol;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -56,6 +57,34 @@ class EmployeesFiscaMotosSeeder extends Seeder
             "Gastón Salazar",
         ];
 
+        foreach ($PersonalMotorizado as $nombre)
+        {
+            $nombreFormateado = ucwords(strtolower($nombre));
 
+            $existe = Employees::where('name', $nombreFormateado)->exists();
+
+            if (! $existe) {
+                Employees::create([
+                    'name' => $nombreFormateado,
+                    'amzoma' => false,
+                    'rol_id' => $rolMoto->id,
+                ]);
+            }
+        }
+
+        foreach ($personalFiscalización as $nombre)
+        {
+            $nombreFormateado = ucwords(strtolower($nombre));
+
+            $existe = Employees::where('name', $nombreFormateado)->exists();
+
+            if (! $existe) {
+                Employees::create([
+                    'name' => $nombreFormateado,
+                    'amzoma' => false,
+                    'rol_id' => $rolFisca->id,
+                ]);
+            }
+        }
     }
 }
