@@ -4,8 +4,10 @@ use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Models\Employees;
 use App\Models\EmployeeShifts;
+use App\Models\ShiftChangeLog;
 use function Pest\Laravel\json;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -45,8 +47,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        $user    = auth()->user()->name;
-        $cambios = $request->input('cambios');
+        // ShiftChangeLog::updateOrCreate([
+        //     'employee_shift_id' => 1,
+        //     'changed_by'        => 1,
+        //     'old_shift'         => "T",
+        //     'new_shift'         => "Z",
+        //     'comment'           => "Forzado desde post",
+        // ]);
+
+        $cambios    = $request->input('cambios');
+        $actualUser = Auth::id();
+        $changeAt   = now();
 
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
@@ -56,23 +67,69 @@ Route::middleware(['auth', 'verified'])->group(function () {
         foreach ($cambios as $nombreCompleto => $fechas) {
             foreach ($fechas as $fecha => $turno) {
 
+                // $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
+
+                // // Buscar empleado
+                // $empleado = Employees::where('name', $nombreCompleto)
+                //     ->first();
+
+                // //Guardar o actualizar
+                // EmployeeShifts::updateOrCreate(
+                //     [
+                //         'employee_id' => $empleado->id,
+                //         'date'        => $fecha,
+                //     ],
+                //     [
+                //         'shift'    => strtoupper($turno),
+                //         'comments' => 'hola mundo',
+                //     ]
+                // );
+
+                // Normaliza el nombre
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
 
                 // Buscar empleado
-                $empleado = Employees::where('name', $nombreCompleto)
-                    ->first();
+                $empleado = Employees::where('name', $nombreCompleto)->first();
 
-                //Guardar o actualizar
-                EmployeeShifts::updateOrCreate(
-                    [
-                        'employee_id' => $empleado->id,
-                        'date'        => $fecha,
-                    ],
-                    [
-                        'shift'    => strtoupper($turno),
-                        'comments' => 'hola mundo',
-                    ]
-                );
+                if ($empleado) {
+
+                    $fecha = \Carbon\Carbon::parse($fecha)->toDateString(); // Asegura el formato
+
+                    // Buscar si ya existe el turno
+                    $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
+                        ->whereDate('date', $fecha)
+                        ->first();
+
+                    $nuevoTurno = strtoupper($turno);
+                    $comentario = 'hola mundo';
+
+                    // Verifica si hay un cambio real
+                    if ($turnoActual && $turnoActual->shift !== $nuevoTurno) {
+
+                        // dd("employee_shift_id:  $turnoActual->id, changed_by: $actualUser, old_shift: $turnoActual->shift, new_shift: $nuevoTurno, comment: $comentario, changed_at: $changeAt");
+
+                        // Registrar en historial
+                        ShiftChangeLog::create([
+                            'employee_shift_id' => $turnoActual->id,
+                            'changed_by'        => $actualUser,
+                            'old_shift'         => $turnoActual->shift,
+                            'new_shift'         => $nuevoTurno,
+                            'comment'           => $comentario,
+                        ]);
+
+                        // Guardar o actualizar el turno
+                        EmployeeShifts::updateOrCreate(
+                            [
+                                'employee_id' => $empleado->id,
+                                'date'        => $fecha,
+                            ],
+                            [
+                                'shift'    => $nuevoTurno,
+                                'comments' => $comentario,
+                            ]
+                        );
+                    }
+                }
 
                 //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
 

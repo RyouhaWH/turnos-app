@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Tabla para asociar al funcionaro con área o funcion
      */
     public function up(): void
     {

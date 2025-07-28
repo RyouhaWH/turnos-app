@@ -21,4 +21,5 @@ class Employees extends Model
         return $this->hasMany(EmployeeShifts::class);
     }
 
+
 }

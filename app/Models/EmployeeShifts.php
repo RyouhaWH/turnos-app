@@ -16,4 +16,9 @@ class EmployeeShifts extends Model
     {
         return $this->belongsTo(Employees::class);
     }
+
+    public function shiftChangeLogs()
+    {
+        return $this->hasMany(ShiftChangeLog::class);
+    }
 }
