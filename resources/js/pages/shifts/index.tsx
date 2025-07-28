@@ -38,6 +38,18 @@ export default function Dashboard() {
                         Turnos Personal Motorizado
                     </Link>
                 </Button>
+                <Button asChild>
+                    <Link href={route('upload-shift-file')} as="button">
+                        Ingresar turnos
+                    </Link>
+                </Button>
+                <Button asChild>
+                    <Link href={route('create-shifts', {
+                        id: 3
+                    })} as="button">
+                        Lorem Ipsum
+                    </Link>
+                </Button>
             </div>
         </AppLayout>
     );

@@ -30,14 +30,13 @@ class ShiftsController extends Controller
     {
         $data = $this->getShiftsfromDB($id);
 
-        dd($data);
-
         $data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
         $formateado = array_values($data);
 
         return Inertia::render('shifts/create', [
             'turnos' => $formateado,
+            'employee_rol_id' => $id,
         ]);
     }
 
@@ -93,7 +92,7 @@ class ShiftsController extends Controller
 
                 }
 
-                $agrupados[$nombre][strval($dia)] = in_array($turno, ['M', 'T', 'N', 'F', 'L', 'LM', 'PE', 'S', 'LC', 1, 2, 3, 0]) ? $turno : '';
+                $agrupados[$nombre][strval($dia)] = $turno;
             }
         }
 

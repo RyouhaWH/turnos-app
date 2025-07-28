@@ -40,7 +40,7 @@ const contarTurnos = (datos: TurnoData[]): TurnoResumen => {
     return conteo;
 };
 
-export default function ShiftsManager({ shifts }: any) {
+export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const { data, setData, post, processing, errors } = useForm({
         cambios: {},
     });
@@ -48,6 +48,8 @@ export default function ShiftsManager({ shifts }: any) {
     const rowData = props.turnos;
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
+
+    console.log('el rol del empleado es: ' + employee_rol_id)
 
     // Esta función se mantiene estable entre renders
     const handleResumenUpdate = useCallback((ResumenCambios) => {
@@ -57,27 +59,29 @@ export default function ShiftsManager({ shifts }: any) {
         setData({ cambios: ResumenCambios });
     }, []);
 
-    const guardarCambios = async () => {
-        try {
-            await post('/ruta/guardar', { cambios }); // o useForm().post()
+    // const guardarCambios = async () => {
+    //     try {
+    //         await post('/ruta/guardar', { cambios }); // o useForm().post()
 
-            toast({
-                title: '✅ Cambios guardados',
-                description: 'Los turnos fueron actualizados correctamente.',
-                variant: 'default', // o "success", si tienes variante personalizada
-            });
-        } catch (error) {
-            toast({
-                title: '❌ Error al guardar',
-                description: 'Hubo un problema al guardar los cambios.',
-                variant: 'destructive',
-            });
-        }
-    };
+    //         toast({
+    //             title: '✅ Cambios guardados',
+    //             description: 'Los turnos fueron actualizados correctamente.',
+    //             variant: 'default', // o "success", si tienes variante personalizada
+    //         });
+    //     } catch (error) {
+    //         toast({
+    //             title: '❌ Error al guardar',
+    //             description: 'Hubo un problema al guardar los cambios.',
+    //             variant: 'destructive',
+    //         });
+    //     }
+    // };
 
     // Aquí llamas a tu endpoint o lógica de guardar cambios en DB
     const handleActualizarCambios = () => {
-        post('turnos/actualizar', {
+
+        console.log('turnos-mes/actualizar')
+        post(route('post-updateShifts'), {
             onSuccess: () => {
                 console.log('✅ Turnos guardados correctamente');
                 setResumen({}); // limpia cambios si quieres

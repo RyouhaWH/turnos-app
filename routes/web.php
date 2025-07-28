@@ -4,14 +4,11 @@ use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Models\Employees;
 use App\Models\EmployeeShifts;
-use App\Models\Shifts;
 use function Pest\Laravel\json;
-use function PHPUnit\Framework\isEmpty;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use League\Csv\Reader;
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -37,19 +34,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])
         ->name('create-shifts');
 
-
     // routes/web.php o routes/api.php
-    Route::get('/upload-csv', [ShiftImportController::class, 'index']);
-    Route::post('/upload-csv', [ShiftImportController::class, 'importFromStorageToDatabase']);
+    Route::get('/upload-csv', [ShiftImportController::class, 'index'])
+        ->name('upload-shift-file');
+    Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
+    // Route::post('/upload-csv', [ShiftImportController::class, 'importFromStorageToDatabase']);
 
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
 
     //importar turnos desde agGrid
-    Route::post('turnos/actualizar', function (Request $request) {
+    Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        $user = auth()->user()->name;
-
-
+        $user    = auth()->user()->name;
         $cambios = $request->input('cambios');
 
         // Verificamos si vienen cambios
@@ -60,35 +56,60 @@ Route::middleware(['auth', 'verified'])->group(function () {
         foreach ($cambios as $nombreCompleto => $fechas) {
             foreach ($fechas as $fecha => $turno) {
 
-
-                // Validar turno si quieres
-                if (! in_array(strtoupper($turno), ['M', 'T', 'N', 'F', 'L', 'LM', 'S', 'V', 'LC', 'C', 'A'])) {
-                    continue;
-                }
-
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
 
                 // Buscar empleado
                 $empleado = Employees::where('name', $nombreCompleto)
                     ->first();
 
-
                 //Guardar o actualizar
                 EmployeeShifts::updateOrCreate(
                     [
                         'employee_id' => $empleado->id,
-                        'date'       => $fecha,
+                        'date'        => $fecha,
                     ],
                     [
-                        'shift' => strtoupper($turno),
+                        'shift'    => strtoupper($turno),
                         'comments' => 'hola mundo',
                     ]
                 );
+
+                //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
+
+                //aquí se toma el número que tiene el personal en la base de datos
+                $numeroAEnviar = "56951004035";
+
+                $shiftComplete = match ($turno) {
+                    'A' => 'Administrativo',
+                    'LM'    => 'Licencia Médica',
+                    'S'     => 'Día Sindical',
+                    'M'     => 'Mañana',
+                    'T'     => 'Tarde',
+                    'N'     => 'Noche',
+                    'F'     => 'Franco',
+                    'L'     => 'Libre',
+                    '1'     => 'Primer Turno',
+                    '2'     => 'Segundo Turno',
+                    '3'     => 'Tercer Turno',
+                    default => 'Desconocido',
+                };
+
+                $response = Http::post('http://localhost:3001/send-message', [
+                    'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
+
+                    'numero'  => $numeroAEnviar,
+                ]);
             }
+            $response = Http::post('http://localhost:3001/send-message', [
+                'mensaje' => "-------------",
+
+                'numero'  => $numeroAEnviar,
+            ]);
         }
 
         return back()->with('success', 'Cambios guardados correctamente.');
-    });
+    })
+        ->name('post-updateShifts');
 
 });
 

@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employees;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 
@@ -13,9 +14,44 @@ class ShiftImportController extends Controller
         return Inertia::render('shifts/upload-csv-v2');
     }
 
-    public function importFromStorageToDatabase()
+    public function importFromPostToDatabase(Request $request)
     {
 
+
+          $request->validate([
+            'file' => 'required|file|mimes:csv,txt',
+        ]);
+
+        $rows = array_map('str_getcsv', file($request->file));
+        if (empty($rows)) {
+            return response()->json([]);
+        }
+
+        $headers = $rows[0];
+        $headers[0] = preg_replace('/\x{FEFF}/u', '', $headers[0]);
+
+        $data = [];
+
+        foreach (array_slice($rows, 1) as $row) {
+            if (count($row) !== count($headers)) {
+                continue;
+            }
+
+            $item = array_combine($headers, $row);
+
+            $data[] = $item;
+        }
+
+        $formatedData = $this->formatData($data);
+        $this->uploadToDatabase($formatedData);
+
+        dd('turnos subidos a la base de datos!');
+
+        return back()->with('success', 'Archivo importado correctamente');
+    }
+
+    public function importFromStorageToDatabase(Request $request)
+    {
         $path = storage_path('app/turnos/julio_alertaMovil.csv');
 
         if (! file_exists($path)) {

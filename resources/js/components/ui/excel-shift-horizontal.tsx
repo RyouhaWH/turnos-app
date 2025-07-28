@@ -80,7 +80,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
                 headerClass: 'ag-custom-header',
                 cellClass: d.isFinDeSemana ? 'fin-de-semana' : '',
                 valueParser: (params) =>
-                    (params.newValue || '').toUpperCase().slice(0, 1),
+                    (params.newValue || '').toUpperCase().slice(0, 2),
             })),
         ]
     }, [])
