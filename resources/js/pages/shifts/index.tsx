@@ -44,10 +44,10 @@ export default function Dashboard() {
                     </Link>
                 </Button>
                 <Button asChild>
-                    <Link href={route('create-shifts', {
-                        id: 3
+                    <Link href={route('test-shifts-history', {
+                        employeeId: 3
                     })} as="button">
-                        Lorem Ipsum
+                        Historial de cambios
                     </Link>
                 </Button>
             </div>

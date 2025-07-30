@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmployeeShifts;
+use App\Models\ShiftChangeLog;
 use App\Models\Shifts;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -34,10 +35,18 @@ class ShiftsController extends Controller
 
         $formateado = array_values($data);
 
-        return Inertia::render('shifts/create', [
+        return Inertia::render('shifts/createv2', [
             'turnos' => $formateado,
             'employee_rol_id' => $id,
         ]);
+    }
+
+    public function getHistory($id)
+    {
+        return ShiftChangeLog::where('employee_shift_id', $id)
+        ->with('user')
+        ->orderByDesc('changed_at')
+        ->get();
     }
 
     public function store(Request $request)
@@ -95,9 +104,7 @@ class ShiftsController extends Controller
                 $agrupados[$nombre][strval($dia)] = $turno;
             }
         }
-
         return $agrupados;
-
     }
 
     public function getShiftsfromCSV(): array

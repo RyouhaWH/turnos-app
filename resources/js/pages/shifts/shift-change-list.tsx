@@ -3,7 +3,9 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { UserIcon } from "lucide-react";
-import React from "react";
+import React, { useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 export type TurnoTipo = "M" | "T" | "N";
 
@@ -17,11 +19,13 @@ export interface CambiosPorFuncionario {
 
 interface Props {
   cambios: CambiosPorFuncionario;
-  onActualizar?: () => void;
-  isProcesing: Boolean;
+  onActualizar?: (comentario: string) => void; // ← permite pasar el comentario al handler
+  isProcesing: boolean;
 }
 
 const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) => {
+  const [comentario, setComentario] = useState("");
+
   const formatNombre = (nombreCrudo: string) => {
     const limpio = nombreCrudo.replace(/_/g, " ").trim();
     const partes = limpio.split(" ");
@@ -58,6 +62,14 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) =
     });
   };
 
+  const handleClickActualizar = () => {
+    console.log(comentario)
+    if (onActualizar) {
+      onActualizar(comentario);
+      setComentario(""); // limpia después de enviar
+    }
+  };
+
   return (
     <Card className="h-full flex flex-col justify-between">
       <CardHeader>
@@ -70,8 +82,26 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) =
           renderCambios()
         )}
       </CardContent>
+
+      {/* Campo de Comentario */}
+      <div className="px-4 pb-2">
+        <Label htmlFor="comentario">Comentario</Label>
+        <Textarea
+          id="comentario"
+          placeholder="Describe brevemente el motivo del cambio de turnos (visible en el historial)"
+          value={comentario}
+          onChange={(e) => setComentario(e.target.value)}
+          className="mt-1"
+          rows={3}
+        />
+      </div>
+
       <div className="p-4 border-t">
-        <Button onClick={onActualizar} className="w-full" disabled={Object.keys(cambios).length === 0 || isProcesing}>
+        <Button
+          onClick={handleClickActualizar}
+          className="w-full"
+          disabled={Object.keys(cambios).length === 0 || isProcesing}
+        >
           Actualizar cambios
         </Button>
       </div>

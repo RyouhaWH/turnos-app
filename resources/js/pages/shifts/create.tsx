@@ -24,6 +24,15 @@ interface ChangeShift {
     name: string;
 }
 
+const [historial, setHistorial] = useState([]);
+const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState(null);
+
+const cargarHistorial = async (employeeId) => {
+    const res = await fetch(`/api/shift-change-log/${employeeId}`);
+    const data = await res.json();
+    setHistorial(data);
+};
+
 const contarTurnos = (datos: TurnoData[]): TurnoResumen => {
     const conteo: TurnoResumen = {};
     for (const fila of datos) {
@@ -49,7 +58,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
 
-    console.log('el rol del empleado es: ' + employee_rol_id)
+    console.log('el rol del empleado es: ' + employee_rol_id);
 
     // Esta función se mantiene estable entre renders
     const handleResumenUpdate = useCallback((ResumenCambios) => {
@@ -59,28 +68,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setData({ cambios: ResumenCambios });
     }, []);
 
-    // const guardarCambios = async () => {
-    //     try {
-    //         await post('/ruta/guardar', { cambios }); // o useForm().post()
-
-    //         toast({
-    //             title: '✅ Cambios guardados',
-    //             description: 'Los turnos fueron actualizados correctamente.',
-    //             variant: 'default', // o "success", si tienes variante personalizada
-    //         });
-    //     } catch (error) {
-    //         toast({
-    //             title: '❌ Error al guardar',
-    //             description: 'Hubo un problema al guardar los cambios.',
-    //             variant: 'destructive',
-    //         });
-    //     }
-    // };
-
     // Aquí llamas a tu endpoint o lógica de guardar cambios en DB
     const handleActualizarCambios = () => {
-
-        console.log('turnos-mes/actualizar')
+        console.log('turnos-mes/actualizar');
         post(route('post-updateShifts'), {
             onSuccess: () => {
                 console.log('✅ Turnos guardados correctamente');
@@ -106,7 +96,15 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 <div className="flex flex-1 gap-4 overflow-hidden">
                     {/* Tabla */}
                     <div className="ag-theme-alpine flex-1 overflow-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <AgGridHorizontal rowData={rowData} onResumenChange={handleResumenUpdate} />
+                        <AgGridHorizontal
+                            rowData={rowData}
+                            onResumenChange={handleResumenUpdate}
+                            onRowClicked={(event) => {
+                                const empleadoId = event.data.id || event.data.employee_id;
+                                setEmpleadoSeleccionado(event.data);
+                                cargarHistorial(empleadoId);
+                            }}
+                        />
                     </div>
 
                     {/* Resumen fijo */}

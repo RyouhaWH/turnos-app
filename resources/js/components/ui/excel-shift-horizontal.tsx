@@ -59,7 +59,7 @@ const contarTurnos = (datos: string[]): Record<string, number> => {
     return conteo
 }
 
-export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
+export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, }: Props) {
 
     const [cambios, setCambios] = useState<Record<string, Record<string, Date>>>({});
 
@@ -175,6 +175,7 @@ export default function AgGridHorizontal({ rowData, onResumenChange }: Props) {
             onCellClicked={onCellClicked}
             onCellValueChanged={handleCellChange}
             onGridReady={handleGridReady}
+            onRowClicked={onRowClicked}
             rowHeight={28}
         />
     )

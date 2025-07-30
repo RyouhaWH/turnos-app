@@ -21,6 +21,13 @@ Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV'])
 //retorna turnos desde base de datos
 Route::get('/turnos', [TurnController::class, 'getShiftsFromDB']);
 
+//Retorna turnos modificados
+Route::get('/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee']);
+
+//Retorna todos los turnos modificados
+Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
+
+
 
 
 

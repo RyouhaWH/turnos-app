@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
+use App\Http\Controllers\TurnController;
 use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
-use function Pest\Laravel\json;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
@@ -35,6 +35,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
     Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])
         ->name('create-shifts');
+    Route::get('/turnos/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])
+        ->name('shifts-history');
+    Route::get('/test-getShiftLog/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])
+        ->name('test-shifts-history');
 
     // routes/web.php o routes/api.php
     Route::get('/upload-csv', [ShiftImportController::class, 'index'])
@@ -47,17 +51,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        // ShiftChangeLog::updateOrCreate([
-        //     'employee_shift_id' => 1,
-        //     'changed_by'        => 1,
-        //     'old_shift'         => "T",
-        //     'new_shift'         => "Z",
-        //     'comment'           => "Forzado desde post",
-        // ]);
-
         $cambios    = $request->input('cambios');
         $actualUser = Auth::id();
-        $changeAt   = now();
+
+        dd($request->post());
 
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
@@ -66,24 +63,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         foreach ($cambios as $nombreCompleto => $fechas) {
             foreach ($fechas as $fecha => $turno) {
-
-                // $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
-
-                // // Buscar empleado
-                // $empleado = Employees::where('name', $nombreCompleto)
-                //     ->first();
-
-                // //Guardar o actualizar
-                // EmployeeShifts::updateOrCreate(
-                //     [
-                //         'employee_id' => $empleado->id,
-                //         'date'        => $fecha,
-                //     ],
-                //     [
-                //         'shift'    => strtoupper($turno),
-                //         'comments' => 'hola mundo',
-                //     ]
-                // );
 
                 // Normaliza el nombre
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));

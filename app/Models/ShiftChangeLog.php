@@ -1,10 +1,8 @@
 <?php
-
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-
+use Illuminate\Database\Eloquent\Model;
 
 class ShiftChangeLog extends Model
 {
@@ -31,5 +29,10 @@ class ShiftChangeLog extends Model
     public function changedBy()
     {
         return $this->belongsTo(User::class, 'changed_by');
+    }
+
+    public function employeeShift()
+    {
+        return $this->belongsTo(EmployeeShifts::class, 'employee_shift_id');
     }
 }
