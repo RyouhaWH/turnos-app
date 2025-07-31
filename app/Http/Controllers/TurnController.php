@@ -1,12 +1,13 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
-use League\Csv\Reader;
 use Illuminate\Support\Str;
-
+use League\Csv\Reader;
 
 /**
  * Controlador dedicado al manejo de datos mediante api
@@ -88,17 +89,16 @@ class TurnController extends Controller
             ->get()
             ->map(function ($log) {
                 return [
-                    'old_shift'   => $log->old_shift,
-                    'new_shift'   => $log->new_shift,
-                    'comment'     => $log->comment,
-                    'changed_at'  => $log->changed_at ? \Carbon\Carbon::parse($log->changed_at)->format('Y-m-d H:i:s') : null,
-                    'changed_by'  => optional($log->changedBy)->name ?? 'Desconocido',
-                    'empleado'    => optional(optional($log->employeeShift)->employee)->name ?? 'Desconocido',
+                    'old_shift'  => $log->old_shift,
+                    'new_shift'  => $log->new_shift,
+                    'comment'    => $log->comment,
+                    'changed_at' => $log->changed_at ? \Carbon\Carbon::parse($log->changed_at)->format('Y-m-d H:i:s') : null,
+                    'changed_by' => optional($log->changedBy)->name ?? 'Desconocido',
+                    'empleado'   => optional(optional($log->employeeShift)->employee)->name ?? 'Desconocido',
                     // Si quieres devolver el objeto completo:
                     // 'empleado' => $log->employeeShift?->employee,
                 ];
             });
-
 
         return response()->json($logs);
 
@@ -120,7 +120,7 @@ class TurnController extends Controller
     {
         $data = $this->getShiftsfromDBByDate($year, $month, $rolId);
 
-        return response($data);
+        return response()->json($data);
     }
 
     public function getShiftsfromDBByDate($year, $month, $rolId): array
@@ -136,8 +136,28 @@ class TurnController extends Controller
             ->get()
             ->groupBy('employee_id');
 
-        foreach ($shiftsEloquent->toArray() as $shifts) {
+        if ($shiftsEloquent) {
 
+            $employees = Employees::where('rol_id', $rolId)
+                ->get();
+            $days = $this->obtenerDiasDelMes($year, $month);
+
+            foreach ($employees as $employee) {
+                $nombre = $employee['name'];
+
+                if (! isset($agrupados[$nombre])) {
+
+                    $agrupados[$nombre] = array_merge([
+                        'id'     => Str::slug($nombre, '_'),
+                        'nombre' => $nombre,
+                    ], $days);
+                }
+            }
+
+            return $agrupados;
+        }
+
+        foreach ($shiftsEloquent->toArray() as $shifts) {
             foreach ($shifts as $shift) {
 
                 $nombre = $shift['employee']['name'];
@@ -152,13 +172,28 @@ class TurnController extends Controller
                         'id'     => Str::slug($nombre, '_'),
                         'nombre' => $nombre,
                     ];
-
                 }
-
                 $agrupados[$nombre][strval($dia)] = $turno;
             }
         }
         return $agrupados;
+    }
+
+    public function obtenerDiasDelMes($year, $month)
+    {
+        // Convertimos a nombre del mes (ej: "Enero")
+        $nombreMes = Carbon::createFromDate($year, $month, 1)->translatedFormat('F');
+
+        // Obtenemos la cantidad de días que tiene el mes
+        $diasEnElMes = Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        // Creamos un array con claves del 1 al último día del mes
+        $dias = [];
+        for ($i = 1; $i <= $diasEnElMes; $i++) {
+            $dias[$i] = null; // o puedes inicializar con algún valor por defecto
+        }
+
+        return $dias;
     }
 
     public function getShiftsFromDB()

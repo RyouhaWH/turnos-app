@@ -32,11 +32,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //para tener turnos
     Route::get('turnos', [ShiftsController::class, 'index'])
         ->name('shifts');
+
     Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
+
     Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])
         ->name('create-shifts');
+
     Route::get('/turnos/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])
         ->name('shifts-history');
+
     Route::get('/test-getShiftLog/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])
         ->name('test-shifts-history');
 
