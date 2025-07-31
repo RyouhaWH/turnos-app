@@ -84,7 +84,7 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) =
       </CardContent>
 
       {/* Campo de Comentario */}
-      <div className="px-4 pb-2">
+      {/* <div className="px-4 pb-2">
         <Label htmlFor="comentario">Comentario</Label>
         <Textarea
           id="comentario"
@@ -94,7 +94,7 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing }) =
           className="mt-1"
           rows={3}
         />
-      </div>
+      </div> */}
 
       <div className="p-4 border-t">
         <Button

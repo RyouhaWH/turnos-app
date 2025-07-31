@@ -30,7 +30,7 @@ export default function ShiftHistoryFeed() {
     }, []);
 
     return (
-        <div className="p-4 border rounded-lg shadow-md max-h-[calc(100vh-5rem)] overflow-y-auto w-full bg-white dark:bg-gray-900">
+        <div className="p-4 border rounded-lg shadow-md h-96 overflow-y-scroll w-full bg-white dark:bg-gray-900">
             <h2 className="text-lg font-bold mb-4 text-center">🕓 Últimos cambios</h2>
             {loading ? (
                 <p className="text-sm text-gray-500 text-center">Cargando historial...</p>
@@ -41,16 +41,16 @@ export default function ShiftHistoryFeed() {
                     {logs.map((log, index) => (
                         <li key={index} className="border-b pb-2">
                             <div className="text-sm text-gray-700 dark:text-gray-200">
-                                <strong className="text-indigo-600">{log.changed_by}</strong>
+                                <strong className="">{log.changed_by} </strong>
                                 cambió el turno de
                                 <span> {log.empleado}</span>
-                                <span className="text-red-500 font-semibold mx-1">{log.old_shift}</span>
+                                <span className="text-cyan-500 font-semibold mx-1">{log.old_shift}</span>
                                 a
-                                <span className="text-green-600 font-semibold mx-1">{log.new_shift}</span>
+                                <span className="text-teal-600 font-semibold mx-1">{log.new_shift}</span>
                             </div>
-                            {log.comment && (
+                            {log.comment !== "hola mundo" && (
                                 <div className="text-xs italic text-gray-500 dark:text-gray-400 mt-1">
-                                    “{log.comment}”
+                                “{log.comment}”
                                 </div>
                             )}
                             <div className="text-xs text-gray-400 mt-1">

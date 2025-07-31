@@ -129,9 +129,6 @@ export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicke
             return prevCambios;
         });
 
-
-        // console.log(`Has cambiado el turno del "${fechaFormateada}" del funcionario: "${funcionario}" para el turno: "${turno}"`)
-
     }, [onResumenChange])
 
 
