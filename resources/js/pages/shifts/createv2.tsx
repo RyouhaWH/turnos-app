@@ -7,6 +7,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
+import { Button } from '@/components/ui/button';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -22,7 +23,6 @@ interface TurnoData {
 }
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
-
     const mesActual = 'Julio';
 
     const { data, setData, post, processing, errors } = useForm({
@@ -80,14 +80,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-col gap-4 overflow-hidden p-4">
-
                 {/* Contenedor principal */}
                 <div className="flex flex-1 gap-4 overflow-hidden">
-
                     {/* Tabla AG Grid */}
-                    <div className='w-full h-auto pb-4'>
+                    <div className="h-auto w-full pb-4">
                         <h2 className="mb-2 text-center font-bold">{mesActual}</h2>
-                        <div className="pb-4 h-full ag-theme-alpine flex-1 overflow-auto dark:border-sidebar-border">
+                        <div className="ag-theme-alpine h-full flex-1 overflow-auto pb-4 dark:border-sidebar-border">
                             <AgGridHorizontal
                                 rowData={rowData}
                                 onResumenChange={handleResumenUpdate}
@@ -104,6 +102,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className="relative w-[420px] shrink-0 overflow-hidden">
                         <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-hidden p-3 text-sm">
 
+                            {/* Ejemplo básico de mes/año selector */}
+                            <DatePicker selected={selectedDate} onChange={(date) => setSelectedDate(date)} dateFormat="MM/yyyy" showMonthYearPicker />
+                            <Button
+                                onClick={() => cargarTurnosPorMes(selectedDate)}>Cargar turnos
+                            </Button>
+
                             {/* Resumen de cambios */}
                             <h2 className="mb-2 text-center font-bold">Resumen</h2>
                             <ListaCambios
@@ -113,7 +117,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                             />
 
                             {/* Feed lateral */}
-                            <div className="w-auto shrink-0 py-4 h-full">
+                            <div className="h-full w-auto shrink-0 py-4">
                                 <ShiftHistoryFeed />
                             </div>
                         </div>

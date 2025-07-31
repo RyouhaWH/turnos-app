@@ -24,6 +24,9 @@ Route::get('/turnos', [TurnController::class, 'getShiftsFromDB']);
 //Retorna turnos modificados
 Route::get('/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee']);
 
+//Retorna turnos según fecha
+Route::get('/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts']);
+
 //Retorna todos los turnos modificados
 Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
 

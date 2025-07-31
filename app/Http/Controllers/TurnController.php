@@ -5,6 +5,8 @@ use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
 use Illuminate\Support\Facades\Log;
 use League\Csv\Reader;
+use Illuminate\Support\Str;
+
 
 /**
  * Controlador dedicado al manejo de datos mediante api
@@ -112,6 +114,51 @@ class TurnController extends Controller
         $records = iterator_to_array($csv->getRecords());
 
         return response()->json($records);
+    }
+
+    public function getMonthlyShifts($year, $month, $rolId)
+    {
+        $data = $this->getShiftsfromDBByDate($year, $month, $rolId);
+
+        return response($data);
+    }
+
+    public function getShiftsfromDBByDate($year, $month, $rolId): array
+    {
+        $agrupados = [];
+
+        $shiftsEloquent = EmployeeShifts::whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->whereHas('employee', function ($query) use ($rolId) {
+                $query->where('rol_id', $rolId);
+            })
+            ->with('employee') // si tienes la relación definida
+            ->get()
+            ->groupBy('employee_id');
+
+        foreach ($shiftsEloquent->toArray() as $shifts) {
+
+            foreach ($shifts as $shift) {
+
+                $nombre = $shift['employee']['name'];
+                $fecha  = $shift['date'];
+                $turno  = strtoupper($shift['shift']);
+
+                $dia = (int) date('d', strtotime($fecha)); // 1..31
+
+                if (! isset($agrupados[$nombre])) {
+
+                    $agrupados[$nombre] = [
+                        'id'     => Str::slug($nombre, '_'),
+                        'nombre' => $nombre,
+                    ];
+
+                }
+
+                $agrupados[$nombre][strval($dia)] = $turno;
+            }
+        }
+        return $agrupados;
     }
 
     public function getShiftsFromDB()
