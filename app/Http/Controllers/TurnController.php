@@ -132,7 +132,7 @@ class TurnController extends Controller
             ->whereHas('employee', function ($query) use ($rolId) {
                 $query->where('rol_id', $rolId);
             })
-            ->with('employee') // si tienes la relación definida
+            ->with('employee')
             ->get()
             ->groupBy('employee_id');
 
