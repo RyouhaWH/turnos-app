@@ -8,7 +8,7 @@ import { Head, useForm, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
-import { DatePickerDemo } from '@/components/ui/date-picker';
+import { MonthYearPicker } from '@/components/month-year-picker';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -24,15 +24,12 @@ interface TurnoData {
 }
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
-    const mesActual = 'Julio';
-
     const { data, setData, post, processing, errors } = useForm({
         cambios: {},
         comentario: '',
     });
 
     const { props } = usePage<{ turnos: TurnoData[] }>();
-
     let rowData = props.turnos;
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
@@ -41,21 +38,20 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-
     const cargarHistorial = async (employeeId: number | string) => {
         const res = await fetch(`/api/shift-change-log/${employeeId}`);
         const data = await res.json();
         setHistorial(data);
     };
 
-    const cargarTurnosPorMes = async (fecha) => {
-
+    const cargarTurnosPorMes = async (fecha: Date) => {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
         try {
-            const response = await fetch(`/api/shifts/${year}/${month}/${employee_rol_id}`);
+            const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
             const data = await response.json();
+            console.log = data;
             rowData = data;
         } catch (error) {
             console.error('Error al cargar turnos:', error);
@@ -71,7 +67,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     }, []);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
-        console.log(comentarioNuevo);
         setComentario(comentarioNuevo);
 
         post(route('post-updateShifts'), {
@@ -102,7 +97,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 <div className="flex flex-1 gap-4 overflow-hidden">
                     {/* Tabla AG Grid */}
                     <div className="h-auto w-full pb-4">
-                        <h2 className="mb-2 text-center font-bold">{mesActual}</h2>
+                        <h2 className="mb-2 text-center font-bold">
+                            {selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}
+                        </h2>
+
                         <div className="ag-theme-alpine h-full flex-1 overflow-auto pb-4 dark:border-sidebar-border">
                             <AgGridHorizontal
                                 rowData={rowData}
@@ -119,9 +117,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     {/* Panel lateral derecho */}
                     <div className="relative w-[420px] shrink-0 overflow-hidden">
                         <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-hidden p-3 text-sm">
-                            {/* Ejemplo básico de mes/año selector */}
-                            <DatePicker selected={selectedDate} onChange={(date) => setSelectedDate(date)} dateFormat="MM/yyyy" showMonthYearPicker />
-                            <Button onClick={() => cargarTurnosPorMes(selectedDate)}>Cargar turnos</Button>
+                            {/* Selector de mes y año con ShadCN */}
+                            <MonthYearPicker onChange={setSelectedDate} />
+                            <Button className="mb-4 w-full" onClick={() => cargarTurnosPorMes(selectedDate)}>
+                                Cargar turnos
+                            </Button>
 
                             {/* Resumen de cambios */}
                             <h2 className="mb-2 text-center font-bold">Resumen</h2>
