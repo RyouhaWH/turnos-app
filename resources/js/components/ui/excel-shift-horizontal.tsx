@@ -1,8 +1,7 @@
-import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react'
+import React, { useMemo, useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry } from 'ag-grid-community';
+import { AllCommunityModule, ModuleRegistry, ColDef, CellValueChangedEvent } from 'ag-grid-community';
 ModuleRegistry.registerModules([AllCommunityModule]);
-
 
 interface TurnoData {
     id: string
@@ -11,7 +10,6 @@ interface TurnoData {
 }
 
 interface ModifiedShift {
-
     nombre: string,
     dia: Date,
     turno: string
@@ -20,6 +18,7 @@ interface ModifiedShift {
 interface Props {
     rowData: TurnoData[]
     onResumenChange: (resumen: Record<string, Record<string, Date>>) => void
+    onRowClicked?: (event: any) => void
 }
 
 const diasDelMes = Array.from({ length: 31 }, (_, i) => {
@@ -36,8 +35,7 @@ const diasDelMes = Array.from({ length: 31 }, (_, i) => {
     }
 })
 
-const contarTurnos = (datos: string[]): Record<string, number> => {
-
+const contarTurnos = (datos: any[]): Record<string, number> => {
     const conteo: Record<string, number> = {}
 
     for (const fila of datos) {
@@ -59,9 +57,29 @@ const contarTurnos = (datos: string[]): Record<string, number> => {
     return conteo
 }
 
-export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, }: Props) {
-
+// 🔥 NUEVO: Exportamos con forwardRef para permitir ref desde el componente padre
+export default forwardRef<any, Props>(function AgGridHorizontal({ rowData, onResumenChange, onRowClicked }, ref) {
     const [cambios, setCambios] = useState<Record<string, Record<string, Date>>>({});
+    const gridRef = useRef<AgGridReact<TurnoData>>(null)
+
+    // 🔥 NUEVO: Exponemos métodos del grid al componente padre
+    useImperativeHandle(ref, () => ({
+        autoSizeColumns: (columns?: string[]) => {
+            if (gridRef.current?.api) {
+                if (columns) {
+                    gridRef.current.api.autoSizeColumns(columns);
+                } else {
+                    gridRef.current.api.autoSizeAllColumns();
+                }
+            }
+        },
+        sizeColumnsToFit: () => {
+            if (gridRef.current?.api) {
+                gridRef.current.api.sizeColumnsToFit();
+            }
+        },
+        api: gridRef.current?.api
+    }));
 
     const columnDefs = useMemo<ColDef[]>(() => {
         return [
@@ -69,48 +87,55 @@ export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicke
                 headerName: 'Nombre',
                 field: 'nombre',
                 pinned: 'left',
-                width: 140,
+                // 🔥 CAMBIOS: Mejorar el autoajuste de la columna nombre
+                minWidth: 120,
+                maxWidth: 200,
+                flex: 0, // No usar flex para que respete el autosize
+                suppressSizeToFit: true, // No incluir en sizeColumnsToFit
+                autoHeight: true,
+                cellStyle: {
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    paddingLeft: '8px',
+                    paddingRight: '8px'
+                }
             },
             ...diasDelMes.map((d) => ({
                 headerName: `${d.dia}\n${d.nombre}`,
                 field: d.dia,
                 editable: true,
                 width: 46,
+                minWidth: 46,
+                maxWidth: 46,
+                flex: 0,
                 cellStyle: { textAlign: 'center' },
                 headerClass: 'ag-custom-header',
                 cellClass: d.isFinDeSemana ? 'fin-de-semana' : '',
-                valueParser: (params) =>
+                valueParser: (params: any) =>
                     (params.newValue || '').toUpperCase().slice(0, 2),
             })),
         ]
     }, [])
 
-    const gridRef = useRef<AgGridReact<TurnoData>>(null)
-
     const handleCellChange = useCallback((e: CellValueChangedEvent) => {
-
         if (!e || !gridRef.current) return;
-
-        if (!gridRef.current) return
 
         const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
         const resumenActual = contarTurnos(datosActuales)
 
         const funcionario = e.data.nombre;
-        const dia = diasDelMes[(e.colDef.field)].fecha
+        const dia = diasDelMes[Number(e.colDef.field) - 1]?.fecha
+        if (!dia) return;
+
         const diaAnterior = new Date(dia);
         diaAnterior.setDate(dia.getDate() - 1);
 
-        // Formato YYYY-MM-DD
         const fechaFormateada = diaAnterior.toISOString().split('T')[0];
         const turno = e.value
 
-
-
         setCambios(prev => {
-
             const prevCambios = { ...prev };
-
             const clave = funcionario
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
@@ -121,54 +146,57 @@ export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicke
                 prevCambios[clave] = {};
             }
 
-
-
             prevCambios[clave.toString()][fechaFormateada.toString()] = turno;
-
             onResumenChange(prevCambios)
             return prevCambios;
         });
-
     }, [onResumenChange])
 
-
-
-    const handleGridReady = (params: unknown) => {
-        const datos: TurnoData[] = [];
-        params.api.forEachNode((node: unknown) => {
-            if (node.data) datos.push(node.data);
-        });
-        // onResumenChange(contarTurnos(datos));
+    const handleGridReady = (params: any) => {
+        // 🔥 NUEVO: Autoajustar columna nombre al cargar
+        setTimeout(() => {
+            if (params.api) {
+                params.api.autoSizeColumns(['nombre']);
+            }
+        }, 100);
     };
 
+    // 🔥 NUEVO: Mejorar el useEffect para manejar cambios de datos
     useEffect(() => {
-
-        if (gridRef.current && gridRef.current.api) {
-            handleCellChange()
-            gridRef.current.api.sizeColumnsToFit()
+        if (gridRef.current?.api && rowData.length > 0) {
+            // Primero autosize la columna nombre, luego ajustar el resto
+            setTimeout(() => {
+                if (gridRef.current?.api) {
+                    gridRef.current.api.autoSizeColumns(['nombre']);
+                    // Pequeña pausa para que se calcule el tamaño
+                    setTimeout(() => {
+                        if (gridRef.current?.api) {
+                            gridRef.current.api.sizeColumnsToFit();
+                        }
+                    }, 50);
+                }
+            }, 100);
         }
+    }, [rowData])
 
-    }, [rowData, handleCellChange])
-
-    const onCellClicked = (event) => {
-
-        // Evitamos que se dispare al hacer clic en la columna "Nombre"
+    const onCellClicked = (event: any) => {
         if (event.colDef.field === 'nombre') return;
-
-        const dia = event.colDef.field; // día del mes, por ejemplo "01"
+        const dia = event.colDef.field;
         const funcionario = event.data.nombre;
-        const turno = event.value;                   // Turno en esa celda
-
+        const turno = event.value;
         console.log(`El funcionario "${funcionario}" el día "${dia}" tiene el turno "${turno}"`);
     };
 
     return (
-
         <AgGridReact
             ref={gridRef}
             rowData={rowData}
             columnDefs={columnDefs}
-            defaultColDef={{ resizable: true }}
+            defaultColDef={{
+                resizable: true,
+                sortable: false,
+                filter: false
+            }}
             onCellClicked={onCellClicked}
             onCellValueChanged={handleCellChange}
             onGridReady={handleGridReady}
@@ -176,6 +204,9 @@ export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicke
             rowHeight={28}
             suppressColumnVirtualisation={true}
             suppressRowVirtualisation={true}
+            // 🔥 NUEVO: Opciones adicionales para mejor rendering
+            suppressLoadingOverlay={true}
+            suppressNoRowsOverlay={true}
         />
     )
-}
+});

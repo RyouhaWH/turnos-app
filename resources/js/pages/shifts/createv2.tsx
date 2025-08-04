@@ -66,10 +66,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             // 🔥 NUEVO: Forzar redimensionamiento después de actualizar datos
             setTimeout(() => {
-                if (gridRef.current?.api) {
-                    gridRef.current.api.sizeColumnsToFit();
-                    // Alternativa más agresiva si la anterior no funciona:
-                    // gridRef.current.api.autoSizeAllColumns();
+                if (gridRef.current) {
+                    // Autosize solo la columna de nombres y luego ajustar el resto
+                    gridRef.current.autoSizeColumns(['nombre']);
+                    setTimeout(() => {
+                        gridRef.current.sizeColumnsToFit();
+                    }, 50);
                 }
             }, 100);
 
