@@ -148,6 +148,22 @@
     --sidebar-ring: oklch(0.439 0 0);
 }
 
+/* En tu archivo CSS global o en el componente */
+.ag-theme-alpine .cell-modified {
+  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+  border: 1px solid #f59e0b !important;
+  position: relative;
+}
+
+.ag-theme-alpine .cell-modified::after {
+  content: '●';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  color: #f59e0b;
+  font-size: 10px;
+}
+
 .ag-custom-header .ag-header-cell-label {
   white-space: pre-line !important;
   text-align: center;
