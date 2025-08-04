@@ -1,9 +1,11 @@
 <?php
 namespace App\Http\Controllers;
 
+use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
 use App\Models\Shifts;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
@@ -31,12 +33,12 @@ class ShiftsController extends Controller
     {
         $data = $this->getShiftsfromDB($id);
 
-        $data = empty($data) ? $this->getShiftsfromCSV() : $data;
+        //$data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
         $formateado = array_values($data);
 
         return Inertia::render('shifts/createv2', [
-            'turnos' => $formateado,
+            'turnos'          => $formateado,
             'employee_rol_id' => $id,
         ]);
     }
@@ -44,9 +46,9 @@ class ShiftsController extends Controller
     public function getHistory($id)
     {
         return ShiftChangeLog::where('employee_shift_id', $id)
-        ->with('user')
-        ->orderByDesc('changed_at')
-        ->get();
+            ->with('user')
+            ->orderByDesc('changed_at')
+            ->get();
     }
 
     public function store(Request $request)
@@ -71,39 +73,56 @@ class ShiftsController extends Controller
 
     public function getShiftsfromDB($rolId): array
     {
-        $agrupados = [];
+        $actualDate = Carbon::now('America/Santiago');
+        $year       = $actualDate->year;
+        $month      = $actualDate->month;
 
-        $shiftsEloquent = EmployeeShifts::whereMonth('date', 7)
-            ->whereYear('date', 2025)
+        // Obtener todos los empleados del rol (incluso sin turnos)
+        $employees = Employees::where('rol_id', $rolId)->get();
+
+        // Obtener turnos existentes
+        $shiftsEloquent = EmployeeShifts::whereMonth('date', $month)
+            ->whereYear('date', $year)
             ->whereHas('employee', function ($query) use ($rolId) {
                 $query->where('rol_id', $rolId);
             })
-            ->with('employee') // si tienes la relación definida
+            ->with('employee')
             ->get()
             ->groupBy('employee_id');
 
+        // Calcular días del mes
+        $daysInMonth = Carbon::create($year, $month)->daysInMonth;
+
+        $agrupados = [];
+
+        // Inicializar todos los empleados con días vacíos
+        foreach ($employees as $employee) {
+            $agrupados[$employee->name] = [
+                'id'     => Str::slug($employee->name, '_'),
+                'nombre' => $employee->name,
+            ];
+
+            // Inicializar todos los días del mes como vacíos
+            for ($dia = 1; $dia <= $daysInMonth; $dia++) {
+                $agrupados[$employee->name][strval($dia)] = '';
+            }
+        }
+
+        // Llenar con los turnos existentes
         foreach ($shiftsEloquent->toArray() as $shifts) {
-
             foreach ($shifts as $shift) {
-
                 $nombre = $shift['employee']['name'];
                 $fecha  = $shift['date'];
                 $turno  = strtoupper($shift['shift']);
+                $dia    = (int) date('d', strtotime($fecha));
 
-                $dia = (int) date('d', strtotime($fecha)); // 1..31
-
-                if (! isset($agrupados[$nombre])) {
-
-                    $agrupados[$nombre] = [
-                        'id'     => Str::slug($nombre, '_'),
-                        'nombre' => $nombre,
-                    ];
-
+                // Solo actualizar si el empleado existe en nuestro array
+                if (isset($agrupados[$nombre])) {
+                    $agrupados[$nombre][strval($dia)] = $turno;
                 }
-
-                $agrupados[$nombre][strval($dia)] = $turno;
             }
         }
+
         return $agrupados;
     }
 

@@ -48,7 +48,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/upload-csv', [ShiftImportController::class, 'index'])
         ->name('upload-shift-file');
     Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
-    // Route::post('/upload-csv', [ShiftImportController::class, 'importFromStorageToDatabase']);
+
 
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
 
@@ -76,7 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 if ($empleado) {
 
-                    $fecha = \Carbon\Carbon::parse($fecha)->toDateString(); // Asegura el formato
+                    $fecha = \Carbon\Carbon::parse($fecha)->toDateString();
 
                     // Buscar si ya existe el turno
                     $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
@@ -88,8 +88,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                     // Verifica si hay un cambio real
                     if ($turnoActual && $turnoActual->shift !== $nuevoTurno) {
-
-                        // dd("employee_shift_id:  $turnoActual->id, changed_by: $actualUser, old_shift: $turnoActual->shift, new_shift: $nuevoTurno, comment: $comentario, changed_at: $changeAt");
 
                         // Registrar en historial
                         ShiftChangeLog::create([

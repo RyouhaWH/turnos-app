@@ -154,7 +154,7 @@ class TurnController extends Controller
                 }
             }
 
-            return $agrupados;
+            // return $agrupados;
         }
 
         foreach ($shiftsEloquent->toArray() as $shifts) {
@@ -216,5 +216,4 @@ class TurnController extends Controller
             return response('no hay turnos en base de datos');
         }
     }
-
 }

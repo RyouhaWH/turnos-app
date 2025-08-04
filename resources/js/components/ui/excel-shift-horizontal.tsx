@@ -174,6 +174,8 @@ export default function AgGridHorizontal({ rowData, onResumenChange, onRowClicke
             onGridReady={handleGridReady}
             onRowClicked={onRowClicked}
             rowHeight={28}
+            suppressColumnVirtualisation={true}
+            suppressRowVirtualisation={true}
         />
     )
 }

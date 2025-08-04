@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useRef } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
 import { MonthYearPicker } from '@/components/month-year-picker';
@@ -30,13 +30,17 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     });
 
     const { props } = usePage<{ turnos: TurnoData[] }>();
-    let rowData = props.turnos;
+
+    // 🔥 CAMBIO PRINCIPAL: Usar useState para rowData
+    const [rowData, setRowData] = useState<TurnoData[]>(props.turnos);
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
     const [comentario, setComentario] = useState('');
     const [historial, setHistorial] = useState([]);
     const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
+    const [loading, setLoading] = useState(false);
+    const gridRef = useRef<any>(null); // Referencia al grid
 
     const cargarHistorial = async (employeeId: number | string) => {
         const res = await fetch(`/api/shift-change-log/${employeeId}`);
@@ -49,12 +53,36 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const month = fecha.getMonth() + 1;
 
         try {
+            setLoading(true);
+            console.log(year, month, employee_rol_id);
             const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
             const data = await response.json();
-            console.log = data;
-            rowData = data;
+
+            // 🔥 Convertir objeto a array para AgGrid
+            const turnosArray = Object.values(data);
+            console.log('Datos convertidos a array:', turnosArray);
+
+            setRowData(turnosArray);
+
+            // 🔥 NUEVO: Forzar redimensionamiento después de actualizar datos
+            setTimeout(() => {
+                if (gridRef.current?.api) {
+                    gridRef.current.api.sizeColumnsToFit();
+                    // Alternativa más agresiva si la anterior no funciona:
+                    // gridRef.current.api.autoSizeAllColumns();
+                }
+            }, 100);
+
+            toast('✅ Turnos cargados', {
+                description: `Turnos de ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })} cargados correctamente.`,
+            });
         } catch (error) {
             console.error('Error al cargar turnos:', error);
+            toast('❌ Error al cargar turnos', {
+                description: 'Hubo un problema al cargar los turnos del mes seleccionado.',
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -80,6 +108,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 toast('✅ Cambios guardados', {
                     description: 'Los turnos fueron actualizados correctamente.',
                 });
+                // Opcional: recargar datos después de guardar
+                cargarTurnosPorMes(selectedDate);
             },
             onError: () => {
                 toast('❌ Error al guardar', {
@@ -102,7 +132,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                         </h2>
 
                         <div className="ag-theme-alpine h-full flex-1 overflow-auto pb-4 dark:border-sidebar-border">
+                            {/* Ahora usa el estado de React */}
                             <AgGridHorizontal
+                                ref={gridRef}
                                 rowData={rowData}
                                 onResumenChange={handleResumenUpdate}
                                 onRowClicked={(event) => {
@@ -119,8 +151,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                         <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-hidden p-3 text-sm">
                             {/* Selector de mes y año con ShadCN */}
                             <MonthYearPicker onChange={setSelectedDate} />
-                            <Button className="mb-4 w-full" onClick={() => cargarTurnosPorMes(selectedDate)}>
-                                Cargar turnos
+                            <Button
+                                className="mb-4 w-full"
+                                onClick={() => cargarTurnosPorMes(selectedDate)}
+                                disabled={loading} // Opcional: deshabilitar mientras carga
+                            >
+                                {loading ? 'Cargando...' : 'Cargar turnos'}
                             </Button>
 
                             {/* Resumen de cambios */}
