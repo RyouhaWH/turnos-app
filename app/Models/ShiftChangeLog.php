@@ -12,6 +12,7 @@ class ShiftChangeLog extends Model
 
     protected $fillable = [
         'employee_shift_id',
+        'employee_id',
         'changed_by',
         'old_shift',
         'new_shift',
@@ -34,5 +35,10 @@ class ShiftChangeLog extends Model
     public function employeeShift()
     {
         return $this->belongsTo(EmployeeShifts::class, 'employee_shift_id');
+    }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employees::class, 'employee_id');
     }
 }

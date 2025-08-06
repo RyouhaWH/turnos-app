@@ -8,7 +8,6 @@ use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -49,23 +48,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('upload-shift-file');
     Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
 
-
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
 
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        $cambios    = $request->input('cambios');
-        $actualUser = Auth::id();
+        $cambios           = $request->input('cambios');
+        $cambiosCorregidos = [];
 
-        dd($request->post());
+        foreach ($cambios as $nombre => $fechas) {
+            foreach ($fechas as $fecha => $valor) {
+                // Restar un día a la fecha
+                $nuevaFecha                              = date('Y-m-d', strtotime($fecha . ' -1 day'));
+                $cambiosCorregidos[$nombre][$nuevaFecha] = $valor;
+            }
+        }
+        $actualUser = Auth::id();
 
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
             return response()->json(['message' => 'No hay cambios para guardar'], 400);
         }
 
-        foreach ($cambios as $nombreCompleto => $fechas) {
+        foreach ($cambiosCorregidos as $nombreCompleto => $fechas) {
             foreach ($fechas as $fecha => $turno) {
 
                 // Normaliza el nombre
@@ -84,19 +89,51 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         ->first();
 
                     $nuevoTurno = strtoupper($turno);
-                    $comentario = 'hola mundo';
+                    $comentario = '';
 
-                    // Verifica si hay un cambio real
-                    if ($turnoActual && $turnoActual->shift !== $nuevoTurno) {
+                    if ($turnoActual !== null) {
+                        // es o no un nuevo turno? si es así agrega
+                        if ($turnoActual->shift !== $nuevoTurno) {
 
+                            // Registrar en historial
+                            ShiftChangeLog::create([
+                                'employee_shift_id' => optional($turnoActual)->id,
+                                'changed_by'        => $actualUser,
+                                'old_shift'         => optional($turnoActual)->shift,
+                                'new_shift'         => $nuevoTurno,
+                                'comment'           => $turnoActual
+                                ? "modificado el turno desde plataforma por $actualUser"
+                                : "Turno creado por $actualUser desde plataforma",
+                            ]);
+
+                            dd($empleado->id, $fecha, $nuevoTurno, $comentario);
+
+                            // Guardar o actualizar el turno
+                            EmployeeShifts::updateOrCreate(
+                                [
+                                    'employee_id' => $empleado->id,
+                                    'date'        => $fecha,
+                                ],
+                                [
+                                    'shift'    => $nuevoTurno,
+                                    'comments' => $comentario,
+                                ]
+                            );
+                        }
+
+                    } else {
+                        // dd($nuevoTurno);
                         // Registrar en historial
-                        ShiftChangeLog::create([
-                            'employee_shift_id' => $turnoActual->id,
+                        ShiftChangeLog::updateOrCreate([
+                            'employee_id'       => 1,
+                            'employee_shift_id' => 1,
                             'changed_by'        => $actualUser,
-                            'old_shift'         => $turnoActual->shift,
+                            'old_shift'         => 'x',
                             'new_shift'         => $nuevoTurno,
-                            'comment'           => $comentario,
+                            'comment'           => 'hola mundo',
                         ]);
+
+                        dd($empleado->id, $fecha, $nuevoTurno, $comentario);
 
                         // Guardar o actualizar el turno
                         EmployeeShifts::updateOrCreate(
@@ -111,7 +148,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         );
                     }
                 }
-
                 //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
 
                 //aquí se toma el número que tiene el personal en la base de datos
@@ -132,17 +168,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     default => 'Desconocido',
                 };
 
-                $response = Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
+                // $response = Http::post('http://localhost:3001/send-message', [
+                //     'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
 
-                    'numero'  => $numeroAEnviar,
-                ]);
+                //     'numero'  => $numeroAEnviar,
+                // ]);
             }
-            $response = Http::post('http://localhost:3001/send-message', [
-                'mensaje' => "-------------",
+            // $response = Http::post('http://localhost:3001/send-message', [
+            //     'mensaje' => "-------------",
 
-                'numero'  => $numeroAEnviar,
-            ]);
+            //     'numero'  => $numeroAEnviar,
+            // ]);
         }
 
         return back()->with('success', 'Cambios guardados correctamente.');

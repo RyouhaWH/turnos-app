@@ -321,7 +321,7 @@ export default function Dashboard() {
                         </section>
 
                         {/* Herramientas Administrativas */}
-                        <section>
+                        {/* <section>
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
                                     <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -334,11 +334,12 @@ export default function Dashboard() {
                                         Funciones de gestión y configuración del sistema
                                     </p>
                                 </div>
-                            </div>
+                            </div> */}
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                            {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> */}
                                 {/* Cargar Turnos */}
-                                <Card className="group hover:shadow-lg transition-all duration-300 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50">
+                                {/* <Card className="group hover:shadow-lg transition-all duration-300 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50">
                                     <CardContent className="p-6">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
@@ -360,10 +361,10 @@ export default function Dashboard() {
                                             </Button>
                                         </div>
                                     </CardContent>
-                                </Card>
+                                </Card> */}
 
                                 {/* Historial */}
-                                <Card className="group hover:shadow-lg transition-all duration-300 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50">
+                                {/* <Card className="group hover:shadow-lg transition-all duration-300 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50">
                                     <CardContent className="p-6">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 bg-gradient-to-br from-slate-500 to-slate-600 rounded-xl shadow-md">
@@ -387,14 +388,14 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
                             </div>
-                        </section>
+                        </section> */}
 
                         {/* Footer Info */}
-                        <div className="text-center py-8 border-t border-slate-200 dark:border-slate-800">
+                        {/* <div className="text-center py-8 border-t border-slate-200 dark:border-slate-800">
                             <p className="text-slate-500 dark:text-slate-400 text-sm">
-                                Sistema de Gestión de Turnos v2.0 - Desarrollado para optimizar la operación diaria
+                                Sistema de Gestión de Turnos - Desarrollado por JorgeWH optimizar la operación diaria
                             </p>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

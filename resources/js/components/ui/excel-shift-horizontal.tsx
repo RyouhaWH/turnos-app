@@ -1,6 +1,16 @@
 import React, { useMemo, useRef, useEffect, useCallback, useState, forwardRef, useImperativeHandle } from 'react'
 import { AgGridReact } from 'ag-grid-react';
-import { AllCommunityModule, ModuleRegistry, ColDef, CellValueChangedEvent } from 'ag-grid-community';
+import {
+    AllCommunityModule,
+    ModuleRegistry,
+    ColDef,
+    CellValueChangedEvent,
+    GridReadyEvent,
+    CellClickedEvent,
+    RowClickedEvent,
+    GridApi
+} from 'ag-grid-community';
+
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 interface TurnoData {
@@ -9,33 +19,40 @@ interface TurnoData {
     [key: string]: string
 }
 
-interface ModifiedShift {
-    nombre: string,
-    dia: Date,
-    turno: string
-}
-
 interface Props {
     rowData: TurnoData[]
-    onResumenChange: (resumen: Record<string, Record<string, Date>>) => void
-    onRowClicked?: (event: any) => void
+    onResumenChange: (resumen: Record<string, Record<string, string>>) => void
+    onRowClicked?: (event: RowClickedEvent<TurnoData>) => void
+    month?: number // 0-11 (JavaScript month format)
+    year?: number
 }
 
-const diasDelMes = Array.from({ length: 31 }, (_, i) => {
-    const date = new Date(2025, 6, i + 1) // julio = mes 6 (base 0)
-    const diaSemana = date.getDay()
-    const mes = date.getMonth()
-    const year = date.getFullYear()
-    const diasCortos = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
-    return {
-        fecha: date,
-        dia: (i + 1).toString(),
-        nombre: diasCortos[diaSemana],
-        isFinDeSemana: diaSemana === 0 || diaSemana === 6,
-    }
-})
+export interface AgGridHorizontalRef {
+    autoSizeColumns: (columns?: string[]) => void
+    sizeColumnsToFit: () => void
+    api?: GridApi<TurnoData>
+}
 
-const contarTurnos = (datos: any[]): Record<string, number> => {
+// Generate days for the specified month and year
+const generateDiasDelMes = (year: number, month: number) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate() // Get last day of month
+
+    return Array.from({ length: daysInMonth }, (_, i) => {
+        const date = new Date(year, month, i + 1)
+        const diaSemana = date.getDay()
+        const diasCortos = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
+
+        return {
+            fecha: date,
+            dia: (i + 1).toString(),
+            nombre: diasCortos[diaSemana],
+            isFinDeSemana: diaSemana === 0 || diaSemana === 6,
+        }
+    })
+}
+
+// Count shifts across all data
+const contarTurnos = (datos: TurnoData[]): Record<string, number> => {
     const conteo: Record<string, number> = {}
 
     for (const fila of datos) {
@@ -43,170 +60,213 @@ const contarTurnos = (datos: any[]): Record<string, number> => {
             if (key === 'nombre' || key === 'id') continue
 
             const valor = (fila[key] || '').toUpperCase().trim()
-
             if (!valor) continue
 
-            if (!conteo[valor]) {
-                conteo[valor] = 0
-            }
-
-            conteo[valor] += 1
+            conteo[valor] = (conteo[valor] || 0) + 1
         }
     }
 
     return conteo
 }
 
-// 🔥 NUEVO: Exportamos con forwardRef para permitir ref desde el componente padre
-export default forwardRef<any, Props>(function AgGridHorizontal({ rowData, onResumenChange, onRowClicked }, ref) {
-    const [cambios, setCambios] = useState<Record<string, Record<string, Date>>>({});
-    const gridRef = useRef<AgGridReact<TurnoData>>(null)
+const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
+    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year }, ref) {
 
-    // 🔥 NUEVO: Exponemos métodos del grid al componente padre
-    useImperativeHandle(ref, () => ({
-        autoSizeColumns: (columns?: string[]) => {
-            if (gridRef.current?.api) {
-                if (columns) {
-                    gridRef.current.api.autoSizeColumns(columns);
-                } else {
-                    gridRef.current.api.autoSizeAllColumns();
-                }
-            }
-        },
-        sizeColumnsToFit: () => {
-            if (gridRef.current?.api) {
-                gridRef.current.api.sizeColumnsToFit();
-            }
-        },
-        api: gridRef.current?.api
-    }));
+        // Use current date if month/year not provided
+        const currentDate = new Date()
+        const activeMonth = month !== undefined ? month : currentDate.getMonth()
+        const activeYear = year !== undefined ? year : currentDate.getFullYear()
 
-    const columnDefs = useMemo<ColDef[]>(() => {
-        return [
-            {
-                headerName: 'Nombre',
-                field: 'nombre',
-                pinned: 'left',
-                // 🔥 CAMBIOS: Mejorar el autoajuste de la columna nombre
-                minWidth: 120,
-                maxWidth: 200,
-                flex: 0, // No usar flex para que respete el autosize
-                suppressSizeToFit: true, // No incluir en sizeColumnsToFit
-                autoHeight: true,
-                cellStyle: {
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    paddingLeft: '8px',
-                    paddingRight: '8px'
+        // Generate days for the active month
+        const diasDelMes = useMemo(() =>
+            generateDiasDelMes(activeYear, activeMonth),
+            [activeYear, activeMonth]
+        )
+
+        const [cambios, setCambios] = useState<Record<string, Record<string, string>>>({})
+        const gridRef = useRef<AgGridReact<TurnoData>>(null)
+
+        // Expose grid methods to parent component
+        useImperativeHandle(ref, () => ({
+            autoSizeColumns: (columns?: string[]) => {
+                const api = gridRef.current?.api
+                if (api) {
+                    if (columns) {
+                        api.autoSizeColumns(columns)
+                    } else {
+                        api.autoSizeAllColumns()
+                    }
                 }
             },
-            ...diasDelMes.map((d) => ({
-                headerName: `${d.dia}\n${d.nombre}`,
-                field: d.dia,
-                editable: true,
-                width: 46,
-                minWidth: 46,
-                maxWidth: 46,
-                flex: 0,
-                cellStyle: { textAlign: 'center' },
-                headerClass: 'ag-custom-header',
-                cellClass: d.isFinDeSemana ? 'fin-de-semana' : '',
-                valueParser: (params: any) =>
-                    (params.newValue || '').toUpperCase().slice(0, 2),
-            })),
-        ]
-    }, [])
+            sizeColumnsToFit: () => {
+                gridRef.current?.api?.sizeColumnsToFit()
+            },
+            api: gridRef.current?.api
+        }))
 
-    const handleCellChange = useCallback((e: CellValueChangedEvent) => {
-        if (!e || !gridRef.current) return;
+        // Define columns
+        const columnDefs = useMemo<ColDef[]>(() => {
+            return [
+                {
+                    headerName: 'Nombre',
+                    field: 'nombre',
+                    pinned: 'left',
+                    minWidth: 120,
+                    maxWidth: 250,
+                    flex: 0, // Don't use flex to respect autosize
+                    suppressSizeToFit: true, // Exclude from sizeColumnsToFit
+                    autoHeight: true,
+                    cellStyle: {
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        paddingLeft: '8px',
+                        paddingRight: '8px'
+                    }
+                },
+                ...diasDelMes.map((d) => ({
+                    headerName: `${d.dia}\n${d.nombre}`,
+                    field: d.dia,
+                    editable: true,
+                    width: 46,
+                    minWidth: 46,
+                    maxWidth: 46,
+                    flex: 0,
+                    cellStyle: {
+                        textAlign: 'center',
+                        backgroundColor: d.isFinDeSemana ? '#f5f5f5' : undefined
+                    },
+                    headerClass: 'ag-custom-header',
+                    cellClass: d.isFinDeSemana ? 'fin-de-semana' : '',
+                    valueParser: (params: any) =>
+                        (params.newValue || '').toUpperCase().slice(0, 2),
+                })),
+            ]
+        }, [diasDelMes])
 
-        const datosActuales = gridRef.current.api.getRenderedNodes().map((node) => node.data)
-        const resumenActual = contarTurnos(datosActuales)
+        // Handle cell value changes
+        const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
+            if (!e || !e.data) return
 
-        const funcionario = e.data.nombre;
-        const dia = diasDelMes[Number(e.colDef.field) - 1]?.fecha
-        if (!dia) return;
+            const funcionario = e.data.nombre
+            const diaNum = Number(e.colDef?.field)
 
-        const diaAnterior = new Date(dia);
-        diaAnterior.setDate(dia.getDate() - 1);
+            if (!diaNum || diaNum < 1 || diaNum > diasDelMes.length) return
 
-        const fechaFormateada = diaAnterior.toISOString().split('T')[0];
-        const turno = e.value
+            const dia = diasDelMes[diaNum]?.fecha
+            if (!dia) return
 
-        setCambios(prev => {
-            const prevCambios = { ...prev };
-            const clave = funcionario
-                .normalize("NFD")
-                .replace(/[\u0300-\u036f]/g, "")
-                .replace(/\s+/g, '_')
-                .toLowerCase();
+            // Use the actual date (not day before)
+            const fechaFormateada = dia.toISOString().split('T')[0]
+            const turno = e.value || ''
 
-            if (!prevCambios[clave]) {
-                prevCambios[clave] = {};
-            }
+            setCambios(prev => {
+                const newCambios = { ...prev }
 
-            prevCambios[clave.toString()][fechaFormateada.toString()] = turno;
-            onResumenChange(prevCambios)
-            return prevCambios;
-        });
-    }, [onResumenChange])
+                // Create a normalized key for the employee
+                const clave = funcionario
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .replace(/\s+/g, '_')
+                    .toLowerCase()
 
-    const handleGridReady = (params: any) => {
-        // 🔥 NUEVO: Autoajustar columna nombre al cargar
-        setTimeout(() => {
-            if (params.api) {
-                params.api.autoSizeColumns(['nombre']);
-            }
-        }, 100);
-    };
-
-    // 🔥 NUEVO: Mejorar el useEffect para manejar cambios de datos
-    useEffect(() => {
-        if (gridRef.current?.api && rowData.length > 0) {
-            // Primero autosize la columna nombre, luego ajustar el resto
-            setTimeout(() => {
-                if (gridRef.current?.api) {
-                    gridRef.current.api.autoSizeColumns(['nombre']);
-                    // Pequeña pausa para que se calcule el tamaño
-                    setTimeout(() => {
-                        if (gridRef.current?.api) {
-                            gridRef.current.api.sizeColumnsToFit();
-                        }
-                    }, 50);
+                if (!newCambios[clave]) {
+                    newCambios[clave] = {}
                 }
-            }, 100);
-        }
-    }, [rowData])
 
-    const onCellClicked = (event: any) => {
-        if (event.colDef.field === 'nombre') return;
-        const dia = event.colDef.field;
-        const funcionario = event.data.nombre;
-        const turno = event.value;
-        console.log(`El funcionario "${funcionario}" el día "${dia}" tiene el turno "${turno}"`);
-    };
+                if (turno) {
+                    newCambios[clave][fechaFormateada] = turno
+                } else {
+                    // Remove if empty
+                    delete newCambios[clave][fechaFormateada]
 
-    return (
-        <AgGridReact
-            ref={gridRef}
-            rowData={rowData}
-            columnDefs={columnDefs}
-            defaultColDef={{
-                resizable: true,
-                sortable: false,
-                filter: false
-            }}
-            onCellClicked={onCellClicked}
-            onCellValueChanged={handleCellChange}
-            onGridReady={handleGridReady}
-            onRowClicked={onRowClicked}
-            rowHeight={28}
-            suppressColumnVirtualisation={true}
-            suppressRowVirtualisation={true}
-            // 🔥 NUEVO: Opciones adicionales para mejor rendering
-            suppressLoadingOverlay={true}
-            suppressNoRowsOverlay={true}
-        />
-    )
-});
+                    // Clean up empty objects
+                    if (Object.keys(newCambios[clave]).length === 0) {
+                        delete newCambios[clave]
+                    }
+                }
+
+                onResumenChange(newCambios)
+                return newCambios
+            })
+
+            // Optional: Log shift summary
+            if (gridRef.current?.api) {
+                const allData = []
+                gridRef.current.api.forEachNode(node => {
+                    if (node.data) allData.push(node.data)
+                })
+                const resumen = contarTurnos(allData)
+                //! console.log('Resumen de turnos:', resumen)
+            }
+        }, [onResumenChange])
+
+        // Handle grid ready event
+        const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
+            // Use requestAnimationFrame for better timing
+            requestAnimationFrame(() => {
+                if (params.api) {
+                    params.api.autoSizeColumns(['nombre'])
+
+                    // Give autosize time to calculate
+                    requestAnimationFrame(() => {
+                        params.api.sizeColumnsToFit()
+                    })
+                }
+            })
+        }, [])
+
+        // Handle cell clicks
+        const onCellClicked = useCallback((event: CellClickedEvent<TurnoData>) => {
+            if (event.colDef?.field === 'nombre') return
+
+            const dia = event.colDef?.field
+            const funcionario = event.data?.nombre
+            const turno = event.value
+
+            //! console.log(`Funcionario "${funcionario}" - Día ${dia} - Turno: "${turno || 'vacío'}"`)
+        }, [])
+
+        // Resize columns when data changes
+        useEffect(() => {
+            if (gridRef.current?.api && rowData.length > 0) {
+                // Use requestAnimationFrame for smoother updates
+                requestAnimationFrame(() => {
+                    const api = gridRef.current?.api
+                    if (api) {
+                        api.autoSizeColumns(['nombre'])
+                        requestAnimationFrame(() => {
+                            api.sizeColumnsToFit()
+                        })
+                    }
+                })
+            }
+        }, [rowData])
+
+        return (
+            <AgGridReact
+                ref={gridRef}
+                rowData={rowData}
+                columnDefs={columnDefs}
+                defaultColDef={{
+                    resizable: true,
+                    sortable: false,
+                    filter: false
+                }}
+                onCellClicked={onCellClicked}
+                onCellValueChanged={handleCellChange}
+                onGridReady={handleGridReady}
+                onRowClicked={onRowClicked}
+                rowHeight={28}
+                suppressColumnVirtualisation={true}
+                suppressRowVirtualisation={true}
+                suppressLoadingOverlay={true}
+                suppressNoRowsOverlay={true}
+                animateRows={false}
+                maintainColumnOrder={true}
+            />
+        )
+    }
+)
+
+export default AgGridHorizontal

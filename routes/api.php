@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Controllers\Api\DashboardStatsController;
 use App\Http\Controllers\TurnController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -31,25 +30,34 @@ Route::get('/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthly
 //Retorna todos los turnos modificados
 Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
 
-// Rutas para estadísticas del dashboard
+
+
+// Rutas de debug para dashboard
 Route::prefix('dashboard')->group(function () {
-    // Estadísticas generales del dashboard
-    Route::get('/stats', [DashboardStatsController::class, 'getDashboardStats']);
 
-    // Estadísticas por rol específico
-    Route::get('/stats/role/{roleId}', function($roleId) {
-        $controller = new DashboardStatsController();
-        $stats = $controller->getStatsForRole($roleId);
-        return response()->json(['success' => true, 'data' => $stats]);
-    });
+    // Tests básicos
+    Route::get('/test', [TurnController::class, 'test']);
+    Route::get('/test-models', [TurnController::class, 'testModels']);
+    Route::get('/debug-info', [TurnController::class, 'getDebugInfo']);
 
-    // Detalles de personal por rol y fecha
-    Route::get('/personal/{roleId}', [DashboardStatsController::class, 'getPersonalDetails']);
-    Route::get('/personal/{roleId}/{date}', [DashboardStatsController::class, 'getPersonalDetails']);
+    // Información específica
+    Route::get('/employees-by-role', [TurnController::class, 'getEmployeesByRole']);
+    Route::get('/today-shifts', [TurnController::class, 'getTodayShifts']);
 
-    // Estadísticas por período (para gráficos)
-    Route::get('/stats/period', [DashboardStatsController::class, 'getStatsForPeriod']);
+    // Estadísticas principales
+    Route::get('/stats', [TurnController::class, 'getDashboardStats']);
+
+
+    // // Tests básicos (en orden de complejidad)
+    // Route::get('/test', [TurnController::class, 'test']);
+    // Route::get('/test-db', [TurnController::class, 'testDatabase']);
+    // Route::get('/list-tables', [TurnController::class, 'listTables']);
+    // Route::get('/test-employees', [TurnController::class, 'testEmployees']);
+
+    // // Estadísticas (simplificadas)
+    // Route::get('/stats', [TurnController::class, 'getDashboardStats']);
 });
+
 
 
 

@@ -69,6 +69,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     };
 
     const cargarTurnosPorMes = async (fecha: Date) => {
+
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
@@ -76,13 +77,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             setLoading(true);
             setCurrentMonthTitle(`Cargando turnos de ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}...`);
 
-            console.log(year, month, employee_rol_id);
             const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
             const data = await response.json();
 
             const turnosArray = Object.values(data);
-            console.log('Datos convertidos a array:', turnosArray);
 
+            console.log(turnosArray);
             setRowData(turnosArray);
             setCurrentMonthTitle(fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
 
@@ -118,6 +118,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             ...prev,
             cambios: ResumenCambios,
         }));
+        console.log(ResumenCambios);
     }, []);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
@@ -240,13 +241,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                                 loading={loading}
                                                 currentMonthTitle={currentMonthTitle}
                                             />
-
-                                            {/* {loading && (
-                                                <Badge variant="secondary" className="animate-pulse bg-blue-100 text-blue-700 border-blue-200 ml-2">
-                                                    <RefreshCw className="h-3 w-3 mr-2 animate-spin" />
-                                                    Sincronizando...
-                                                </Badge>
-                                            )} */}
                                         </div>
                                     </div>
                                 </CardHeader>
