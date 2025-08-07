@@ -92,21 +92,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $comentario = '';
 
                     if ($turnoActual !== null) {
+
                         // es o no un nuevo turno? si es así agrega
                         if ($turnoActual->shift !== $nuevoTurno) {
-
-                            // Registrar en historial
-                            ShiftChangeLog::create([
-                                'employee_shift_id' => optional($turnoActual)->id,
-                                'changed_by'        => $actualUser,
-                                'old_shift'         => optional($turnoActual)->shift,
-                                'new_shift'         => $nuevoTurno,
-                                'comment'           => $turnoActual
-                                ? "modificado el turno desde plataforma por $actualUser"
-                                : "Turno creado por $actualUser desde plataforma",
-                            ]);
-
-                            dd($empleado->id, $fecha, $nuevoTurno, $comentario);
 
                             // Guardar o actualizar el turno
                             EmployeeShifts::updateOrCreate(
@@ -119,24 +107,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                     'comments' => $comentario,
                                 ]
                             );
+
+                            // Registrar en historial
+                            ShiftChangeLog::create([
+                                'employee_id'       => $empleado->id,
+                                'employee_shift_id' => optional($turnoActual)->id,
+                                'changed_by'        => $actualUser,
+                                'old_shift'         => optional($turnoActual)->shift,
+                                'new_shift'         => $nuevoTurno,
+                                'comment'           => $turnoActual
+                                ? "modificado el turno desde plataforma"
+                                : "Turno creado desde plataforma",
+                            ]);
                         }
 
                     } else {
-                        // dd($nuevoTurno);
-                        // Registrar en historial
-                        ShiftChangeLog::updateOrCreate([
-                            'employee_id'       => 1,
-                            'employee_shift_id' => 1,
-                            'changed_by'        => $actualUser,
-                            'old_shift'         => 'x',
-                            'new_shift'         => $nuevoTurno,
-                            'comment'           => 'hola mundo',
-                        ]);
 
-                        dd($empleado->id, $fecha, $nuevoTurno, $comentario);
+                        //dd('entrar crear turno cuando no hay turno creado antes');
 
                         // Guardar o actualizar el turno
-                        EmployeeShifts::updateOrCreate(
+                        $shiftToMake = EmployeeShifts::updateOrCreate(
                             [
                                 'employee_id' => $empleado->id,
                                 'date'        => $fecha,
@@ -146,10 +136,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 'comments' => $comentario,
                             ]
                         );
+
+                        // Registrar en historial
+                        ShiftChangeLog::updateOrCreate([
+                            'employee_id'       => $empleado->id,
+                            'employee_shift_id' => $shiftToMake->id,
+                            'changed_by'        => $actualUser,
+                            'old_shift'         => '',
+                            'new_shift'         => $nuevoTurno,
+                            'comment'           => 'Turno creado desde plataforma',
+                        ]);
                     }
                 }
-                //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
 
+                //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
                 //aquí se toma el número que tiene el personal en la base de datos
                 $numeroAEnviar = "56951004035";
 

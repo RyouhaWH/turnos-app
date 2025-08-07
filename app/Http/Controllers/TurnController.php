@@ -94,7 +94,7 @@ class TurnController extends Controller
                     'old_shift'  => $log->old_shift,
                     'new_shift'  => $log->new_shift,
                     'comment'    => $log->comment,
-                    'changed_at' => $log->changed_at ? \Carbon\Carbon::parse($log->changed_at)->format('Y-m-d H:i:s') : null,
+                    'changed_at' => $log->updated_at->format('Y-m-d H:i:s'),
                     'changed_by' => optional($log->changedBy)->name ?? 'Desconocido',
                     'empleado'   => optional(optional($log->employeeShift)->employee)->name ?? 'Desconocido',
                     // Si quieres devolver el objeto completo:

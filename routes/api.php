@@ -46,16 +46,6 @@ Route::prefix('dashboard')->group(function () {
 
     // Estadísticas principales
     Route::get('/stats', [TurnController::class, 'getDashboardStats']);
-
-
-    // // Tests básicos (en orden de complejidad)
-    // Route::get('/test', [TurnController::class, 'test']);
-    // Route::get('/test-db', [TurnController::class, 'testDatabase']);
-    // Route::get('/list-tables', [TurnController::class, 'listTables']);
-    // Route::get('/test-employees', [TurnController::class, 'testEmployees']);
-
-    // // Estadísticas (simplificadas)
-    // Route::get('/stats', [TurnController::class, 'getDashboardStats']);
 });
 
 

@@ -35,6 +35,7 @@ export default function ShiftHistoryFeed() {
                 if (!res.ok) throw new Error('Error al cargar');
                 const data = await res.json();
                 setLogs(data);
+                console.log(data);
             } catch (error) {
                 console.error('Error al cargar historial:', error);
                 setError(true);
