@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employees;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -44,8 +45,6 @@ class ShiftImportController extends Controller
 
         $formatedData = $this->formatData($data);
         $this->uploadToDatabase($formatedData);
-
-        dd('turnos subidos a la base de datos!');
 
         return back()->with('success', 'Archivo importado correctamente');
     }
@@ -135,8 +134,9 @@ class ShiftImportController extends Controller
 
     public function uploadToDatabase(array $turnosData)
     {
-        $month = 7;
-        $year  = 2025;
+
+        $month = Carbon::now()->month;
+        $year  = Carbon::now()->year;
 
         //traer nombres e id de funcionario
         $empleados = Employees::all();
