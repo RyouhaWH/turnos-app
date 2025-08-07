@@ -35,7 +35,6 @@ export default function ShiftHistoryFeed() {
                 if (!res.ok) throw new Error('Error al cargar');
                 const data = await res.json();
                 setLogs(data);
-                console.log(data);
             } catch (error) {
                 console.error('Error al cargar historial:', error);
                 setError(true);
@@ -47,8 +46,8 @@ export default function ShiftHistoryFeed() {
         fetchLogs();
 
         // Auto-refresh every 30 seconds
-        const interval = setInterval(fetchLogs, 30000);
-        return () => clearInterval(interval);
+        // const interval = setInterval(fetchLogs, 30000);
+        // return () => clearInterval(interval);
     }, []);
 
     const getTurnoInfo = (turno: string) => {
@@ -69,24 +68,28 @@ export default function ShiftHistoryFeed() {
     };
 
     const formatDate = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffTime = Math.abs(now.getTime() - date.getTime());
-        const diffHours = Math.ceil(diffTime / (1000 * 60 * 60));
+    const date = new Date(dateString);
+    const now = new Date();
 
-        if (diffHours < 1) {
-            return 'Hace unos minutos';
-        } else if (diffHours < 24) {
-            return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
-        } else {
-            return date.toLocaleDateString('es-CL', {
-                day: 'numeric',
-                month: 'short',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-        }
-    };
+    const diffMs = now.getTime() - date.getTime(); // diferencia en milisegundos
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffMinutes < 1) {
+        return 'Justo ahora';
+    } else if (diffMinutes < 60) {
+        return `Hace ${diffMinutes} minuto${diffMinutes !== 1 ? 's' : ''}`;
+    } else if (diffHours < 24) {
+        return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+    } else {
+        return date.toLocaleDateString('es-CL', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+};
 
     if (loading) {
         return (
