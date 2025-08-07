@@ -173,10 +173,10 @@
   font-weight: 600;
 }
 
-.ag-cell {
+/* .ag-cell {
   border-right: 1px solid #ccc;
   border-bottom: 1px solid #ccc;
-}
+} */
 
 .ag-header-cell {
   border-right: .1rem solid #a001;
@@ -189,10 +189,6 @@
   border-bottom: .001rem solid #0a01;
 }
 
-.ag-theme-alpine .fin-de-semana {
-  background-color: #eaeaeb !important; /* gris claro */
-}
-
 .ag-theme-alpine .ag-custom-header .ag-header-cell-label {
   white-space: pre-line !important;
   text-align: center;
@@ -202,11 +198,11 @@
 }
 
 .ag-theme-alpine .ag-cell {
-  padding-top: 2px !important;
-  padding-bottom: 2px !important;
-  padding-left: 2px !important;
-  padding-right:2px !important;
-  font-size: 13px; /* también puedes ajustar la fuente si quieres más compactación */
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  padding-left: 4px !important;
+  padding-right:4px !important;
+  font-size: 13px;
 }
 
 

@@ -187,15 +187,9 @@ class ShiftImportController extends Controller
                             'shift'    => $turno['shift'],
                             'comments' => 'Importado desde post v2',
                         ]);
-
                     }
-
                 }
-
             }
-
         }
-
     }
-
 }
