@@ -46,8 +46,8 @@ export default function ShiftHistoryFeed() {
         fetchLogs();
 
         // Auto-refresh every 30 seconds
-        // const interval = setInterval(fetchLogs, 30000);
-        // return () => clearInterval(interval);
+        const interval = setInterval(fetchLogs, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const getTurnoInfo = (turno: string) => {
@@ -71,7 +71,7 @@ export default function ShiftHistoryFeed() {
     const date = new Date(dateString);
     const now = new Date();
 
-    const diffMs = now.getTime() - date.getTime(); // diferencia en milisegundos
+    const diffMs = now.getTime() - date.getTime();
     const diffMinutes = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMinutes / 60);
 

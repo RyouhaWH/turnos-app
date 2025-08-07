@@ -118,7 +118,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             ...prev,
             cambios: ResumenCambios,
         }));
-        console.log(ResumenCambios);
     }, []);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
