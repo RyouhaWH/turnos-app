@@ -115,25 +115,8 @@ export default function ShiftHistoryFeed() {
 
     return (
         <div className="h-full bg-white dark:bg-slate-900 overflow-hidden">
-            {/* Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className="p-1 bg-emerald-100 dark:bg-emerald-900 rounded-md">
-                            <Activity className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <h3 className="font-semibold text-slate-900 dark:text-white text-sm">
-                            Actividad Reciente
-                        </h3>
-                    </div>
-                    <Badge variant="secondary" className="text-xs">
-                        {logs.length} cambios
-                    </Badge>
-                </div>
-            </div>
-
             {/* Feed Content */}
-            <div className="p-4 overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
+             <div className="p-1 overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
                 {logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center py-8">
                         <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">
@@ -156,11 +139,11 @@ export default function ShiftHistoryFeed() {
                                 <div key={index} className="group">
                                     <div className="flex gap-3 p-3 rounded-lg bg-slate-50/50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all duration-200 hover:border-slate-200 dark:hover:border-slate-600">
                                         {/* Avatar */}
-                                        <Avatar className="h-8 w-8 flex-shrink-0">
+                                        {/* <Avatar className="h-8 w-8 flex-shrink-0">
                                             <AvatarFallback className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400">
                                                 {getInitials(log.changed_by)}
                                             </AvatarFallback>
-                                        </Avatar>
+                                        </Avatar> */}
 
                                         {/* Content */}
                                         <div className="flex-1 min-w-0">
@@ -178,7 +161,7 @@ export default function ShiftHistoryFeed() {
                                             </div>
 
                                             {/* Shift Change Visual */}
-                                            <div className="flex items-center gap-2 mt-2 mb-2">
+                                            <div className="flex items-center w-full justify-center gap-2 mt-2 mb-2">
                                                 <Badge
                                                     variant="outline"
                                                     className={`text-xs ${oldTurno.color} border`}
@@ -198,9 +181,9 @@ export default function ShiftHistoryFeed() {
                                                 </Badge>
                                             </div>
 
-                                            {/* Comment */}
-                                            {log.comment && log.comment !== "hola mundo" && (
-                                                <div className="mt-2 p-2 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                                                                                         {/* Comment */}
+                                             {log.comment && log.comment !== "hola mundo" && (
+                                                 <div className="mt-1 p-1 bg-slate-100 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
                                                     <div className="flex items-start gap-2">
                                                         <MessageSquare className="h-3 w-3 text-slate-400 mt-0.5 flex-shrink-0" />
                                                         <p className="text-xs text-slate-600 dark:text-slate-400 italic">
@@ -210,18 +193,13 @@ export default function ShiftHistoryFeed() {
                                                 </div>
                                             )}
 
-                                            {/* Timestamp */}
-                                            <div className="flex items-center gap-1 mt-2 text-xs text-slate-400">
+                                                                                         {/* Timestamp */}
+                                             <div className="flex items-center gap-1 mt-1 text-xs text-slate-400">
                                                 <Calendar className="h-3 w-3" />
                                                 <span>{formatDate(log.changed_at)}</span>
                                             </div>
                                         </div>
                                     </div>
-
-                                    {/* Separator */}
-                                    {index < logs.length - 1 && (
-                                        <Separator className="my-3 bg-slate-200 dark:bg-slate-700" />
-                                    )}
                                 </div>
                             );
                         })}

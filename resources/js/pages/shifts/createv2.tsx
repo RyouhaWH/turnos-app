@@ -1,33 +1,16 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MonthYearPicker } from '@/components/month-year-picker';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AgGridHorizontal from '@/components/ui/excel-shift-horizontal';
 import ShiftHistoryFeed from '@/components/ui/shift-history-feed';
 import { Toaster } from '@/components/ui/sonner';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { useCallback, useState, useRef } from 'react';
+import { ChevronRight, FileSpreadsheet, FileText, History } from 'lucide-react';
+import { useCallback, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
-import { MonthYearPicker } from '@/components/month-year-picker';
-import {
-    Calendar,
-    Download,
-    Users,
-    Clock,
-    RefreshCw,
-    Database,
-    Activity,
-    TrendingUp,
-    FileSpreadsheet,
-    History,
-    Settings,
-    ChevronRight,
-    Briefcase,
-    FileText
-} from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -69,7 +52,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     };
 
     const cargarTurnosPorMes = async (fecha: Date) => {
-
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
@@ -160,13 +142,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             <Head title="Gestión de Turnos" />
 
             <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-
                 {/* Header Section */}
                 {/* <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
                     <div className="px-6 pt-4 pb-2">
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6"> */}
-                            {/* Title Section */}
-                            {/* <div className="flex items-start gap-4">
+                {/* Title Section */}
+                {/* <div className="flex items-start gap-4">
                                 <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
                                     <Briefcase className="h-7 w-7 text-white" />
                                 </div>
@@ -184,8 +165,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                 </div>
                             </div> */}
 
-                            {/* Quick Stats */}
-                            {/* <div className="flex flex-wrap gap-4">
+                {/* Quick Stats */}
+                {/* <div className="flex flex-wrap gap-4">
                                 <Card className="bg-gradient-to-r from-blue-500 to-blue-600 border-0 shadow-lg">
                                     <CardContent className="flex items-center gap-3 p-4">
                                         <div className="p-2 bg-white/20 rounded-lg">
@@ -198,8 +179,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     </CardContent>
                                 </Card> */}
 
-                                {/* Tarjeta de cambios realizados */}
-                                {/* <Card className="bg-gradient-to-r from-amber-500 to-amber-600 border-0 shadow-lg">
+                {/* Tarjeta de cambios realizados */}
+                {/* <Card className="bg-gradient-to-r from-amber-500 to-amber-600 border-0 shadow-lg">
                                     <CardContent className="flex items-center gap-3 p-4">
                                         <div className="p-2 bg-white/20 rounded-lg">
                                             <Activity className="h-5 w-5 text-white" />
@@ -211,21 +192,20 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     </CardContent>
                                 </Card>
                             </div> */}
-                        {/* </div>
+                {/* </div>
                     </div>
                 </div> */}
 
                 {/* Main Content */}
                 <div className="p-6">
-                    <div className="flex flex-col xl:flex-row gap-6 h-[calc(100vh-120px)]">
-
+                    <div className="flex h-[calc(100vh-120px)] flex-col gap-6 xl:flex-row">
                         {/* Left Panel - Data Grid */}
-                        <div className="flex-1 min-w-0">
-                            <Card className="h-full dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50 shadow-xl">
-                                <CardHeader className="border-b pb-2 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
-                                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                            <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                                <CardHeader className="border-b bg-slate-50/50 pb-2 dark:border-slate-800 dark:bg-slate-800/50">
+                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                                            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
                                                 <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                             </div>
                                             <div>
@@ -250,8 +230,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     </div>
                                 </CardHeader>
 
-                                <CardContent className="h-full flex flex-col px-2">
-                                    <div className="ag-theme-alpine h-full flex-1 rounded-b-lg overflow-hidden border-0">
+                                <CardContent className="flex h-full flex-col px-2">
+                                    <div className="ag-theme-alpine h-full flex-1 overflow-hidden rounded-b-lg border-0">
                                         <AgGridHorizontal
                                             ref={gridRef}
                                             rowData={rowData}
@@ -268,37 +248,39 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                         </div>
 
                         {/* Right Panel - Controls & History */}
-                        <div className="xl:w-[440px] flex flex-col gap-4">
-
+                        <div className="flex flex-col gap-4 xl:w-[280px]">
                             {/* Resumen de cambios - colapsable */}
-                            <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50 shadow-xl">
+                            <Card className="border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                 <CardHeader
-                                    className="border-b border-slate-100 dark:border-slate-800 pb-2 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors"
+                                    className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
                                     onClick={() => setIsChangesExpanded(!isChangesExpanded)}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className="p-1 bg-orange-100 dark:bg-orange-900 rounded-md">
+                                            <div className="rounded-md bg-orange-100 p-1 dark:bg-orange-900">
                                                 <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
                                             </div>
-                                            <CardTitle className="text-lg text-slate-900 dark:text-white">
+                                            <CardTitle className="text-sm text-slate-900 dark:text-white">
                                                 Resumen de Cambios
+                                                {getTotalChanges() > 0 && (
+                                                    <Badge variant="secondary" className="border-orange-200 bg-orange-100 text-orange-700">
+                                                        {Object.values(resumen).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0)}{' '}
+                                                        modificaciones
+                                                    </Badge>
+                                                )}
                                             </CardTitle>
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            {getTotalChanges() > 0 && (
-                                                <Badge variant="secondary" className="bg-orange-100 text-orange-700 border-orange-200">
-                                                    {Object.values(resumen).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0)} modificaciones
-                                                </Badge>
-                                            )}
-                                            <ChevronRight className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isChangesExpanded ? 'rotate-90' : ''}`} />
+                                            <ChevronRight
+                                                className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isChangesExpanded ? 'rotate-90' : ''}`}
+                                            />
                                         </div>
                                     </div>
                                 </CardHeader>
 
                                 {isChangesExpanded && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
+                                    <div className="duration-200 animate-in slide-in-from-top-2">
                                         <ListaCambios
                                             cambios={resumen}
                                             onActualizar={(comentario) => handleActualizarCambios(comentario)}
@@ -311,34 +293,31 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                             </Card>
 
                             {/* History Feed - Collapsible */}
-                            <Card className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm border-slate-200/50 shadow-xl">
+                            <Card className="max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                 <CardHeader
-                                    className="border-b border-slate-100 dark:border-slate-800 pb-2 dark:bg-slate-800/50 cursor-pointer hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-colors"
+                                    className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
                                     onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
-                                            <div className="p-1 bg-emerald-100 dark:bg-emerald-900 rounded-md">
+                                            <div className="rounded-md bg-emerald-100 p-1 dark:bg-emerald-900">
                                                 <History className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                             </div>
-                                            <CardTitle className="text-lg text-slate-900 dark:text-white">
-                                                Actividad Reciente
-                                            </CardTitle>
+                                            <CardTitle className="text-sm text-slate-900 dark:text-white">Actividad Reciente</CardTitle>
                                         </div>
 
                                         <div className="flex items-center gap-2">
-                                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-emerald-200">
-                                                Últimos cambios
-                                            </Badge>
-                                            <ChevronRight className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''}`} />
+                                            <ChevronRight
+                                                className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''}`}
+                                            />
                                         </div>
                                     </div>
                                 </CardHeader>
 
                                 {isHistoryExpanded && (
-                                    <div className="animate-in slide-in-from-top-2 duration-200">
+                                    <div className="px-2 duration-200 animate-in slide-in-from-top-2">
                                         <CardContent className="p-0">
-                                            <div className="h-[400px] overflow-hidden">
+                                            <div className="p-t-[-10rem] h-[400px] overflow-hidden">
                                                 <ShiftHistoryFeed />
                                             </div>
                                         </CardContent>
@@ -394,7 +373,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                             background: 'rgba(255, 255, 255, 0.95)',
                             backdropFilter: 'blur(10px)',
                             border: '1px solid rgba(226, 232, 240, 0.5)',
-                        }
+                        },
                     }}
                 />
             </div>

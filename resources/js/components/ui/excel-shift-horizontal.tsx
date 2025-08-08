@@ -261,11 +261,26 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                     newCambios[clave] = {}
                 }
 
-                if (turno) {
-                    newCambios[clave][dayField] = turno
+                // Verificar si realmente hay un cambio
+                const valorAnterior = e.oldValue || '';
+                const valorNuevo = turno || '';
+
+                // Solo agregar al resumen si hay un cambio real
+                if (valorAnterior !== valorNuevo) {
+                    if (turno) {
+                        newCambios[clave][dayField] = turno
+                    } else {
+                        // Enviar valor vacío explícitamente para indicar eliminación
+                        newCambios[clave][dayField] = ''
+                    }
                 } else {
-                    // Enviar valor vacío explícitamente para indicar eliminación
-                    newCambios[clave][dayField] = ''
+                    // Si no hay cambio, remover del resumen
+                    delete newCambios[clave][dayField]
+
+                    // Limpiar objetos vacíos
+                    if (Object.keys(newCambios[clave]).length === 0) {
+                        delete newCambios[clave]
+                    }
                 }
 
                 onResumenChange(newCambios)

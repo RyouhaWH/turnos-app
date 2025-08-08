@@ -69,8 +69,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // Normaliza el nombre
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
 
-                // Buscar empleado
+                // Buscar empleado con búsqueda insensible a acentos
+                $empleado = null;
+
+                // Primero intentar búsqueda exacta
                 $empleado = Employees::where('name', $nombreCompleto)->first();
+
+                // Si no se encuentra, intentar búsqueda insensible a acentos
+                if (!$empleado) {
+                    $empleado = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?',
+                        [strtolower($nombreCompleto)])->first();
+                }
+
+                // Si aún no se encuentra, intentar búsqueda por similitud
+                if (!$empleado) {
+                    $empleado = Employees::where('name', 'LIKE', '%' . str_replace(' ', '%', $nombreCompleto) . '%')->first();
+                }
 
                 if ($empleado) {
 
@@ -88,13 +102,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     // Verificar si el turno está vacío (para eliminar)
                     if (empty($turno) || $turno === '') {
 
-                        // Si existe un turno, eliminarlo
+                        // Solo eliminar si realmente existe un turno
                         if ($turnoActual !== null) {
 
                             // Registrar en historial antes de eliminar
                             ShiftChangeLog::create([
                                 'employee_id'       => $empleado->id,
-                                'employee_shift_id' => $turnoActual->id,
+                                'employee_shift_id' => null, // null porque el registro se eliminará
                                 'changed_by'        => $actualUser,
                                 'old_shift'         => $turnoActual->shift,
                                 'new_shift'         => '',
@@ -104,6 +118,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             // Eliminar el turno
                             $turnoActual->delete();
                         }
+                        // Si no existe un turno, no hacer nada (no registrar en historial)
 
                     } else {
                         // Procesar turno normal (no vacío)
