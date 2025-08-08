@@ -264,13 +264,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                 if (turno) {
                     newCambios[clave][dayField] = turno
                 } else {
-                    // Remover si está vacío
-                    delete newCambios[clave][dayField]
-
-                    // Limpiar objetos vacíos
-                    if (Object.keys(newCambios[clave]).length === 0) {
-                        delete newCambios[clave]
-                    }
+                    // Enviar valor vacío explícitamente para indicar eliminación
+                    newCambios[clave][dayField] = ''
                 }
 
                 onResumenChange(newCambios)

@@ -53,16 +53,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        $cambios           = $request->input('cambios');
-        $cambiosCorregidos = [];
-
-        foreach ($cambios as $nombre => $fechas) {
-            foreach ($fechas as $fecha => $valor) {
-                // Restar un día a la fecha
-                $nuevaFecha                              = date('Y-m-d', strtotime($fecha . ' -1 day'));
-                $cambiosCorregidos[$nombre][$nuevaFecha] = $valor;
-            }
-        }
+        $cambios = $request->input('cambios');
+        $mes = $request->input('mes', now()->month);
+        $año = $request->input('año', now()->year);
         $actualUser = Auth::id();
 
         // Verificamos si vienen cambios
@@ -70,8 +63,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return response()->json(['message' => 'No hay cambios para guardar'], 400);
         }
 
-        foreach ($cambiosCorregidos as $nombreCompleto => $fechas) {
-            foreach ($fechas as $fecha => $turno) {
+        foreach ($cambios as $nombreCompleto => $fechas) {
+            foreach ($fechas as $dia => $turno) {
 
                 // Normaliza el nombre
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
@@ -81,7 +74,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 if ($empleado) {
 
-                    $fecha = \Carbon\Carbon::parse($fecha)->toDateString();
+                    // Construir la fecha correctamente usando el día, mes y año actual
+                    $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int)$dia);
 
                     // Buscar si ya existe el turno
                     $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
@@ -91,13 +85,63 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $nuevoTurno = strtoupper($turno);
                     $comentario = '';
 
-                    if ($turnoActual !== null) {
+                    // Verificar si el turno está vacío (para eliminar)
+                    if (empty($turno) || $turno === '') {
 
-                        // es o no un nuevo turno? si es así agrega
-                        if ($turnoActual->shift !== $nuevoTurno) {
+                        // Si existe un turno, eliminarlo
+                        if ($turnoActual !== null) {
+
+                            // Registrar en historial antes de eliminar
+                            ShiftChangeLog::create([
+                                'employee_id'       => $empleado->id,
+                                'employee_shift_id' => $turnoActual->id,
+                                'changed_by'        => $actualUser,
+                                'old_shift'         => $turnoActual->shift,
+                                'new_shift'         => '',
+                                'comment'           => 'Turno eliminado desde plataforma',
+                            ]);
+
+                            // Eliminar el turno
+                            $turnoActual->delete();
+                        }
+
+                    } else {
+                        // Procesar turno normal (no vacío)
+                        if ($turnoActual !== null) {
+
+                            // es o no un nuevo turno? si es así agrega
+                            if ($turnoActual->shift !== $nuevoTurno) {
+
+                                // Guardar o actualizar el turno
+                                $turnoCreado = EmployeeShifts::updateOrCreate(
+                                    [
+                                        'employee_id' => $empleado->id,
+                                        'date'        => $fecha,
+                                    ],
+                                    [
+                                        'shift'    => $nuevoTurno,
+                                        'comments' => $comentario,
+                                    ]
+                                );
+
+                                // Registrar en historial
+                                ShiftChangeLog::create([
+                                    'employee_id'       => $empleado->id,
+                                    'employee_shift_id' => optional($turnoActual)->id,
+                                    'changed_by'        => $actualUser,
+                                    'old_shift'         => optional($turnoActual)->shift,
+                                    'new_shift'         => $nuevoTurno,
+                                    'comment'           => $turnoActual
+                                    ? "modificado el turno desde plataforma"
+                                    : "Turno creado desde plataforma",
+                                ]);
+
+                            }
+
+                        } else {
 
                             // Guardar o actualizar el turno
-                            EmployeeShifts::updateOrCreate(
+                            $shiftToMake = EmployeeShifts::updateOrCreate(
                                 [
                                     'employee_id' => $empleado->id,
                                     'date'        => $fecha,
@@ -111,41 +155,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             // Registrar en historial
                             ShiftChangeLog::create([
                                 'employee_id'       => $empleado->id,
-                                'employee_shift_id' => optional($turnoActual)->id,
+                                'employee_shift_id' => $shiftToMake->id,
                                 'changed_by'        => $actualUser,
-                                'old_shift'         => optional($turnoActual)->shift,
+                                'old_shift'         => '',
                                 'new_shift'         => $nuevoTurno,
-                                'comment'           => $turnoActual
-                                ? "modificado el turno desde plataforma"
-                                : "Turno creado desde plataforma",
+                                'comment'           => 'Turno creado desde plataforma',
                             ]);
                         }
-
-                    } else {
-
-                        //dd('entrar crear turno cuando no hay turno creado antes');
-
-                        // Guardar o actualizar el turno
-                        $shiftToMake = EmployeeShifts::updateOrCreate(
-                            [
-                                'employee_id' => $empleado->id,
-                                'date'        => $fecha,
-                            ],
-                            [
-                                'shift'    => $nuevoTurno,
-                                'comments' => $comentario,
-                            ]
-                        );
-
-                        // Registrar en historial
-                        ShiftChangeLog::updateOrCreate([
-                            'employee_id'       => $empleado->id,
-                            'employee_shift_id' => $shiftToMake->id,
-                            'changed_by'        => $actualUser,
-                            'old_shift'         => '',
-                            'new_shift'         => $nuevoTurno,
-                            'comment'           => 'Turno creado desde plataforma',
-                        ]);
                     }
                 }
 

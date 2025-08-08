@@ -45,8 +45,6 @@ class ShiftImportController extends Controller
         $formatedData = $this->formatData($data);
         $this->uploadToDatabase($formatedData);
 
-        dd('turnos subidos a la base de datos!');
-
         return back()->with('success', 'Archivo importado correctamente');
     }
 

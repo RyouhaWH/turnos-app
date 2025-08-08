@@ -9,7 +9,7 @@ import React, { useState } from 'react';
 export type TurnoTipo = 'M' | 'T' | 'N';
 
 export interface CambiosPorFecha {
-    [fecha: string]: TurnoTipo;
+    [fecha: string]: string;
 }
 
 export interface CambiosPorFuncionario {
@@ -21,9 +21,10 @@ interface Props {
     onActualizar?: (comentario: string) => void;
     isProcesing: boolean;
     isCollapsed?: boolean;
+    selectedDate?: Date; // Agregar fecha seleccionada para construir fechas correctamente
 }
 
-const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false }) => {
+const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date() }) => {
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
@@ -38,7 +39,26 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
         return capitalizado;
     };
 
+    // Función para construir fecha correcta desde el día
+    const buildDateFromDay = (day: string) => {
+        const dayNumber = parseInt(day);
+        if (isNaN(dayNumber)) return new Date();
+
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth(); // getMonth() devuelve 0-11
+
+        return new Date(year, month, dayNumber);
+    };
+
     const getTurnoLabel = (turno: string) => {
+        // Manejar caso de turno vacío (eliminación)
+        if (!turno || turno === '') {
+            return {
+                label: 'Eliminar turno',
+                color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+            };
+        }
+
         const labels = {
             // Turnos principales
             M: {
@@ -134,7 +154,7 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-3 w-3 text-slate-400" />
                                         <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                            {new Date(fecha).toLocaleDateString('es-CL', {
+                                            {buildDateFromDay(fecha).toLocaleDateString('es-CL', {
                                                 day: 'numeric',
                                                 month: 'short',
                                             })}

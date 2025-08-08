@@ -51,7 +51,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const { props } = usePage<{ turnos: TurnoData[] }>();
 
     const [rowData, setRowData] = useState<TurnoData[]>(props.turnos);
-    const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
+    const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
     const [comentario, setComentario] = useState('');
     const [historial, setHistorial] = useState([]);
     const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
@@ -112,7 +112,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
     };
 
-    const handleResumenUpdate = useCallback((ResumenCambios) => {
+    const handleResumenUpdate = useCallback((ResumenCambios: Record<string, Record<string, string>>) => {
         setResumen(ResumenCambios);
         setData((prev) => ({
             ...prev,
@@ -123,10 +123,16 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
 
+        // Obtener mes y año de la fecha seleccionada
+        const mes = selectedDate.getMonth() + 1; // getMonth() devuelve 0-11, necesitamos 1-12
+        const año = selectedDate.getFullYear();
+
         post(route('post-updateShifts'), {
             data: {
                 cambios: resumen,
                 comentario: comentarioNuevo,
+                mes: mes,
+                año: año,
             },
             onSuccess: () => {
                 setResumen({});
@@ -298,6 +304,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             onActualizar={(comentario) => handleActualizarCambios(comentario)}
                                             isProcesing={processing}
                                             isCollapsed={false}
+                                            selectedDate={selectedDate}
                                         />
                                     </div>
                                 )}
