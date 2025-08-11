@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
+import { Plus, Users, Shield } from 'lucide-react';
 
 type Role = { id: number; name: string };
-type User = { id: number; name: string; email: string; roles: string[] };
+type User = { id: number; name: string; email: string; created_at: string; roles: string[] };
 
 type PageProps = {
   users: User[];
@@ -31,36 +33,93 @@ export default function UsersIndex() {
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    createForm.post(route('user-management.store'));
+    createForm.post(route('user-management.store'), {
+      onSuccess: () => {
+        createForm.reset();
+      },
+    });
   };
 
   const handleAssign = (userId: number) => {
     const role = assigning[userId];
     if (!role) return;
-    createForm.transform(() => ({ role })).patch(route('user-management.update-role', userId));
+
+    createForm.transform(() => ({ role })).patch(route('user-management.update-role', userId), {
+      onSuccess: () => {
+        setAssigning(prev => {
+          const newState = { ...prev };
+          delete newState[userId];
+          return newState;
+        });
+      },
+    });
   };
 
   return (
-    <div className="container mx-auto p-4 space-y-8">
+    <div className="container mx-auto p-6 space-y-8">
       <Head title="Gestión de usuarios" />
 
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+          <Users className="h-5 w-5 text-primary-foreground" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">Gestión de Usuarios</h1>
+          <p className="text-muted-foreground">Administra usuarios y sus roles en el sistema</p>
+        </div>
+      </div>
+
+      {/* Formulario de creación */}
       <Card>
         <CardHeader>
-          <CardTitle>Crear usuario</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Plus className="h-5 w-5" />
+            Crear nuevo usuario
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="name">Nombre</Label>
-              <Input id="name" value={createForm.data.name} onChange={(e) => createForm.setData('name', e.target.value)} required />
+              <Label htmlFor="name">Nombre completo</Label>
+              <Input
+                id="name"
+                value={createForm.data.name}
+                onChange={(e) => createForm.setData('name', e.target.value)}
+                required
+                placeholder="Juan Pérez"
+              />
+              {createForm.errors.name && (
+                <p className="text-sm text-red-600 mt-1">{createForm.errors.name}</p>
+              )}
             </div>
             <div>
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" value={createForm.data.email} onChange={(e) => createForm.setData('email', e.target.value)} required />
+              <Label htmlFor="email">Correo electrónico</Label>
+              <Input
+                id="email"
+                type="email"
+                value={createForm.data.email}
+                onChange={(e) => createForm.setData('email', e.target.value)}
+                required
+                placeholder="juan@ejemplo.com"
+              />
+              {createForm.errors.email && (
+                <p className="text-sm text-red-600 mt-1">{createForm.errors.email}</p>
+              )}
             </div>
             <div>
               <Label htmlFor="password">Contraseña</Label>
-              <Input id="password" type="password" value={createForm.data.password} onChange={(e) => createForm.setData('password', e.target.value)} required />
+              <Input
+                id="password"
+                type="password"
+                value={createForm.data.password}
+                onChange={(e) => createForm.setData('password', e.target.value)}
+                required
+                placeholder="Mínimo 8 caracteres"
+              />
+              {createForm.errors.password && (
+                <p className="text-sm text-red-600 mt-1">{createForm.errors.password}</p>
+              )}
             </div>
             <div>
               <Label>Rol</Label>
@@ -74,9 +133,19 @@ export default function UsersIndex() {
                   ))}
                 </SelectContent>
               </Select>
+              {createForm.errors.role && (
+                <p className="text-sm text-red-600 mt-1">{createForm.errors.role}</p>
+              )}
             </div>
             <div className="md:col-span-4 flex justify-end">
-              <Button type="submit" disabled={createForm.processing}>Crear</Button>
+              <Button type="submit" disabled={createForm.processing} className="flex items-center gap-2">
+                {createForm.processing ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                ) : (
+                  <Plus className="h-4 w-4" />
+                )}
+                Crear usuario
+              </Button>
             </div>
           </form>
         </CardContent>
@@ -84,34 +153,69 @@ export default function UsersIndex() {
 
       <Separator />
 
+      {/* Lista de usuarios */}
       <Card>
         <CardHeader>
-          <CardTitle>Usuarios</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Usuarios del sistema ({users.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {users.map((u) => (
-              <div key={u.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
-                <div className="font-medium">{u.name}</div>
-                <div className="text-sm text-muted-foreground">{u.email}</div>
-                <div className="text-sm">{u.roles.join(', ') || 'Sin rol'}</div>
-                <div>
-                  <Select value={assigning[u.id] ?? ''} onValueChange={(v) => setAssigning((s) => ({ ...s, [u.id]: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Asignar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {roles.map((r) => (
-                        <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {users.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">No hay usuarios registrados</p>
+            ) : (
+              users.map((user) => (
+                <div key={user.id} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-center p-4 border rounded-lg">
+                  <div>
+                    <div className="font-medium">{user.name}</div>
+                    <div className="text-sm text-muted-foreground">{user.email}</div>
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    Creado: {user.created_at}
+                  </div>
+                  <div className="flex gap-1">
+                    {user.roles.length > 0 ? (
+                      user.roles.map((role) => (
+                        <Badge key={role} variant="secondary" className="text-xs">
+                          {role}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
+                        Sin rol
+                      </Badge>
+                    )}
+                  </div>
+                  <div>
+                    <Select
+                      value={assigning[user.id] ?? ''}
+                      onValueChange={(v) => setAssigning((s) => ({ ...s, [user.id]: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Asignar rol" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {roles.map((r) => (
+                          <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleAssign(user.id)}
+                      disabled={!assigning[user.id]}
+                    >
+                      Guardar
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button variant="secondary" onClick={() => handleAssign(u.id)}>Guardar</Button>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
