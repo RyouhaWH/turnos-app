@@ -13,11 +13,11 @@ const mainNavItems: NavItem[] = [
         href: route('shifts'),
         icon: Calendar1,
     },
-    {
-        title: 'Personal',
-        href: route('staff-personal'),
-        icon: UserCheck2,
-    },
+    // {
+    //     title: 'Personal',
+    //     href: route('staff-personal'),
+    //     icon: UserCheck2,
+    // },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -26,11 +26,12 @@ const footerNavItems: NavItem[] = [
         href: '/upload-csv',
         icon: Folder,
     },
-    {
-        title: 'Documentation',
-        href: '',
-        icon: BookOpen,
-    },
+
+    // {
+    //     title: 'Documentation',
+    //     href: '',
+    //     icon: BookOpen,
+    // },
 
 ];
 

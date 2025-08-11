@@ -12,23 +12,24 @@ Route::get('/test', function () {
     return response()->json(['ok' => true]);
 });
 
-//ruta de turnos filtrados
-Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
-// ruta de todos los turnos sin filtrar
-Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV']);
+// //ruta de turnos filtrados
+// Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
-//retorna turnos desde base de datos
-Route::get('/turnos', [TurnController::class, 'getShiftsFromDB']);
+// // ruta de todos los turnos sin filtrar
+// Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV']);
 
-//Retorna turnos modificados
-Route::get('/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee']);
+// //retorna turnos desde base de datos
+// Route::get('/turnos', [TurnController::class, 'getShiftsFromDB']);
 
-//Retorna turnos según fecha
-Route::get('/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts']);
+// //Retorna turnos modificados
+// Route::get('/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee']);
 
-//Retorna todos los turnos modificados
-Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
+// //Retorna turnos según fecha
+// Route::get('/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts']);
+
+// //Retorna todos los turnos modificados
+// Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
 
 
 
@@ -37,18 +38,21 @@ Route::prefix('dashboard')->group(function () {
 
     // Tests básicos
     Route::get('/test', [TurnController::class, 'test']);
+
     Route::get('/test-models', [TurnController::class, 'testModels']);
+
     Route::get('/debug-info', [TurnController::class, 'getDebugInfo']);
 
     // Información específica
-    Route::get('/employees-by-role', [TurnController::class, 'getEmployeesByRole']);
-    Route::get('/today-shifts', [TurnController::class, 'getTodayShifts']);
+    // Route::get('/employees-by-role', [TurnController::class, 'getEmployeesByRole']);
+
+    // Route::get('/today-shifts', [TurnController::class, 'getTodayShifts']);
 
     // Estadísticas principales
-    Route::get('/stats', [TurnController::class, 'getDashboardStats']);
+    // Route::get('/stats', [TurnController::class, 'getDashboardStats']);
 
     // Estado de empleados para dashboard
-    Route::get('/employee-status', [TurnController::class, 'getEmployeeStatus']);
+    // Route::get('/employee-status', [TurnController::class, 'getEmployeeStatus']);
 });
 
 

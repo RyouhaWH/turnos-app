@@ -28,6 +28,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
+
+
     //para tener turnos
     Route::get('turnos', [ShiftsController::class, 'index'])
         ->name('shifts');
@@ -49,6 +51,52 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
 
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
+
+    Route::prefix('api/dashboard')->group(function () {
+    //llamadas datos Dashboard principal y de turnos
+        // Estado de empleados para dashboard
+        Route::get('employee-status', [TurnController::class, 'getEmployeeStatus'])->name('employee-status');
+
+        // Estadísticas principales
+        Route::get('stats', [TurnController::class, 'getDashboardStats'])->name('stats');
+
+        // Información específica
+        Route::get('employees-by-role', [TurnController::class, 'getEmployeesByRole'])->name('employees-by-role');
+
+        Route::get('today-shifts', [TurnController::class, 'getTodayShifts'])
+            ->name('today-shifts');
+
+
+
+
+
+
+    });
+
+    //ruta de turnos filtrados
+    Route::get('api/turnos-alerta_movil', [TurnController::class, 'index'])->name('turnos-alerta_movil');
+
+    // ruta de todos los turnos sin filtrar
+    Route::get('api/montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV'])->name('montly-shifts');
+
+    //retorna turnos desde base de datos
+    Route::get('api/turnos', [TurnController::class, 'getShiftsFromDB'])->name('turnos');
+
+    //Retorna turnos según fecha
+    Route::get('api/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts'])->name('turnos-mes');
+
+    //Retorna turnos modificados
+    Route::get('api/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])->name('shift-change-log-employee');
+
+    //Retorna todos los turnos modificados
+    Route::get('api/shift-change-log', [TurnController::class, 'getShiftsChangeLog'])->name('shift-change-log');
+
+
+
+
+
+    //ruta de turnos filtrados
+    Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {

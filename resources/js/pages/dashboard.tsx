@@ -1,10 +1,10 @@
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEmployeeStatus } from '@/hooks/useEmployeeStatus';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { RefreshCw, Users, UserCheck, Coffee, AlertTriangle, UserX } from 'lucide-react';
+import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX } from 'lucide-react';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -18,14 +18,46 @@ const breadcrumbs: BreadcrumbItem[] = [
 const ROLE_NAMES: Record<number, string> = {
     1: 'Alerta Móvil',
     2: 'Fiscalización',
-    3: 'Motorizado'
+    3: 'Motorizado',
 };
 
 // Mapeo de roles a colores
 const ROLE_COLORS: Record<number, string> = {
-    1: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/30',      // Alerta Móvil - Rojo
+    1: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/30', // Alerta Móvil - Rojo
     2: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/30', // Fiscalización - Ámbar
-    3: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/30' // Motorizado - Esmeralda
+    3: 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/30', // Motorizado - Esmeralda
+};
+
+// Mapeo de tipos de ausencia a colores
+const ABSENCE_COLORS: Record<string, string> = {
+    'Licencia Médica': 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700/50',
+    'Licencia Medica': 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700/50',
+    Vacaciones: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700/50',
+    'Día Sindical': 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border-purple-300 dark:border-purple-700/50',
+    Administrativo: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700/50',
+    Capacitación: 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-300 dark:border-cyan-700/50',
+    Permiso: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-700/50',
+    Suspendido: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700/50',
+    Franco: 'bg-slate-100 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600/50',
+    Descanso: 'bg-slate-100 dark:bg-slate-800/30 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600/50',
+};
+
+// Función para obtener el color de ausencia
+const getAbsenceColor = (shiftLabel: string): string => {
+    // Buscar coincidencia exacta primero
+    if (ABSENCE_COLORS[shiftLabel]) {
+        return ABSENCE_COLORS[shiftLabel];
+    }
+
+    // Buscar coincidencia parcial para casos como "Licencia Médica por..."
+    for (const [key, color] of Object.entries(ABSENCE_COLORS)) {
+        if (shiftLabel.toLowerCase().includes(key.toLowerCase())) {
+            return color;
+        }
+    }
+
+    // Color por defecto si no encuentra coincidencia
+    return 'bg-gray-100 dark:bg-slate-700/30 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600/50';
 };
 
 // Componente para mostrar empleados por rol
@@ -45,31 +77,29 @@ interface RoleColumnProps {
 
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
     // Filtrar empleados por rol y solo mostrar los que están trabajando
-    const roleEmployees = employees.filter(emp => emp.rol_id === roleId);
+    const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
     // Solo empleados trabajando (no mostrar descanso)
-    const trabajando = roleEmployees.filter(emp =>
-        emp.shift && ['M', 'T', 'N', '1', '2', '3', 'A'].includes(emp.shift)
-    );
+    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3', 'A'].includes(emp.shift));
 
     // Agrupar por turnos
     const turnosMañanaTardeNoche = {
-        'M': { label: 'Mañana', emoji: '🌅', employees: trabajando.filter(emp => emp.shift === 'M') },
-        'T': { label: 'Tarde',  emoji: '🌇', employees: trabajando.filter(emp => emp.shift === 'T') },
-        'N': { label: 'Noche',  emoji: '🌙', employees: trabajando.filter(emp => emp.shift === 'N') },
+        M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
+        T: { label: 'Tarde', emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
+        N: { label: 'Noche', emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
     };
 
     const turnosNumericos = {
-        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter(emp => emp.shift === '1') },
-        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter(emp => emp.shift === '2') },
-        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter(emp => emp.shift === '3') }
+        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter((emp) => emp.shift === '1') },
+        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
+        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
     };
 
     const turnoAdministrativo = {
-        'A': { label: 'Administrativo', emoji: '💼', employees: trabajando.filter(emp => emp.shift === 'A') }
+        A: { label: 'Administrativo', emoji: '💼', employees: trabajando.filter((emp) => emp.shift === 'A') },
     };
 
-    const [showAll, setShowAll] = useState(false);
+    const [showAll, setShowAll] = useState(true);
 
     return (
         <Card className="h-fit pb-6">
@@ -84,31 +114,23 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
             </CardHeader>
             <CardContent>
                 {trabajando.length === 0 ? (
-                    <p className="text-muted-foreground text-xs italic">Sin personal trabajando</p>
+                    <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className="space-y-3">
                         {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(([turno, data]) =>
-                            data.employees.length > 0 && (
-                                <TurnoSection
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.employees}
-                                    showAll={showAll}
-                                />
-                            )
+                        {Object.entries(turnosMañanaTardeNoche).map(
+                            ([turno, data]) =>
+                                data.employees.length > 0 && (
+                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                ),
                         )}
 
                         {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(([turno, data]) =>
-                            data.employees.length > 0 && (
-                                <TurnoSection
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.employees}
-                                    showAll={showAll}
-                                />
-                            )
+                        {Object.entries(turnosNumericos).map(
+                            ([turno, data]) =>
+                                data.employees.length > 0 && (
+                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                ),
                         )}
 
                         {/* Turno Administrativo */}
@@ -120,14 +142,14 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                             />
                         )}
 
-                        {trabajando.length > 8 && (
+                        {/* {trabajando.length > 8 && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
                                 className="text-xs text-primary hover:underline mt-2"
                             >
                                 {showAll ? 'Ver menos' : `Ver ${trabajando.length - 8} más...`}
                             </button>
-                        )}
+                        )} */}
                     </div>
                 )}
             </CardContent>
@@ -153,19 +175,17 @@ function TurnoSection({ title, employees, showAll }: TurnoSectionProps) {
 
     return (
         <div className="space-y-2">
-            <h5 className="font-semibold text-sm text-green-700 dark:text-slate-200 text-center bg-green-100 dark:bg-slate-800/40 py-2 px-3 rounded-lg border border-green-200 dark:border-slate-600/40">
+            <h5 className="rounded-lg border bg-green-100 px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
                 {title} ({employees.length})
             </h5>
             <div className="space-y-1">
                 {displayEmployees.map((employee) => (
-                    <div key={employee.id} className="flex items-center justify-center p-2 rounded-md bg-green-50 dark:bg-slate-800/20 border border-green-200 dark:border-slate-700/40">
-                        <span className="font-medium text-xs text-green-900 dark:text-slate-200 text-center">{employee.name}</span>
+                    <div key={employee.id} className="flex items-center justify-center rounded-md p-2">
+                        <span className="text-center text-xs font-medium text-green-900 dark:text-slate-200">{employee.name}</span>
                     </div>
                 ))}
                 {!showAll && employees.length > 4 && (
-                    <p className="text-xs text-green-600 dark:text-slate-400 text-center italic">
-                        +{employees.length - 4} más...
-                    </p>
+                    <p className="text-center text-xs text-green-600 italic dark:text-slate-400">+{employees.length - 4} más...</p>
                 )}
             </div>
         </div>
@@ -207,38 +227,36 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
             </CardHeader>
             <CardContent>
                 {employees.length === 0 ? (
-                    <p className="text-muted-foreground text-sm italic">{emptyMessage}</p>
+                    <p className="text-sm text-muted-foreground italic">{emptyMessage}</p>
                 ) : (
-                    <div className="space-y-2">
-                                                                        {displayEmployees.map((employee) => (
-                            <div key={employee.id} className={`flex items-center justify-between p-2 rounded-lg ${bgColor} border ${borderColor}`}>
+                    <div className="space-y-2 pb-8">
+                        {displayEmployees.map((employee) => (
+                            <div key={employee.id} className={`flex items-center justify-between rounded-lg p-2 ${bgColor} border ${borderColor}`}>
                                 <div className="flex items-center gap-2">
-                                    <span className="font-medium text-sm text-gray-900 dark:text-slate-200">{employee.name}</span>
-                                                                        <Badge
+                                    <span className="text-sm font-medium text-gray-900 dark:text-slate-200">{employee.name}</span>
+                                    <Badge
                                         variant="outline"
-                                        className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 dark:bg-slate-700/30 text-gray-800 dark:text-slate-300'}`}
+                                        className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 text-gray-800 dark:bg-slate-700/30 dark:text-slate-300'}`}
                                     >
                                         {ROLE_NAMES[employee.rol_id] || `Rol ${employee.rol_id}`}
                                     </Badge>
                                 </div>
                                 {employee.shift_label && (
-                                    <Badge variant="secondary" className="text-xs dark:bg-slate-700/50 dark:text-slate-300">
+                                    <Badge variant="outline" className={`text-xs font-medium ${getAbsenceColor(employee.shift_label)}`}>
                                         {employee.shift_label}
                                     </Badge>
                                 )}
-                                {employee.reason && (
-                                    <span className="text-xs text-muted-foreground dark:text-slate-400">{employee.reason}</span>
-                                )}
+                                {employee.reason && <span className="text-xs text-muted-foreground dark:text-slate-400">{employee.reason}</span>}
                             </div>
                         ))}
-                        {employees.length > 6 && (
+                        {/* {employees.length > 6 && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
                                 className="text-sm text-primary hover:underline mt-2"
                             >
                                 {showAll ? 'Ver menos' : `Ver ${employees.length - 6} más...`}
                             </button>
-                        )}
+                        )} */}
                     </div>
                 )}
             </CardContent>
@@ -247,28 +265,20 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
 }
 
 export default function Dashboard() {
-    const {
-        employeeStatus,
-        counts,
-        totalActivos,
-        totalEmpleados,
-        loading,
-        error,
-        refetch
-    } = useEmployeeStatus();
+    const { employeeStatus, counts, totalActivos, totalEmpleados, loading, error, refetch } = useEmployeeStatus();
 
     const today = new Date().toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
-        day: 'numeric'
+        day: 'numeric',
     });
 
     if (loading) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Dashboard" />
-                <div className="flex items-center justify-center h-64">
+                <div className="flex h-64 items-center justify-center">
                     <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-muted-foreground">Cargando estado de empleados...</span>
                 </div>
@@ -279,24 +289,43 @@ export default function Dashboard() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-6 rounded-xl p-4 overflow-x-auto bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
-                {/* Header */}
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-2xl font-bold">Dashboard - Estado de Personal</h1>
-                        <p className="text-muted-foreground capitalize">{today}</p>
+
+
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
+                {/* header v2 */}
+                <div className="border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-700/50 dark:bg-slate-900/80">
+                    <div className="px-6 py-8">
+                        <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+                            {/* Title Section */}
+                            <div className="flex w-full items-start justify-between gap-4">
+                                <div>
+                                    <h1 className="text-2xl font-bold">Dashboard - Estado de Personal</h1>
+                                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                                        <Activity className="h-4 w-4" />
+                                        <span>Sistema activo - {new Date().toLocaleDateString('es-CL')}</span>
+                                        {loading && (
+                                            <div className="ml-2 flex items-center gap-1">
+                                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                                <span className="text-xs">Actualizando...</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={refetch}
+                                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
+                                >
+                                    <RefreshCw className="h-4 w-4" />
+                                    Actualizar
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <button
-                        onClick={refetch}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-                    >
-                        <RefreshCw className="h-4 w-4" />
-                        Actualizar
-                    </button>
                 </div>
 
                 {/* Resumen por roles */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/30">
                         <CardContent className="p-6">
                             <div className="flex items-center gap-2">
@@ -362,65 +391,66 @@ export default function Dashboard() {
                             </div>
                         </CardContent>
                     </Card>
-                </div>
+                </div> */}
+                <div className="mx-6 my-8">
+                    {/* Error message */}
+                    {error && (
+                        <div className="mx-6 rounded-lg border border-red-200 bg-red-50 p-4">
+                            <p className="text-sm text-red-800">{error}</p>
+                        </div>
+                    )}
 
-                {/* Error message */}
-                {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                        <p className="text-red-800 text-sm">{error}</p>
+                    {/* Columnas principales por roles - Solo trabajando */}
+                    <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                        <RoleColumn
+                            roleId={1}
+                            roleName="Alerta Móvil"
+                            employees={employeeStatus.trabajando}
+                            roleColor="text-red-700 dark:text-red-300"
+                        />
+
+                        <RoleColumn
+                            roleId={2}
+                            roleName="Fiscalización"
+                            employees={employeeStatus.trabajando}
+                            roleColor="text-amber-700 dark:text-amber-300"
+                        />
+
+                        <RoleColumn
+                            roleId={3}
+                            roleName="Motorizado"
+                            employees={employeeStatus.trabajando}
+                            roleColor="text-emerald-700 dark:text-emerald-300"
+                        />
                     </div>
-                )}
 
-                                                {/* Columnas principales por roles - Solo trabajando */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                    <RoleColumn
-                        roleId={1}
-                        roleName="Alerta Móvil"
-                        employees={employeeStatus.trabajando}
-                        roleColor="text-red-700 dark:text-red-300"
-                    />
+                    {/* Sección inferior: Ausentes y Sin Turno */}
+                    <div className="space-y-4">
+                        <h2 className="border-b pb-2 text-xl font-semibold text-gray-700 dark:border-slate-600/50 dark:text-slate-200">
+                            Estado Especial del Personal
+                        </h2>
 
-                    <RoleColumn
-                        roleId={2}
-                        roleName="Fiscalización"
-                        employees={employeeStatus.trabajando}
-                        roleColor="text-amber-700 dark:text-amber-300"
-                    />
+                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                            <BottomSection
+                                employees={employeeStatus.ausente}
+                                title="Ausente"
+                                icon={<AlertTriangle className="h-5 w-5" />}
+                                emptyMessage="No hay empleados ausentes hoy"
+                                bgColor="bg-red-50 dark:bg-slate-800/25"
+                                borderColor="border-red-200 dark:border-slate-600/40"
+                                textColor="text-red-700 dark:text-slate-300"
+                            />
 
-                    <RoleColumn
-                        roleId={3}
-                        roleName="Motorizado"
-                        employees={employeeStatus.trabajando}
-                        roleColor="text-emerald-700 dark:text-emerald-300"
-                    />
-                </div>
-
-                                {/* Sección inferior: Ausentes y Sin Turno */}
-                <div className="space-y-4">
-                    <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-200 border-b dark:border-slate-600/50 pb-2">
-                        Estado Especial del Personal
-                    </h2>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <BottomSection
-                            employees={employeeStatus.ausente}
-                            title="Ausente"
-                            icon={<AlertTriangle className="h-5 w-5" />}
-                            emptyMessage="No hay empleados ausentes hoy"
-                            bgColor="bg-red-50 dark:bg-slate-800/25"
-                            borderColor="border-red-200 dark:border-slate-600/40"
-                            textColor="text-red-700 dark:text-slate-300"
-                        />
-
-                        <BottomSection
-                            employees={employeeStatus.sinTurno}
-                            title="Sin Turno Asignado"
-                            icon={<UserX className="h-5 w-5" />}
-                            emptyMessage="Todos los empleados tienen turno asignado"
-                            bgColor="bg-gray-50 dark:bg-slate-800/25"
-                            borderColor="border-gray-200 dark:border-slate-600/40"
-                            textColor="text-gray-700 dark:text-slate-300"
-                        />
+                            <BottomSection
+                                employees={employeeStatus.sinTurno}
+                                title="Sin Turno Asignado"
+                                icon={<UserX className="h-5 w-5" />}
+                                emptyMessage="Todos los empleados tienen turno asignado"
+                                bgColor="bg-gray-50 dark:bg-slate-800/25"
+                                borderColor="border-gray-200 dark:border-slate-600/40"
+                                textColor="text-gray-700 dark:text-slate-300"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
