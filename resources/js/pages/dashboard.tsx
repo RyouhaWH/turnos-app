@@ -21,7 +21,7 @@ const ROLE_NAMES: Record<number, string> = {
     3: 'Motorizado'
 };
 
-// Mapeo de roles a colores (colores por área con estilo empresarial en modo oscuro)
+// Mapeo de roles a colores
 const ROLE_COLORS: Record<number, string> = {
     1: 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/30',      // Alerta Móvil - Rojo
     2: 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/30', // Fiscalización - Ámbar
@@ -55,8 +55,8 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     // Agrupar por turnos
     const turnosMañanaTardeNoche = {
         'M': { label: 'Mañana', emoji: '🌅', employees: trabajando.filter(emp => emp.shift === 'M') },
-        'T': { label: 'Tarde', emoji: '🌇', employees: trabajando.filter(emp => emp.shift === 'T') },
-        'N': { label: 'Noche', emoji: '🌙', employees: trabajando.filter(emp => emp.shift === 'N') }
+        'T': { label: 'Tarde',  emoji: '🌇', employees: trabajando.filter(emp => emp.shift === 'T') },
+        'N': { label: 'Noche',  emoji: '🌙', employees: trabajando.filter(emp => emp.shift === 'N') },
     };
 
     const turnosNumericos = {
@@ -72,7 +72,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     const [showAll, setShowAll] = useState(false);
 
     return (
-        <Card className="h-fit">
+        <Card className="h-fit pb-6">
             <CardHeader>
                 <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
                     <UserCheck className="h-5 w-5" />

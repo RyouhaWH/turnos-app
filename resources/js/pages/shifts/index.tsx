@@ -67,9 +67,9 @@ export default function Dashboard() {
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                             {/* Title Section */}
                             <div className="flex items-start gap-4">
-                                <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
+                                {/* <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
                                     <Shield className="h-7 w-7 text-white" />
-                                </div>
+                                </div> */}
                                 <div>
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
                                         Centro de Control
@@ -172,7 +172,7 @@ export default function Dashboard() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {/* Alerta Móvil */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
+                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
                                     <CardHeader className="pb-4">
                                         <div className="flex items-center justify-between">
                                             <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700/40 dark:to-red-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
