@@ -43,7 +43,7 @@ class ShiftImportController extends Controller
         }
 
         $formatedData = $this->formatData($data);
-        $this->uploadToDatabase($formatedData);
+        $this->uploadToDatabase($formatedData['data'], $formatedData['month'], $formatedData['year']);
 
         return back()->with('success', 'Archivo importado correctamente');
     }
@@ -78,7 +78,7 @@ class ShiftImportController extends Controller
         }
 
         $formatedData = $this->formatData($data);
-        $this->uploadToDatabase($formatedData);
+        $this->uploadToDatabase($formatedData['data'], $formatedData['month'], $formatedData['year']);
 
         return response()->json($formatedData);
 
@@ -123,7 +123,12 @@ class ShiftImportController extends Controller
                 'Turnos' => $turnos,
             ];
         }
-        return $resultadoFinal;
+
+        return [
+            'data' => $resultadoFinal,
+            'month' => $mes,
+            'year' => $anio
+        ];
     }
 
     public function formatName(string $nombre): string
@@ -131,10 +136,8 @@ class ShiftImportController extends Controller
         return mb_convert_case(mb_strtolower($nombre, 'UTF-8'), MB_CASE_TITLE, 'UTF-8');
     }
 
-    public function uploadToDatabase(array $turnosData)
+    public function uploadToDatabase(array $turnosData, int $month, int $year)
     {
-        $month = 7;
-        $year  = 2025;
 
         //traer nombres e id de funcionario
         $empleados = Employees::all();

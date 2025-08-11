@@ -510,10 +510,11 @@ class TurnController extends Controller
         try {
             $today = Carbon::today();
 
-            // Obtener todos los empleados con sus turnos de hoy
-            $employees = Employees::with(['shifts' => function($query) use ($today) {
-                $query->whereDate('date', $today);
-            }])->get();
+            // Obtener todos los empleados
+            $employees = Employees::all();
+
+            // Obtener los turnos de hoy
+            $todayShifts = EmployeeShifts::whereDate('date', $today)->get();
 
             $status = [
                 'trabajando' => [], // M, T, N, 1, 2, 3, A
@@ -529,9 +530,13 @@ class TurnController extends Controller
                 'sinTurno' => ['total' => 0, 'byRole' => [1 => 0, 2 => 0, 3 => 0]]
             ];
 
+            // Crear un mapa de turnos por empleado_id para acceso rápido
+            $shiftsByEmployee = $todayShifts->groupBy('employee_id');
+
             foreach ($employees as $employee) {
                 $roleId = $employee->rol_id;
-                $todayShift = $employee->shifts->first();
+                $employeeShifts = $shiftsByEmployee->get($employee->id, collect());
+                $todayShift = $employeeShifts->first();
 
                 if (!$todayShift || !$todayShift->shift || trim($todayShift->shift) === '') {
                     // Sin turno asignado = NO ACTIVO HOY
@@ -598,16 +603,23 @@ class TurnController extends Controller
             $totalActivos = $counts['trabajando']['total'] + $counts['descanso']['total'] + $counts['ausente']['total'];
             $totalEmpleados = $employees->count();
 
+            // Definir nombres de roles
+            $roles = [
+                1 => 'Alerta Móvil',
+                2 => 'Fiscalización',
+                3 => 'Motorizado'
+            ];
+
             return response()->json([
                 'success' => true,
                 'date' => $today->format('Y-m-d'),
-                'summary' => $counts,
-                'totals' => [
-                    'empleados' => $totalEmpleados,
-                    'activos' => $totalActivos,
-                    'inactivos' => $counts['sinTurno']['total']
+                'data' => [
+                    'status' => $status,
+                    'counts' => $counts,
+                    'totalActivos' => $totalActivos,
+                    'totalEmpleados' => $totalEmpleados,
+                    'roles' => $roles
                 ],
-                'details' => $status,
                 'definitions' => [
                     'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3, A',
                     'descanso' => 'Descansos programados: F (Franco), L (Libre)',

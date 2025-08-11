@@ -46,6 +46,9 @@ Route::prefix('dashboard')->group(function () {
 
     // Estadísticas principales
     Route::get('/stats', [TurnController::class, 'getDashboardStats']);
+
+    // Estado de empleados para dashboard
+    Route::get('/employee-status', [TurnController::class, 'getEmployeeStatus']);
 });
 
 
