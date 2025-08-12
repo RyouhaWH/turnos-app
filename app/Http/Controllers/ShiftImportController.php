@@ -239,18 +239,21 @@ class ShiftImportController extends Controller
     private function findEmployeeBySimilarName(string $nombre, $empleados): ?int
     {
         $nombreNormalized = $this->normalizeString($nombre);
+        $bestMatch = null;
+        $bestScore = 0;
 
         foreach ($empleados as $emp) {
             $empNameNormalized = $this->normalizeString($emp->name);
+            $score = 0;
 
             // 1. Verificar si el nombre del empleado contiene el nombre del CSV
             if (strpos($empNameNormalized, $nombreNormalized) !== false) {
-                return $emp->id;
+                $score += 10;
             }
 
             // 2. Verificar si el nombre del CSV contiene el nombre del empleado
             if (strpos($nombreNormalized, $empNameNormalized) !== false) {
-                return $emp->id;
+                $score += 10;
             }
 
             // 3. Verificar similitud por palabras individuales
@@ -259,7 +262,7 @@ class ShiftImportController extends Controller
 
             $commonWords = array_intersect($nombreWords, $empWords);
             if (count($commonWords) >= 2) { // Al menos 2 palabras en común
-                return $emp->id;
+                $score += 8;
             }
 
             // 4. Verificar similitud por apellidos (últimas 2 palabras)
@@ -268,29 +271,84 @@ class ShiftImportController extends Controller
                 $empApellidos = array_slice($empWords, -2);
 
                 if (array_intersect($nombreApellidos, $empApellidos)) {
-                    return $emp->id;
+                    $score += 6;
                 }
             }
 
             // 5. Verificar similitud por primer nombre y primer apellido
             if (count($nombreWords) >= 2 && count($empWords) >= 2) {
                 if ($nombreWords[0] === $empWords[0] && end($nombreWords) === end($empWords)) {
-                    return $emp->id;
+                    $score += 12; // Alta puntuación para coincidencia exacta de nombre y apellido
                 }
             }
 
             // 6. Verificar similitud por distancia de Levenshtein para typos
             if ($this->isSimilarByLevenshtein($nombreNormalized, $empNameNormalized)) {
-                return $emp->id;
+                $score += 4;
             }
 
             // 7. Verificar similitud por palabras individuales con typos
             if ($this->hasSimilarWords($nombreWords, $empWords)) {
-                return $emp->id;
+                $score += 3;
+            }
+
+            // 8. Bonus por coincidencia exacta de apellidos
+            if (count($nombreWords) >= 2 && count($empWords) >= 2) {
+                $nombreApellido = end($nombreWords);
+                $empApellido = end($empWords);
+                if ($nombreApellido === $empApellido) {
+                    $score += 5;
+                }
+            }
+
+            // 9. Bonus especial para nombres cortos (como "Christopher", "Clancy")
+            if (strlen($nombreNormalized) <= 10) {
+                // Si el nombre corto coincide con el primer nombre del empleado
+                if (count($empWords) > 0 && $nombreNormalized === $empWords[0]) {
+                    $score += 15; // Puntuación muy alta para coincidencia exacta de primer nombre
+                }
+
+                // Si el nombre corto es parte del primer nombre del empleado
+                if (count($empWords) > 0 && strpos($empWords[0], $nombreNormalized) === 0) {
+                    $score += 12; // Puntuación alta para coincidencia parcial
+                }
+            }
+
+            // 10. Bonus especial para similitud de primer nombre (caso Christofer vs Christopher)
+            if (count($nombreWords) > 0 && count($empWords) > 0) {
+                $nombrePrimer = $nombreWords[0];
+                $empPrimer = $empWords[0];
+
+                // Si hay similitud alta en el primer nombre
+                if (strlen($nombrePrimer) > 3 && strlen($empPrimer) > 3) {
+                    $distance = levenshtein($nombrePrimer, $empPrimer);
+                    $maxLength = max(strlen($nombrePrimer), strlen($empPrimer));
+
+                    if ($maxLength > 0 && ($distance / $maxLength) < 0.2) { // 20% de diferencia
+                        $score += 20; // Puntuación muy alta para similitud de primer nombre
+                    }
+                }
+            }
+
+            // 11. Penalización por diferencias significativas
+            $totalWords = max(count($nombreWords), count($empWords));
+            $wordDifference = abs(count($nombreWords) - count($empWords));
+            if ($wordDifference > 2) {
+                $score -= $wordDifference * 2;
+            }
+
+            // Guardar el mejor match
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $emp->id;
             }
         }
 
-        return null;
+        // Ajustar el score mínimo según la longitud del nombre
+        $minScore = strlen($nombreNormalized) <= 10 ? 5 : 8; // Score más bajo para nombres cortos
+
+        // Solo retornar si el score es suficientemente alto (evitar falsos positivos)
+        return $bestScore >= $minScore ? $bestMatch : null;
     }
 
     /**
