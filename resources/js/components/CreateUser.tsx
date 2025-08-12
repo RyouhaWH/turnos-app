@@ -101,7 +101,7 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto pb-6">
+    <div className="w-full">
       <div className="mb-6">
         <h3 className="flex items-center gap-2 text-lg font-semibold">
           <UserPlus className="h-5 w-5" />
@@ -122,17 +122,19 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </Alert>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Nombre */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="name">Nombre completo</Label>
             <Input
               id="name"
               type="text"
+              className="mt-1 block w-full"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              required
+              autoComplete="name"
               placeholder="Ingresa el nombre completo"
-              className={errors.name ? 'border-red-500' : ''}
             />
             {errors.name && (
               <p className="text-sm text-red-600 flex items-center gap-1">
@@ -143,15 +145,17 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </div>
 
           {/* Email */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
               type="email"
+              className="mt-1 block w-full"
               value={formData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
+              required
+              autoComplete="username"
               placeholder="usuario@ejemplo.com"
-              className={errors.email ? 'border-red-500' : ''}
             />
             {errors.email && (
               <p className="text-sm text-red-600 flex items-center gap-1">
@@ -162,15 +166,16 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </div>
 
           {/* Contraseña */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="password">Contraseña</Label>
             <Input
               id="password"
               type="password"
+              className="mt-1 block w-full"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
+              required
               placeholder="Mínimo 8 caracteres"
-              className={errors.password ? 'border-red-500' : ''}
             />
             {errors.password && (
               <p className="text-sm text-red-600 flex items-center gap-1">
@@ -181,15 +186,16 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </div>
 
           {/* Confirmar Contraseña */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="password_confirmation">Confirmar Contraseña</Label>
             <Input
               id="password_confirmation"
               type="password"
+              className="mt-1 block w-full"
               value={formData.password_confirmation}
               onChange={(e) => handleInputChange('password_confirmation', e.target.value)}
+              required
               placeholder="Repite la contraseña"
-              className={errors.password_confirmation ? 'border-red-500' : ''}
             />
             {errors.password_confirmation && (
               <p className="text-sm text-red-600 flex items-center gap-1">
@@ -200,13 +206,13 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </div>
 
           {/* Rol */}
-          <div className="space-y-2">
+          <div className="grid gap-2">
             <Label htmlFor="role">Rol</Label>
             <Select
               value={formData.role}
               onValueChange={(value) => handleInputChange('role', value)}
             >
-              <SelectTrigger className={errors.role ? 'border-red-500' : ''}>
+              <SelectTrigger className="mt-1 block w-full">
                 <SelectValue placeholder="Selecciona un rol" />
               </SelectTrigger>
               <SelectContent>
@@ -226,23 +232,21 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
           </div>
 
           {/* Botón Submit */}
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creando usuario...
-              </>
-            ) : (
-              <>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Crear Usuario
-              </>
-            )}
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creando usuario...
+                </>
+              ) : (
+                <>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Crear Usuario
+                </>
+              )}
+            </Button>
+          </div>
         </form>
       </div>
     </div>
