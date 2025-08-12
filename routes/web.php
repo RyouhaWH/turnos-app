@@ -8,6 +8,7 @@ use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -23,14 +24,10 @@ Route::get('calendario-turnos-patrulleros', function () {
     return Inertia::render('calendar');
 })->name('calendar-alerta-movil');
 
-
-
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
-
-
 
     //para tener turnos
     Route::get('turnos', [ShiftsController::class, 'index'])
@@ -55,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
 
     Route::prefix('api/dashboard')->group(function () {
-    //llamadas datos Dashboard principal y de turnos
+        //llamadas datos Dashboard principal y de turnos
         // Estado de empleados para dashboard
         Route::get('employee-status', [TurnController::class, 'getEmployeeStatus'])->name('employee-status');
 
@@ -67,11 +64,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('today-shifts', [TurnController::class, 'getTodayShifts'])
             ->name('today-shifts');
-
-
-
-
-
 
     });
 
@@ -93,18 +85,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //Retorna todos los turnos modificados
     Route::get('api/shift-change-log', [TurnController::class, 'getShiftsChangeLog'])->name('shift-change-log');
 
-
-
-
     //ruta de turnos filtrados
     Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
-        $cambios = $request->input('cambios');
-        $mes = $request->input('mes', now()->month);
-        $año = $request->input('año', now()->year);
+        $cambios    = $request->input('cambios');
+        $mes        = $request->input('mes', now()->month);
+        $año       = $request->input('año', now()->year);
         $actualUser = Auth::id();
 
         // Verificamos si vienen cambios
@@ -125,14 +114,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $empleado = Employees::where('name', $nombreCompleto)->first();
 
                 // 2. Si no se encuentra, intentar búsqueda con normalización mejorada
-                if (!$empleado) {
+                if (! $empleado) {
                     $nombreNormalized = normalizeString($nombreCompleto);
-                    $empleado = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?',
+                    $empleado         = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?',
                         [$nombreNormalized])->first();
                 }
 
                 // 3. Si aún no se encuentra, intentar por RUT
-                if (!$empleado) {
+                if (! $empleado) {
                     $rutFromName = $this->extractRutFromName($nombreCompleto);
                     if ($rutFromName) {
                         $empleado = Employees::where('rut', $rutFromName)->first();
@@ -140,14 +129,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 }
 
                 // 4. Si aún no se encuentra, intentar búsqueda por similitud
-                if (!$empleado) {
+                if (! $empleado) {
                     $empleado = Employees::where('name', 'LIKE', '%' . str_replace(' ', '%', $nombreCompleto) . '%')->first();
                 }
 
                 if ($empleado) {
 
                     // Construir la fecha correctamente usando el día, mes y año actual
-                    $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int)$dia);
+                    $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
 
                     // Buscar si ya existe el turno
                     $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
@@ -240,7 +229,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
                 //aquí se toma el número que tiene el personal en la base de datos
-                $numeroAEnviar = "56951004035";
+
+                // dd('569' . $empleado->phone);
+                $numeroAEnviar = ["56951004035"];
+                //$numeroAEnviar = ["56951004035", "56985639782"];
+                //$numeroAEnviar = [$empleado->phone, "56985639782", "961542579"];
 
                 $shiftComplete = match ($turno) {
                     'A' => 'Administrativo',
@@ -257,24 +250,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     default => 'Desconocido',
                 };
 
-                // $response = Http::post('http://localhost:3001/send-message', [
-                //     'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
+                foreach ($numeroAEnviar as $numero) {
 
-                //     'numero'  => $numeroAEnviar,
-                // ]);
+                    $response = Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
+
+                        'numero'  => $numero,
+                    ]);
+                }
+
+                foreach ($numeroAEnviar as $numero) {
+                    $response = Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => "-------------",
+
+                        'numero'  => $numero,
+                    ]);
+                }
             }
-            // $response = Http::post('http://localhost:3001/send-message', [
-            //     'mensaje' => "-------------",
-
-            //     'numero'  => $numeroAEnviar,
-            // ]);
         }
 
         return back()->with('success', 'Cambios guardados correctamente.');
     })
         ->name('post-updateShifts');
 
-        /**
+    /**
      * Extrae RUT de un nombre que puede contener RUT
      */
     function extractRutFromName(string $nombre): ?string
@@ -325,7 +324,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'â' => 'a', 'ê' => 'e', 'î' => 'i', 'ô' => 'o', 'û' => 'u',
             'Â' => 'A', 'Ê' => 'E', 'Î' => 'I', 'Ô' => 'O', 'Û' => 'U',
             'ã' => 'a', 'õ' => 'o', 'Ã' => 'A', 'Õ' => 'O',
-            'ç' => 'c', 'Ç' => 'C'
+            'ç' => 'c', 'Ç' => 'C',
         ];
 
         return strtr($str, $unwanted_array);
