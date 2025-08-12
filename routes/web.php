@@ -247,6 +247,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     '1'     => 'Primer Turno',
                     '2'     => 'Segundo Turno',
                     '3'     => 'Tercer Turno',
+                    null    => 'Sin Turno',
+                    ''      => 'Sin Turno',
+                    ' '     => 'Sin Turno',
                     default => 'Desconocido',
                 };
 
