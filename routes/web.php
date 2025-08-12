@@ -29,6 +29,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
+    // Rutas para gestión de usuarios
+    Route::post('/admin/users', [App\Http\Controllers\UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::patch('/admin/users/{user}/role', [App\Http\Controllers\UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
+    Route::delete('/admin/users/{user}', [App\Http\Controllers\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+
     //para tener turnos
     Route::get('turnos', [ShiftsController::class, 'index'])
         ->name('shifts');

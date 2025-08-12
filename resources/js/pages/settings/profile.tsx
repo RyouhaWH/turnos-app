@@ -9,6 +9,7 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import CreateUser from '@/components/CreateUser';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 
@@ -120,6 +121,23 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
                     </form>
                 </div>
 
+                {/* Sección para crear usuarios */}
+                <div className="mt-12 pt-8 border-t">
+                    <HeadingSmall 
+                        title="Crear Nuevo Usuario" 
+                        description="Crea nuevos usuarios para el sistema" 
+                    />
+                    
+                    <div className="mt-6">
+                        <CreateUser 
+                            roles={[
+                                { id: 1, name: 'Administrador' },
+                                { id: 2, name: 'Supervisor' },
+                                { id: 3, name: 'Usuario' }
+                            ]} 
+                        />
+                    </div>
+                </div>
 
                 {/* <DeleteUser /> */}
             </SettingsLayout>
