@@ -15,9 +15,9 @@ class PlatformRolesSeeder extends Seeder
     public function run(): void
     {
 
-        Role::create(['name' => 'Admin']);
-        Role::create(['name' => 'Supervisor']);
-        Role::create(['name' => 'Usuario']);
+        Role::firstOrCreate(['name' => 'Administrador']);
+        Role::firstOrCreate(['name' => 'Supervisor']);
+        Role::firstOrCreate(['name' => 'Usuario']);
 
     }
 }
