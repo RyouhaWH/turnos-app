@@ -1,0 +1,118 @@
+# .github/workflows/deploy.yml
+name: Deploy to Server
+
+on:
+  push:
+    branches: [ main, master ]  # Cambia según tu rama principal
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'  # Cambia según tu versión
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, zip
+        coverage: none
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Cache Composer dependencies
+      uses: actions/cache@v3
+      with:
+        path: /tmp/composer-cache
+        key: ${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+
+    - name: Install Composer dependencies
+      run: composer install --no-progress --prefer-dist --optimize-autoloader --no-dev
+
+    - name: Install NPM dependencies
+      run: npm ci
+
+    - name: Build React assets
+      run: npm run build
+
+    - name: Create deployment artifact
+      env:
+        GITHUB_SHA: ${{ github.sha }}
+      run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=*.git --exclude=node_modules *
+
+    - name: Store artifact for distribution
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-build
+        path: ${{ github.sha }}.tar.gz
+
+    - name: Deploy to server
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          mkdir -p /var/www/amzoma/releases/${{ github.sha }}
+
+    - name: Upload app to server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: ${{ secrets.PORT }}
+        source: "${{ github.sha }}.tar.gz"
+        target: "/var/www/amzoma/releases/${{ github.sha }}"
+
+    - name: Extract archive and create symlink
+      uses: appleboy/ssh-action@v0.1.7
+      with:
+        host: ${{ secrets.HOST }}
+        username: ${{ secrets.USERNAME }}
+        key: ${{ secrets.PRIVATE_KEY }}
+        port: ${{ secrets.PORT }}
+        script: |
+          cd /var/www/amzoma/releases/${{ github.sha }}
+          tar xzf ${{ github.sha }}.tar.gz
+          rm -f ${{ github.sha }}.tar.gz
+
+          # Crear symlinks al storage compartido
+          rm -rf /var/www/amzoma/releases/${{ github.sha }}/storage
+          ln -nfs /var/www/amzoma/storage /var/www/amzoma/releases/${{ github.sha }}/storage
+
+          # Crear symlink para database persistente (para SQLite)
+          rm -rf /var/www/amzoma/releases/${{ github.sha }}/database/database.sqlite
+          ln -nfs /var/www/amzoma/storage/database/database.sqlite /var/www/amzoma/releases/${{ github.sha }}/database/database.sqlite
+
+          # Symlink al .env compartido
+          ln -nfs /var/www/amzoma/.env /var/www/amzoma/releases/${{ github.sha }}/.env
+
+          # Instalar dependencias y optimizar (Laravel + Inertia)
+          cd /var/www/amzoma/releases/${{ github.sha }}
+          php artisan migrate --force
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan storage:link
+
+          # Cambiar symlink de current a la nueva versión
+          ln -nfs /var/www/amzoma/releases/${{ github.sha }} /var/www/amzoma/current
+
+          # Recargar PHP-FPM
+          sudo systemctl reload php8.2-fpm
+
+          # Limpiar releases viejas (mantener últimas 3)
+          cd /var/www/amzoma/releases && ls -t1 | tail -n +4 | xargs rm -rf
+
+          # Opcional: reiniciar queue workers si los usas
+          # php artisan queue:restart
