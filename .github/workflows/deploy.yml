@@ -109,7 +109,7 @@ jobs:
           ln -nfs /var/www/amzoma/releases/${{ github.sha }} /var/www/amzoma/current
 
           # Recargar PHP-FPM
-          sudo systemctl reload php8.2-fpm
+          sudo systemctl reload php8.3-fpm
 
           # Limpiar releases viejas (mantener últimas 3)
           cd /var/www/amzoma/releases && ls -t1 | tail -n +4 | xargs rm -rf

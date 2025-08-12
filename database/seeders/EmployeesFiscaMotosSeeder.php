@@ -18,18 +18,18 @@ class EmployeesFiscaMotosSeeder extends Seeder
 
         $rolMoto = Rol::firstOrCreate(['nombre' => 'Motorizado']);
 
-        $PersonalMotorizado = [
-            "Cesar Soto",
-            "Leonardo Sanhueza",
-            "Fernando Maturana",
-            "Roman Lepin",
-            "Nicolas Correa",
-            "Joan Ramirez",
-            "Raul Carvajal",
-            "Pablo Riquelme",
-            "Freddy Gonzalez",
-            "Christofer Gonzalez",
-        ];
+        // $PersonalMotorizado = [
+        //     "Cesar Soto",
+        //     "Leonardo Sanhueza",
+        //     "Fernando Maturana",
+        //     "Roman Lepin",
+        //     "Nicolas Correa",
+        //     "Joan Ramirez",
+        //     "Raul Carvajal",
+        //     "Pablo Riquelme",
+        //     "Freddy Gonzalez",
+        //     "Christofer Gonzalez",
+        // ];
 
         $personalFiscalización = [
             "Elias Fuentes",
