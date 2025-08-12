@@ -31,60 +31,60 @@ class EmployeesFiscaMotosSeeder extends Seeder
         //     "Christofer Gonzalez",
         // ];
 
-        $personalFiscalización = [
-            "Elias Fuentes",
-            "Javier Fernandez",
-            "Victor Silva",
-            "Jonathan Torres",
-            "Matias Caniulef",
-            "Natalia Ñanco",
-            "Kevin Vizcarra",
-            "Uriel Toro Toro",
-            "Raul Huaiquinao Traipe",
-            "Robinson Oyarzun",
-            "Bernardino Tropa",
-            "Fabiola Novoa",
-            "Wilson Vidal Paredes",
-            "Daniel Obreque",
-            "Andrés Painen",
-            "Sara Paredes",
-            "Raul Campos Ortega",
-            "Alvaro Neira",
-            "Juan Becerra",
-            "Danny Choquechambe",
-            "Eduardo Olivares",
-            "Rodrigo Ponce",
-            "Gastón Salazar",
-        ];
+        // $personalFiscalización = [
+        //     "Elias Fuentes",
+        //     "Javier Fernandez",
+        //     "Victor Silva",
+        //     "Jonathan Torres",
+        //     "Matias Caniulef",
+        //     "Natalia Ñanco",
+        //     "Kevin Vizcarra",
+        //     "Uriel Toro Toro",
+        //     "Raul Huaiquinao Traipe",
+        //     "Robinson Oyarzun",
+        //     "Bernardino Tropa",
+        //     "Fabiola Novoa",
+        //     "Wilson Vidal Paredes",
+        //     "Daniel Obreque",
+        //     "Andrés Painen",
+        //     "Sara Paredes",
+        //     "Raul Campos Ortega",
+        //     "Alvaro Neira",
+        //     "Juan Becerra",
+        //     "Danny Choquechambe",
+        //     "Eduardo Olivares",
+        //     "Rodrigo Ponce",
+        //     "Gastón Salazar",
+        // ];
 
-        foreach ($PersonalMotorizado as $nombre)
-        {
-            $nombreFormateado = ucwords(strtolower($nombre));
+        // foreach ($PersonalMotorizado as $nombre)
+        // {
+        //     $nombreFormateado = ucwords(strtolower($nombre));
 
-            $existe = Employees::where('name', $nombreFormateado)->exists();
+        //     $existe = Employees::where('name', $nombreFormateado)->exists();
 
-            if (! $existe) {
-                Employees::create([
-                    'name' => $nombreFormateado,
-                    'amzoma' => false,
-                    'rol_id' => $rolMoto->id,
-                ]);
-            }
-        }
+        //     if (! $existe) {
+        //         Employees::create([
+        //             'name' => $nombreFormateado,
+        //             'amzoma' => false,
+        //             'rol_id' => $rolMoto->id,
+        //         ]);
+        //     }
+        // }
 
-        foreach ($personalFiscalización as $nombre)
-        {
-            $nombreFormateado = ucwords(strtolower($nombre));
+        // foreach ($personalFiscalización as $nombre)
+        // {
+        //     $nombreFormateado = ucwords(strtolower($nombre));
 
-            $existe = Employees::where('name', $nombreFormateado)->exists();
+        //     $existe = Employees::where('name', $nombreFormateado)->exists();
 
-            if (! $existe) {
-                Employees::create([
-                    'name' => $nombreFormateado,
-                    'amzoma' => false,
-                    'rol_id' => $rolFisca->id,
-                ]);
-            }
-        }
+        //     if (! $existe) {
+        //         Employees::create([
+        //             'name' => $nombreFormateado,
+        //             'amzoma' => false,
+        //             'rol_id' => $rolFisca->id,
+        //         ]);
+        //     }
+        // }
     }
 }
