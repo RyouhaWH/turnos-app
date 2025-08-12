@@ -20,9 +20,9 @@ export default function Administration() {
 
             <SettingsLayout>
                 <div className="space-y-6">
-                    <HeadingSmall 
-                        title="Administración del Sistema" 
-                        description="Gestiona usuarios y configuraciones del sistema" 
+                    <HeadingSmall
+                        title="Administración del Sistema"
+                        description="Gestiona usuarios y configuraciones del sistema"
                     />
 
                     {/* Sección para crear usuarios */}
@@ -33,13 +33,13 @@ export default function Administration() {
                                 Crea nuevas cuentas de usuario para el sistema
                             </p>
                         </div>
-                        
-                        <CreateUser 
+
+                        <CreateUser
                             roles={[
                                 { id: 1, name: 'Administrador' },
                                 { id: 2, name: 'Supervisor' },
                                 { id: 3, name: 'Usuario' }
-                            ]} 
+                            ]}
                         />
                     </div>
 
