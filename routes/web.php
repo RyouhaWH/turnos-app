@@ -115,7 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         foreach ($cambios as $nombreCompleto => $fechas) {
             foreach ($fechas as $dia => $turno) {
 
-                // Normaliza el nombre
+                // Normaliza el nombres
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
 
                 // Buscar empleado con múltiples estrategias
