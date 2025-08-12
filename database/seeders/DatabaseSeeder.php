@@ -17,7 +17,8 @@ class DatabaseSeeder extends Seeder
         $this->call([
             PlatformRolesSeeder::class,
             EmployeesAlertaMovilSeeder::class,
-            EmployeesFiscaMotosSeeder::class
+            EmployeesFiscaMotosSeeder::class,
+            EmployeesAmzomaSeeder::class,
         ]);
     }
 }
