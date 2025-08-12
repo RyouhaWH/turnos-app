@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, UserPlus, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -20,7 +20,7 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
     password_confirmation: '',
     role: ''
   });
-  
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -66,7 +66,7 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
@@ -101,18 +101,18 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
   };
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <div className="w-full max-w-md mx-auto pb-6">
+      <div className="mb-6">
+        <h3 className="flex items-center gap-2 text-lg font-semibold">
           <UserPlus className="h-5 w-5" />
           Crear Nuevo Usuario
-        </CardTitle>
-        <CardDescription>
+        </h3>
+        <p className="text-sm text-muted-foreground mt-1">
           Completa el formulario para crear un nuevo usuario en el sistema
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
+        </p>
+      </div>
+
+      <div>
         {success && (
           <Alert className="mb-4 border-green-200 bg-green-50">
             <CheckCircle className="h-4 w-4 text-green-600" />
@@ -244,7 +244,7 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
             )}
           </Button>
         </form>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

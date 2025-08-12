@@ -61,7 +61,7 @@ class UserManagementController extends Controller
 
         // Remover roles existentes
         $user->syncRoles([]);
-        
+
         // Asignar nuevo rol
         $role = Role::find($request->role);
         $user->assignRole($role);
