@@ -18,4 +18,8 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/appearance', function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
+
+    Route::get('settings/administration', function () {
+        return Inertia::render('settings/administration');
+    })->name('administration.edit');
 });
