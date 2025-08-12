@@ -34,7 +34,7 @@ class EmployeesAmzomaSeeder extends Seeder
             ['name' => 'Emilio Alfonso Acuña Lizama', 'rut' => '12927681-9', 'phone' => '997444047', 'amzoma' => true, 'rol_id' => 1],
             ['name' => 'Juan Armando Rojas Urra', 'rut' => '11889479-0', 'phone' => '949839331', 'amzoma' => true, 'rol_id' => 1],
             ['name' => 'Eugenio Antonio Espinoza Yañez', 'rut' => '8377214-K', 'phone' => '996390934', 'amzoma' => true, 'rol_id' => 1],
-            ['name' => 'Javier Nicolas Fernández Cofré', 'rut' => '18727219-K', 'phone' => '996584763', 'amzoma' => true, 'rol_id' => 1],
+            ['name' => 'Javier Nicolas Fernández Cofré', 'rut' => '18727219-K', 'phone' => '996584763', 'amzoma' => true, 'rol_id' => 2],
             ['name' => 'Baltasar Segundo Mercado Maldonado', 'rut' => '7739553-9', 'phone' => '996584747', 'amzoma' => true, 'rol_id' => 1],
             ['name' => 'Jaime Cristian Ramirez Troncoso', 'rut' => '10631223-0', 'phone' => '942164415', 'amzoma' => true, 'rol_id' => 1],
             ['name' => 'Jorge Patricio Delgado Mena', 'rut' => '10106407-7', 'phone' => '968503630', 'amzoma' => true, 'rol_id' => 1],

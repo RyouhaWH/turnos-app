@@ -524,10 +524,10 @@ class TurnController extends Controller
             ];
 
             $counts = [
-                'trabajando' => ['total' => 0, 'byRole' => [1 => 0, 2 => 0, 3 => 0]],
-                'descanso' => ['total' => 0, 'byRole' => [1 => 0, 2 => 0, 3 => 0]],
-                'ausente' => ['total' => 0, 'byRole' => [1 => 0, 2 => 0, 3 => 0]],
-                'sinTurno' => ['total' => 0, 'byRole' => [1 => 0, 2 => 0, 3 => 0]]
+                'trabajando' => ['total' => 0, 'byRole' => []],
+                'descanso' => ['total' => 0, 'byRole' => []],
+                'ausente' => ['total' => 0, 'byRole' => []],
+                'sinTurno' => ['total' => 0, 'byRole' => []]
             ];
 
             // Crear un mapa de turnos por empleado_id para acceso rápido
@@ -537,6 +537,20 @@ class TurnController extends Controller
                 $roleId = $employee->rol_id;
                 $employeeShifts = $shiftsByEmployee->get($employee->id, collect());
                 $todayShift = $employeeShifts->first();
+
+                // Inicializar contador de rol si no existe
+                if (!isset($counts['sinTurno']['byRole'][$roleId])) {
+                    $counts['sinTurno']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['descanso']['byRole'][$roleId])) {
+                    $counts['descanso']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['ausente']['byRole'][$roleId])) {
+                    $counts['ausente']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['trabajando']['byRole'][$roleId])) {
+                    $counts['trabajando']['byRole'][$roleId] = 0;
+                }
 
                 if (!$todayShift || !$todayShift->shift || trim($todayShift->shift) === '') {
                     // Sin turno asignado = NO ACTIVO HOY
@@ -607,7 +621,12 @@ class TurnController extends Controller
             $roles = [
                 1 => 'Alerta Móvil',
                 2 => 'Fiscalización',
-                3 => 'Motorizado'
+                3 => 'Motorizado',
+                4 => 'Administrativo',
+                5 => 'Dron',
+                6 => 'Ciclopatrullaje',
+                7 => 'Personal de Servicio',
+                8 => 'Despachadores'
             ];
 
             return response()->json([

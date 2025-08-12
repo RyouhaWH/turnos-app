@@ -7,19 +7,19 @@ class Employees extends Model
 {
     protected $fillable = [
         'name',
+        'rut',
+        'phone',
         'amzoma',
         'rol_id',
     ];
 
-    public function puesto()
+    public function rol()
     {
-        return $this->belongsTo(Rol::class);
+        return $this->belongsTo(Rol::class, 'rol_id');
     }
 
     public function shifts()
     {
-        return $this->hasMany(EmployeeShifts::class);
+        return $this->hasMany(EmployeeShifts::class, 'employee_id');
     }
-
-
 }

@@ -23,6 +23,8 @@ Route::get('calendario-turnos-patrulleros', function () {
     return Inertia::render('calendar');
 })->name('calendar-alerta-movil');
 
+
+
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
@@ -94,7 +96,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
 
-
     //ruta de turnos filtrados
     Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
@@ -117,19 +118,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // Normaliza el nombre
                 $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
 
-                // Buscar empleado con búsqueda insensible a acentos
+                // Buscar empleado con múltiples estrategias
                 $empleado = null;
 
-                // Primero intentar búsqueda exacta
+                // 1. Primero intentar búsqueda exacta
                 $empleado = Employees::where('name', $nombreCompleto)->first();
 
-                // Si no se encuentra, intentar búsqueda insensible a acentos
+                // 2. Si no se encuentra, intentar búsqueda con normalización mejorada
                 if (!$empleado) {
+                    $nombreNormalized = normalizeString($nombreCompleto);
                     $empleado = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?',
-                        [strtolower($nombreCompleto)])->first();
+                        [$nombreNormalized])->first();
                 }
 
-                // Si aún no se encuentra, intentar búsqueda por similitud
+                // 3. Si aún no se encuentra, intentar por RUT
+                if (!$empleado) {
+                    $rutFromName = $this->extractRutFromName($nombreCompleto);
+                    if ($rutFromName) {
+                        $empleado = Employees::where('rut', $rutFromName)->first();
+                    }
+                }
+
+                // 4. Si aún no se encuentra, intentar búsqueda por similitud
                 if (!$empleado) {
                     $empleado = Employees::where('name', 'LIKE', '%' . str_replace(' ', '%', $nombreCompleto) . '%')->first();
                 }
@@ -263,6 +273,63 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return back()->with('success', 'Cambios guardados correctamente.');
     })
         ->name('post-updateShifts');
+
+        /**
+     * Extrae RUT de un nombre que puede contener RUT
+     */
+    function extractRutFromName(string $nombre): ?string
+    {
+        // Patrón para encontrar RUT chileno (formato: 12345678-9 o 12345678-K)
+        if (preg_match('/(\d{7,8}-[\dkK])/', $nombre, $matches)) {
+            return $matches[1];
+        }
+
+        // Si el nombre es solo un RUT
+        if (preg_match('/^\d{7,8}-[\dkK]$/', trim($nombre))) {
+            return trim($nombre);
+        }
+
+        return null;
+    }
+
+    /**
+     * Normaliza una cadena para comparación (remueve acentos, convierte a minúsculas, etc.)
+     */
+    function normalizeString(string $str): string
+    {
+        // Convertir a minúsculas
+        $str = mb_strtolower($str, 'UTF-8');
+
+        // Remover acentos y caracteres especiales
+        $str = removeAccents($str);
+
+        // Remover caracteres especiales y espacios extra
+        $str = preg_replace('/[^a-z0-9\s]/', '', $str);
+        $str = preg_replace('/\s+/', ' ', $str);
+
+        return trim($str);
+    }
+
+    /**
+     * Remueve acentos de una cadena
+     */
+    function removeAccents(string $str): string
+    {
+        $unwanted_array = [
+            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
+            'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ñ' => 'N',
+            'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u',
+            'À' => 'A', 'È' => 'E', 'Ì' => 'I', 'Ò' => 'O', 'Ù' => 'U',
+            'ä' => 'a', 'ë' => 'e', 'ï' => 'i', 'ö' => 'o', 'ü' => 'u',
+            'Ä' => 'A', 'Ë' => 'E', 'Ï' => 'I', 'Ö' => 'O', 'Ü' => 'U',
+            'â' => 'a', 'ê' => 'e', 'î' => 'i', 'ô' => 'o', 'û' => 'u',
+            'Â' => 'A', 'Ê' => 'E', 'Î' => 'I', 'Ô' => 'O', 'Û' => 'U',
+            'ã' => 'a', 'õ' => 'o', 'Ã' => 'A', 'Õ' => 'O',
+            'ç' => 'c', 'Ç' => 'C'
+        ];
+
+        return strtr($str, $unwanted_array);
+    }
 
 });
 
