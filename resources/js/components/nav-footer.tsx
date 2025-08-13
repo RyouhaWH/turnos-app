@@ -2,6 +2,7 @@ import { Icon } from '@/components/icon';
 import { SidebarGroup, SidebarGroupContent, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import { type NavItem } from '@/types';
 import { type ComponentPropsWithoutRef } from 'react';
+import { usePage } from '@inertiajs/react';
 
 export function NavFooter({
     items,
@@ -10,11 +11,29 @@ export function NavFooter({
 }: ComponentPropsWithoutRef<typeof SidebarGroup> & {
     items: NavItem[];
 }) {
+    const { props: pageProps } = usePage<{ auth: { user: any } }>();
+    const user = pageProps.auth?.user;
+    
+    // Verificar si el usuario tiene permisos de administrador
+    const hasAdminPermissions = user?.roles?.some((role: any) => 
+        role.name === 'Administrador'
+    ) || false;
+    
+    // Filtrar elementos según permisos
+    const filteredItems = items.filter((item) => {
+        // Si es "Subir turnos", solo mostrar a administradores
+        if (item.title === 'Subir turnos') {
+            return hasAdminPermissions;
+        }
+        // Para otros elementos, mostrar a todos
+        return true;
+    });
+    
     return (
         <SidebarGroup {...props} className={`group-data-[collapsible=icon]:p-0 ${className || ''}`}>
             <SidebarGroupContent>
                 <SidebarMenu>
-                    {items.map((item) => (
+                    {filteredItems.map((item) => (
                         <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
                                 asChild

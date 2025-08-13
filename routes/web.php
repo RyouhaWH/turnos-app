@@ -50,9 +50,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('test-shifts-history');
 
     // routes/web.php o routes/api.php
-    Route::get('/upload-csv', [ShiftImportController::class, 'index'])
-        ->name('upload-shift-file');
-    Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
+    Route::middleware(['auth', 'admin'])->group(function () {
+        Route::get('/upload-csv', [ShiftImportController::class, 'index'])
+            ->name('upload-shift-file');
+        Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
+    });
 
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
 
