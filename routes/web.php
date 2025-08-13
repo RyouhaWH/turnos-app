@@ -98,14 +98,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
-        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
-        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
-        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
-        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-        $numeroCristianMontecinos  = "";
-        $numeroInformacionesAmzoma = "56985639782";
-        $numeroJorgeWaltemath      = "56951004035";
+        $numerosAReportarCambios = [
+
+            $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone,
+            $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone,
+            $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone,
+            $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone,
+            $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone,
+            $numeroCristianMontecinos  = "",
+            $numeroInformacionesAmzoma = "56985639782",
+            $numeroJorgeWaltemath      = "56951004035",
+
+        ];
 
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
@@ -247,9 +251,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 //aquí se toma el número que tiene el personal en la base de datos
 
                 // dd('569' . $empleado->phone);
-                $numeroAEnviar = ["56951004035", "56985639782"];
+                //$numeroAEnviar = ["56951004035", "56985639782"];
                 // $numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
-                // $numeroAEnviar = [$empleado->phone, $numeroJulioSarmiento, $numeroMarianelaHuequelef, $numeroPriscilaEscobar, $numeroJavierAlvarado, $numeroEduardoEsparza, $numeroCristianMontecinos, $numeroInformacionesAmzoma, $numeroJorgeWaltemath];
+                $numerosAReportarCambios = [$empleado->phone !== null ? $empleado->phone : ''];
 
                 $shiftComplete = match ($turno) {
                     'A' => 'Administrativo',
@@ -269,7 +273,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     default => 'Desconocido',
                 };
 
-                foreach ($numeroAEnviar as $numero) {
+                foreach ($numerosAReportarCambios as $numero) {
 
                     $response = Http::post('http://localhost:3001/send-message', [
                         'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
@@ -278,7 +282,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ]);
                 }
 
-                foreach ($numeroAEnviar as $numero) {
+                foreach ($numerosAReportarCambios as $numero) {
                     $response = Http::post('http://localhost:3001/send-message', [
                         'mensaje' => "-------------",
 
