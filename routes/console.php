@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Artisan;
 use App\Models\User;
 use Spatie\Permission\Models\Role;
 use App\Http\Controllers\AdministrationController;
+use Illuminate\Support\Facades\Auth;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -226,3 +227,84 @@ Artisan::command('admin:test-auth-status', function () {
         $this->error('Error: ' . $e->getMessage());
     }
 })->purpose('Check authentication status and sessions.');
+
+Artisan::command('user:list-all', function () {
+    try {
+        $this->info('Listando todos los usuarios y sus roles:');
+        $this->info('=====================================');
+        
+        $users = User::with('roles')->get();
+        
+        foreach ($users as $user) {
+            $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
+            $this->line("ID: {$user->id} - {$user->name} ({$user->email}) - Roles: {$roles}");
+        }
+        
+        $this->info('✅ Listado completado');
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('List all users with their roles.');
+
+Artisan::command('user:debug-session', function () {
+    try {
+        $this->info('Debugging sesión actual:');
+        $this->info('=======================');
+        
+        // Verificar si hay un usuario autenticado
+        if (Auth::check()) {
+            $user = Auth::user();
+            $this->info("Usuario autenticado: {$user->name} ({$user->email})");
+            
+            $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
+            $this->info("Roles del usuario: {$roles}");
+            
+            $isAdmin = $user->hasRole('Administrador');
+            $this->info("¿Es administrador? " . ($isAdmin ? 'SÍ' : 'NO'));
+            
+        } else {
+            $this->error('No hay usuario autenticado');
+        }
+        
+        // Verificar sesiones activas
+        $sessionDriver = config('session.driver');
+        $this->info("Driver de sesión: {$sessionDriver}");
+        
+        if ($sessionDriver === 'database') {
+            $sessions = \Illuminate\Support\Facades\DB::table('sessions')->get();
+            $this->info("Sesiones activas: " . $sessions->count());
+            
+            foreach ($sessions as $session) {
+                $this->line("- Sesión ID: {$session->id} - Usuario ID: {$session->user_id}");
+            }
+        }
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Debug current session and authentication.');
+
+Artisan::command('user:check-by-id {id}', function (int $id) {
+    try {
+        $user = User::with('roles')->find($id);
+        
+        if ($user) {
+            $this->info("Usuario ID {$id}:");
+            $this->info("Nombre: {$user->name}");
+            $this->info("Email: {$user->email}");
+            
+            $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
+            $this->info("Roles: {$roles}");
+            
+            $isAdmin = $user->hasRole('Administrador');
+            $this->info("¿Es administrador? " . ($isAdmin ? 'SÍ' : 'NO'));
+            
+        } else {
+            $this->error("Usuario con ID {$id} no encontrado");
+        }
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Check specific user by ID.');
