@@ -446,3 +446,46 @@ Artisan::command('admin:debug-settings-pages', function () {
         $this->error('Error: ' . $e->getMessage());
     }
 })->purpose('Debug settings pages user information.');
+
+Artisan::command('admin:debug-user-permissions', function () {
+    try {
+        $this->info('Debugging permisos de usuario...');
+
+        // Simular diferentes usuarios
+        $users = User::with('roles')->get();
+
+        foreach ($users as $user) {
+            $this->info("\nUsuario: {$user->name} ({$user->email})");
+
+            $roles = $user->roles->pluck('name')->join(', ');
+            $this->info("Roles: {$roles}");
+
+            // Verificar permisos
+            $hasSupervisor = $user->hasRole('Supervisor');
+            $hasAdmin = $user->hasRole('Administrador');
+            $hasUser = $user->hasRole('Usuario');
+
+            $this->info("¿Tiene rol Supervisor? " . ($hasSupervisor ? 'SÍ' : 'NO'));
+            $this->info("¿Tiene rol Administrador? " . ($hasAdmin ? 'SÍ' : 'NO'));
+            $this->info("¿Tiene rol Usuario? " . ($hasUser ? 'SÍ' : 'NO'));
+
+            // Verificar si puede editar turnos
+            $canEdit = $hasSupervisor || $hasAdmin;
+            $this->info("¿Puede editar turnos? " . ($canEdit ? 'SÍ' : 'NO'));
+
+            // Simular la lógica del frontend
+            $userRoles = $user->roles->map(function($role) {
+                return ['id' => $role->id, 'name' => $role->name];
+            })->toArray();
+
+            $frontendCanEdit = collect($userRoles)->some(function($role) {
+                return $role['name'] === 'Supervisor' || $role['name'] === 'Administrador';
+            });
+
+            $this->info("¿Frontend dice que puede editar? " . ($frontendCanEdit ? 'SÍ' : 'NO'));
+        }
+
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Debug user permissions for turnos editing.');

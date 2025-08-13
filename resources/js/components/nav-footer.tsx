@@ -13,12 +13,12 @@ export function NavFooter({
 }) {
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
-    
+
     // Verificar si el usuario tiene permisos de administrador
-    const hasAdminPermissions = user?.roles?.some((role: any) => 
+    const hasAdminPermissions = user?.roles?.some((role: any) =>
         role.name === 'Administrador'
     ) || false;
-    
+
     // Filtrar elementos según permisos
     const filteredItems = items.filter((item) => {
         // Si es "Subir turnos", solo mostrar a administradores
@@ -28,7 +28,7 @@ export function NavFooter({
         // Para otros elementos, mostrar a todos
         return true;
     });
-    
+
     return (
         <SidebarGroup {...props} className={`group-data-[collapsible=icon]:p-0 ${className || ''}`}>
             <SidebarGroupContent>
