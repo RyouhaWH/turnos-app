@@ -35,9 +35,9 @@ export default function PermissionDenied({ message = 'No tienes permisos de admi
                             {message}
                         </AlertDescription>
                     </Alert>
-                    
+
                     <div className="flex flex-col gap-2">
-                        <Button 
+                        <Button
                             onClick={handleGoBack}
                             className="w-full"
                             variant="outline"
