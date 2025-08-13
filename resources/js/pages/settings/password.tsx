@@ -3,7 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
 import { type BreadcrumbItem } from '@/types';
 import { Transition } from '@headlessui/react';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEventHandler, useRef } from 'react';
 
 import HeadingSmall from '@/components/heading-small';
@@ -19,6 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Password() {
+    const { auth } = usePage<SharedData>().props;
     const passwordInput = useRef<HTMLInputElement>(null);
     const currentPasswordInput = useRef<HTMLInputElement>(null);
 
@@ -52,7 +53,7 @@ export default function Password() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Configuración de Contraseña" />
 
-            <SettingsLayout>
+            <SettingsLayout user={auth.user}>
                 <div className="space-y-6">
                     <HeadingSmall title="Actualizar contraseña" description="Asegúrate de que tu cuenta use una contraseña larga y aleatoria para mantenerte seguro" />
 

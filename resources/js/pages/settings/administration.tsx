@@ -31,15 +31,18 @@ interface AdministrationProps {
     users?: User[];
     roles?: Role[];
     error?: string;
+    auth?: {
+        user: User;
+    };
 }
 
-export default function Administration({ users = [], roles = [], error }: AdministrationProps) {
+export default function Administration({ users = [], roles = [], error, auth }: AdministrationProps) {
     // Si hay un error de permisos, mostrar el componente PermissionDenied
     if (error) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
                 <Head title="Acceso Denegado" />
-                <SettingsLayout>
+                <SettingsLayout user={auth?.user}>
                     <PermissionDenied message={error} />
                 </SettingsLayout>
             </AppLayout>
@@ -49,7 +52,7 @@ export default function Administration({ users = [], roles = [], error }: Admini
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Administración" />
-            <SettingsLayout>
+            <SettingsLayout user={auth?.user}>
                 <div className="space-y-8">
                     <HeadingSmall
                         title="Administración del Sistema"

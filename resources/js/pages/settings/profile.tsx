@@ -45,7 +45,7 @@ export default function Profile({ mustVerifyEmail, status }: { mustVerifyEmail: 
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Configuración de Perfil" />
 
-            <SettingsLayout>
+            <SettingsLayout user={auth.user}>
                 <div className="space-y-6">
                     <HeadingSmall title="Información de Perfil" description="Actualiza tu nombre y dirección de correo electrónico" />
 

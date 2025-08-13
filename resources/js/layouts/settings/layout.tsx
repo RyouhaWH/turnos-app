@@ -6,36 +6,59 @@ import { type NavItem } from '@/types';
 import { Link } from '@inertiajs/react';
 import { type PropsWithChildren } from 'react';
 
-const sidebarNavItems: NavItem[] = [
-    {
-        title: 'Perfil',
-        href: '/settings/profile',
-        icon: null,
-    },
-    {
-        title: 'Contraseña',
-        href: '/settings/password',
-        icon: null,
-    },
-    {
-        title: 'Apariencia',
-        href: '/settings/appearance',
-        icon: null,
-    },
-    {
-        title: 'Administración',
-        href: '/settings/administration',
-        icon: null,
-    },
-];
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    roles?: Array<{
+        id: number;
+        name: string;
+    }>;
+}
 
-export default function SettingsLayout({ children }: PropsWithChildren) {
+interface SettingsLayoutProps extends PropsWithChildren {
+    user?: User;
+}
+
+const getSidebarNavItems = (user?: User): NavItem[] => {
+    const baseItems: NavItem[] = [
+        {
+            title: 'Perfil',
+            href: '/settings/profile',
+            icon: null,
+        },
+        {
+            title: 'Contraseña',
+            href: '/settings/password',
+            icon: null,
+        },
+        {
+            title: 'Apariencia',
+            href: '/settings/appearance',
+            icon: null,
+        },
+    ];
+
+    // Solo mostrar administración si el usuario tiene el rol de Administrador
+    if (user && user.roles && user.roles.some(role => role.name === 'Administrador')) {
+        baseItems.push({
+            title: 'Administración',
+            href: '/settings/administration',
+            icon: null,
+        });
+    }
+
+    return baseItems;
+};
+
+export default function SettingsLayout({ children, user }: SettingsLayoutProps) {
     // When server-side rendering, we only render the layout on the client...
     if (typeof window === 'undefined') {
         return null;
     }
 
     const currentPath = window.location.pathname;
+    const sidebarNavItems = getSidebarNavItems(user);
 
     return (
         <div className="px-4 py-6">
