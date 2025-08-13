@@ -21,10 +21,11 @@ class AdminMiddleware
             return redirect()->route('login')->with('error', 'Debes iniciar sesión para acceder a esta página.');
         }
 
-        // Verificar si el usuario tiene el rol de administrador
-        if (!Auth::user()->hasRole('Administrador')) {
-            return redirect()->back()->with('error', 'No tienes permisos de administrador para acceder a esta función.');
-        }
+        // Permitir acceso a cualquier usuario autenticado
+        // (Comentado temporalmente para permitir acceso a todos los usuarios)
+        // if (!Auth::user()->hasRole('Administrador')) {
+        //     return redirect()->back()->with('error', 'No tienes permisos de administrador para acceder a esta función.');
+        // }
 
         return $next($request);
     }
