@@ -126,3 +126,103 @@ Artisan::command('admin:check-session', function () {
         $this->error('Error: ' . $e->getMessage());
     }
 })->purpose('Check session configuration.');
+
+Artisan::command('admin:test-route', function () {
+    try {
+        $this->info('Probando la ruta de administración...');
+        
+        // Crear una petición HTTP simulada
+        $request = \Illuminate\Http\Request::create('/settings/administration', 'GET');
+        
+        // Obtener la respuesta
+        $response = app()->handle($request);
+        
+        $this->info('Status Code: ' . $response->getStatusCode());
+        $this->info('Content Type: ' . $response->headers->get('Content-Type'));
+        
+        if ($response->getStatusCode() === 200) {
+            $this->info('✅ La ruta responde correctamente');
+        } else {
+            $this->error('❌ La ruta no responde correctamente');
+        }
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+        $this->error('Stack trace: ' . $e->getTraceAsString());
+    }
+})->purpose('Test the administration route directly.');
+
+Artisan::command('admin:test-middleware', function () {
+    try {
+        $this->info('Probando el middleware de administración...');
+        
+        // Verificar si el middleware está registrado
+        $middleware = app('router')->getMiddleware();
+        
+        if (isset($middleware['admin'])) {
+            $this->info('✅ Middleware admin registrado: ' . $middleware['admin']);
+        } else {
+            $this->error('❌ Middleware admin no está registrado');
+        }
+        
+        // Verificar si el middleware está aplicado a la ruta
+        $routes = app('router')->getRoutes();
+        $adminRoute = null;
+        
+        foreach ($routes as $route) {
+            if ($route->getName() === 'administration.edit') {
+                $adminRoute = $route;
+                break;
+            }
+        }
+        
+        if ($adminRoute) {
+            $this->info('✅ Ruta encontrada: ' . $adminRoute->uri());
+            $this->info('Middleware aplicado: ' . implode(', ', $adminRoute->middleware()));
+        } else {
+            $this->error('❌ Ruta no encontrada');
+        }
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Test the admin middleware configuration.');
+
+Artisan::command('admin:test-auth-status', function () {
+    try {
+        $this->info('Verificando estado de autenticación...');
+        
+        // Verificar si hay usuarios en la base de datos
+        $userCount = User::count();
+        $this->line("Usuarios en BD: {$userCount}");
+        
+        // Verificar si el primer usuario tiene roles
+        $firstUser = User::with('roles')->first();
+        if ($firstUser) {
+            $roles = $firstUser->roles->pluck('name')->join(', ') ?: 'Sin roles';
+            $this->line("Primer usuario: {$firstUser->name} ({$firstUser->email}) - Roles: {$roles}");
+        }
+        
+        // Verificar configuración de sesión
+        $sessionDriver = config('session.driver');
+        $this->line("Driver de sesión: {$sessionDriver}");
+        
+        // Verificar si hay sesiones activas
+        if ($sessionDriver === 'database') {
+            $sessionCount = \Illuminate\Support\Facades\DB::table('sessions')->count();
+            $this->line("Sesiones activas en BD: {$sessionCount}");
+            
+            if ($sessionCount > 0) {
+                $sessions = \Illuminate\Support\Facades\DB::table('sessions')->get();
+                foreach ($sessions as $session) {
+                    $this->line("- Sesión ID: {$session->id} - Usuario: {$session->user_id}");
+                }
+            }
+        }
+        
+        $this->info('✅ Verificación completada');
+        
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Check authentication status and sessions.');
