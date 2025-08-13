@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, Shield, AlertCircle, CheckCircle } from 'lucide-react';
@@ -27,59 +27,54 @@ interface UserRoleManagementProps {
     roles: Role[];
 }
 
+// Definir la jerarquía de roles
+const ROLE_HIERARCHY = {
+    'Administrador': ['Usuario', 'Supervisor', 'Administrador'],
+    'Supervisor': ['Usuario', 'Supervisor'],
+    'Usuario': ['Usuario']
+};
+
 export default function UserRoleManagement({ users, roles }: UserRoleManagementProps) {
-    const [selectedRoles, setSelectedRoles] = useState<Record<number, number[]>>({});
+    const [selectedRoles, setSelectedRoles] = useState<Record<number, string>>({});
     const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({});
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const handleRoleChange = (userId: number, roleId: number, checked: boolean) => {
-        setSelectedRoles(prev => {
-            const currentRoles = prev[userId] || [];
-            
-            if (checked) {
-                // Agregar rol si no existe
-                if (!currentRoles.includes(roleId)) {
-                    return {
-                        ...prev,
-                        [userId]: [...currentRoles, roleId]
-                    };
-                }
-            } else {
-                // Remover rol si existe
-                return {
-                    ...prev,
-                    [userId]: currentRoles.filter(id => id !== roleId)
-                };
-            }
-            
-            return prev;
-        });
+    const handleRoleChange = (userId: number, roleName: string) => {
+        setSelectedRoles(prev => ({
+            ...prev,
+            [userId]: roleName
+        }));
     };
 
     const updateUserRoles = async (userId: number) => {
-        const roleIds = selectedRoles[userId];
-        if (!roleIds || roleIds.length === 0) return;
+        const selectedRoleName = selectedRoles[userId];
+        if (!selectedRoleName) return;
 
         setIsUpdating(prev => ({ ...prev, [userId]: true }));
         setError(null);
         setSuccess(null);
 
         try {
+            // Obtener los IDs de roles según la jerarquía
+            const roleNamesToAssign = ROLE_HIERARCHY[selectedRoleName as keyof typeof ROLE_HIERARCHY] || [];
+            const roleIds = roles
+                .filter(role => roleNamesToAssign.includes(role.name))
+                .map(role => role.id);
+
             await router.patch(`/admin/users/${userId}/role`, {
                 roles: roleIds
             }, {
                 onSuccess: () => {
-                    setSuccess(`Roles actualizados exitosamente para el usuario`);
-                    // Limpiar el estado después de un tiempo
+                    setSuccess(`Rol actualizado exitosamente. El usuario ahora tiene: ${selectedRoleName}`);
                     setTimeout(() => setSuccess(null), 3000);
                 },
                 onError: (errors) => {
-                    setError(errors.roles || 'Error al actualizar los roles');
+                    setError(errors.roles || 'Error al actualizar el rol');
                 }
             });
         } catch (err) {
-            setError('Error al actualizar los roles');
+            setError('Error al actualizar el rol');
         } finally {
             setIsUpdating(prev => ({ ...prev, [userId]: false }));
         }
@@ -102,15 +97,23 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
         }
     };
 
+    const getCurrentPrimaryRole = (user: User) => {
+        const userRoles = getCurrentRoles(user);
+        const roleNames = userRoles.map(role => role.name);
+        
+        // Determinar el rol principal según la jerarquía
+        if (roleNames.includes('Administrador')) return 'Administrador';
+        if (roleNames.includes('Supervisor')) return 'Supervisor';
+        if (roleNames.includes('Usuario')) return 'Usuario';
+        
+        return 'Usuario'; // Por defecto
+    };
+
     const hasRoleChanges = (user: User) => {
-        const currentRoleIds = getCurrentRoles(user).map(role => role.id);
-        const selectedRoleIds = selectedRoles[user.id] || [];
+        const currentPrimaryRole = getCurrentPrimaryRole(user);
+        const selectedRole = selectedRoles[user.id];
         
-        // Verificar si hay diferencias en cantidad o contenido
-        if (currentRoleIds.length !== selectedRoleIds.length) return true;
-        
-        return currentRoleIds.some(id => !selectedRoleIds.includes(id)) ||
-               selectedRoleIds.some(id => !currentRoleIds.includes(id));
+        return selectedRole && selectedRole !== currentPrimaryRole;
     };
 
     return (
@@ -121,7 +124,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                     Gestión de Roles de Usuarios
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Selecciona múltiples roles para cada usuario. Los roles se acumulan y otorgan diferentes permisos.
+                    Selecciona el rol principal del usuario. Los roles se asignan automáticamente según la jerarquía.
                 </p>
             </div>
 
@@ -150,7 +153,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                         Usuarios del Sistema
                     </CardTitle>
                     <CardDescription>
-                        Marca los checkboxes para asignar roles. Puedes seleccionar múltiples roles por usuario.
+                        Selecciona el rol principal. Los roles se asignan automáticamente según la jerarquía.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -162,7 +165,8 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                         ) : (
                             users.map((user) => {
                                 const currentRoles = getCurrentRoles(user);
-                                const selectedRoleIds = selectedRoles[user.id] || currentRoles.map(role => role.id);
+                                const currentPrimaryRole = getCurrentPrimaryRole(user);
+                                const selectedRole = selectedRoles[user.id] || currentPrimaryRole;
                                 const hasChanges = hasRoleChanges(user);
 
                                 return (
@@ -175,50 +179,57 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                         <p className="text-sm text-muted-foreground">{user.email}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex flex-wrap gap-2">
+                                                <div className="flex flex-wrap gap-2 mb-3">
                                                     {currentRoles.map((role) => (
                                                         <Badge key={role.id} className={getRoleBadgeColor(role.name)}>
                                                             {role.name}
                                                         </Badge>
                                                     ))}
                                                 </div>
+                                                <div className="text-sm text-muted-foreground">
+                                                    <strong>Rol principal actual:</strong> {currentPrimaryRole}
+                                                </div>
                                             </div>
                                         </div>
                                         
                                         <div className="space-y-3">
-                                            <h5 className="text-sm font-medium text-gray-700">Asignar roles:</h5>
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                                                {roles.map((role) => (
-                                                    <div key={role.id} className="flex items-center space-x-2">
-                                                        <Checkbox
-                                                            id={`user-${user.id}-role-${role.id}`}
-                                                            checked={selectedRoleIds.includes(role.id)}
-                                                            onCheckedChange={(checked) => 
-                                                                handleRoleChange(user.id, role.id, checked as boolean)
-                                                            }
-                                                        />
-                                                        <label
-                                                            htmlFor={`user-${user.id}-role-${role.id}`}
-                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                                                        >
-                                                            {role.name}
-                                                        </label>
-                                                    </div>
-                                                ))}
+                                            <h5 className="text-sm font-medium text-gray-700">Cambiar rol principal:</h5>
+                                            <div className="flex items-center gap-3">
+                                                <Select
+                                                    value={selectedRole}
+                                                    onValueChange={(value) => handleRoleChange(user.id, value)}
+                                                >
+                                                    <SelectTrigger className="w-48">
+                                                        <SelectValue placeholder="Seleccionar rol" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Usuario">
+                                                            Usuario (Acceso básico)
+                                                        </SelectItem>
+                                                        <SelectItem value="Supervisor">
+                                                            Supervisor (Usuario + Supervisión)
+                                                        </SelectItem>
+                                                        <SelectItem value="Administrador">
+                                                            Administrador (Todos los permisos)
+                                                        </SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                
+                                                {hasChanges && (
+                                                    <Button
+                                                        onClick={() => updateUserRoles(user.id)}
+                                                        disabled={isUpdating[user.id]}
+                                                        size="sm"
+                                                    >
+                                                        {isUpdating[user.id] ? 'Guardando...' : 'Guardar Cambios'}
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="text-xs text-muted-foreground mt-2">
+                                                <strong>Jerarquía:</strong> Usuario → Supervisor → Administrador
                                             </div>
                                         </div>
-                                        
-                                        {hasChanges && (
-                                            <div className="mt-4 flex justify-end">
-                                                <Button
-                                                    onClick={() => updateUserRoles(user.id)}
-                                                    disabled={isUpdating[user.id]}
-                                                    size="sm"
-                                                >
-                                                    {isUpdating[user.id] ? 'Guardando...' : 'Guardar Cambios'}
-                                                </Button>
-                                            </div>
-                                        )}
                                     </div>
                                 );
                             })
