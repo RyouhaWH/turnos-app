@@ -19,7 +19,5 @@ Route::middleware('auth')->group(function () {
         return Inertia::render('settings/appearance');
     })->name('appearance');
 
-    Route::get('settings/administration', function () {
-        return Inertia::render('settings/administration');
-    })->name('administration.edit');
+    Route::get('settings/administration', [App\Http\Controllers\AdministrationController::class, 'index'])->name('administration.edit');
 });

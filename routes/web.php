@@ -96,6 +96,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
 
+        $numeroJulioSarmiento = Employees::where('rut', '12282547-7')->first()->phone;
+        $numeroMarianelaHuequelef = Employees::where('rut', '10604235-7')->first()->phone;
+        $numeroPriscilaEscobar = Employees::where('rut', '18522287-K')->first()->phone;
+        $numeroJavierAlvarado = Employees::where('rut', '18984596-0')->first()->phone;
+        $numeroEduardoEsparza = Employees::where('rut', '16948150-4')->first()->phone;
+        $numeroCristianMontecinos = "";
+        $numeroInformacionesAmzoma = "56985639782";
+        $numeroJorgeWaltemath = "56951004035";
+
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
         $año       = $request->input('año', now()->year);
@@ -237,8 +246,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // dd('569' . $empleado->phone);
                 //$numeroAEnviar = ["56951004035", "56985639782"];
-                $numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
-                // $numeroAEnviar = [$empleado->phone, "56985639782", "961542579"];
+                //$numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
+                $numeroAEnviar = [$empleado->phone, "56951004035", "56985639782"];
 
                 $shiftComplete = match ($turno) {
                     'A' => 'Administrativo',

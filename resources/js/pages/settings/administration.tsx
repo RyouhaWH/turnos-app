@@ -1,30 +1,47 @@
 import { type BreadcrumbItem, type SharedData } from '@/types';
 import { Head } from '@inertiajs/react';
-
 import HeadingSmall from '@/components/heading-small';
 import CreateUser from '@/components/CreateUser';
+import UserRoleManagement from '@/components/UserRoleManagement';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
+import { Separator } from '@/components/ui/separator';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    {
-        title: 'Administración',
-        href: '/settings/administration',
-    },
+    { title: 'Administración', href: '/settings/administration' },
 ];
 
-export default function Administration() {
+interface User {
+    id: number;
+    name: string;
+    email: string;
+    roles: Array<{
+        id: number;
+        name: string;
+    }>;
+}
+
+interface Role {
+    id: number;
+    name: string;
+}
+
+interface AdministrationProps {
+    users?: User[];
+    roles?: Role[];
+}
+
+export default function Administration({ users = [], roles = [] }: AdministrationProps) {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Administración" />
-
             <SettingsLayout>
-                <div className="space-y-6">
+                <div className="space-y-8">
                     <HeadingSmall
                         title="Administración del Sistema"
                         description="Gestiona usuarios y configuraciones del sistema"
                     />
-
+                    
                     {/* Sección para crear usuarios */}
                     <div className="space-y-6">
                         <div>
@@ -33,7 +50,6 @@ export default function Administration() {
                                 Crea nuevas cuentas de usuario para el sistema
                             </p>
                         </div>
-
                         <CreateUser
                             roles={[
                                 { id: 1, name: 'Administrador' },
@@ -43,8 +59,12 @@ export default function Administration() {
                         />
                     </div>
 
-                    {/* Aquí puedes agregar más secciones de administración en el futuro */}
-                    {/* Por ejemplo: Lista de usuarios, gestión de roles, estadísticas, etc. */}
+                    <Separator />
+
+                    {/* Sección para gestionar roles */}
+                    <div className="space-y-6">
+                        <UserRoleManagement users={users} roles={roles} />
+                    </div>
                 </div>
             </SettingsLayout>
         </AppLayout>
