@@ -237,7 +237,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // dd('569' . $empleado->phone);
                 //$numeroAEnviar = ["56951004035", "56985639782"];
-                $numeroAEnviar = ["56951004035", "56985639782", "961542579"];
+                $numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
                 // $numeroAEnviar = [$empleado->phone, "56985639782", "961542579"];
 
                 $shiftComplete = match ($turno) {
