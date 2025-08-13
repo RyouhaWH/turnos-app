@@ -22,10 +22,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const { data, setData, post, processing } = useForm({ cambios: {} });
     const { props } = usePage<{ turnos: TurnoData[]; auth: { user: any } }>();
     const rowData = props.turnos;
-    
+
     // Verificar si el usuario tiene permisos de supervisor o administrador
     const user = props.auth?.user;
-    const hasEditPermissions = user?.roles?.some((role: any) => 
+    const hasEditPermissions = user?.roles?.some((role: any) =>
         role.name === 'Supervisor' || role.name === 'Administrador'
     ) || false;
 
@@ -99,17 +99,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     </div>
 
                     {/* Panel lateral derecho */}
-                    <div className="relative w-[420px] shrink-0">
-                        <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-auto p-3 text-sm">
-                            <h2 className="mb-2 text-center font-bold">Resumen</h2>
-                            <ListaCambios
-                                cambios={resumen}
-                                onActualizar={handleActualizarCambios}
-                                isProcesing={processing}
-                                disabled={!hasEditPermissions}
-                            />
+                    {hasEditPermissions && (
+                        <div className="relative w-[420px] shrink-0">
+                            <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-auto p-3 text-sm">
+                                <h2 className="mb-2 text-center font-bold">Resumen</h2>
+                                <ListaCambios
+                                    cambios={resumen}
+                                    onActualizar={handleActualizarCambios}
+                                    isProcesing={processing}
+                                    disabled={!hasEditPermissions}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
                 <Toaster />

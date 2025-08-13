@@ -32,10 +32,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     });
 
     const { props } = usePage<{ turnos: TurnoData[]; auth: { user: any } }>();
-    
+
     // Verificar si el usuario tiene permisos de supervisor o administrador
     const user = props.auth?.user;
-    const hasEditPermissions = user?.roles?.some((role: any) => 
+    const hasEditPermissions = user?.roles?.some((role: any) =>
         role.name === 'Supervisor' || role.name === 'Administrador'
     ) || false;
 
@@ -273,11 +273,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                         {/* Right Panel - Controls & History */}
                         <div className="flex flex-col gap-4 xl:w-[280px]">
                             {/* Resumen de cambios - colapsable */}
-                            <Card className="border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
-                                <CardHeader
-                                    className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
-                                    onClick={() => setIsChangesExpanded(!isChangesExpanded)}
-                                >
+                            {hasEditPermissions && (
+                                <Card className="border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                                    <CardHeader
+                                        className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
+                                        onClick={() => setIsChangesExpanded(!isChangesExpanded)}
+                                    >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
                                             <div className="rounded-md bg-orange-100 p-1 dark:bg-orange-900">
@@ -302,7 +303,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     </div>
                                 </CardHeader>
 
-                                {isChangesExpanded && (
+                                {isChangesExpanded && hasEditPermissions && (
                                     <div className="duration-200 animate-in slide-in-from-top-2">
                                         <ListaCambios
                                             cambios={resumen}
@@ -314,7 +315,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                         />
                                     </div>
                                 )}
-                            </Card>
+                                </Card>
+                            )}
 
                             {/* History Feed - Collapsible */}
                             <Card className="max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
