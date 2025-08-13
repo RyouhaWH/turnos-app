@@ -35,7 +35,7 @@ class AdministrationController extends Controller
             ];
         });
 
-        return Inertia::render('Settings/Administration', [
+        return Inertia::render('settings/administration', [
             'users' => $users,
             'roles' => $roles,
             'error' => session('error')
