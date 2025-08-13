@@ -232,16 +232,16 @@ Artisan::command('user:list-all', function () {
     try {
         $this->info('Listando todos los usuarios y sus roles:');
         $this->info('=====================================');
-        
+
         $users = User::with('roles')->get();
-        
+
         foreach ($users as $user) {
             $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
             $this->line("ID: {$user->id} - {$user->name} ({$user->email}) - Roles: {$roles}");
         }
-        
+
         $this->info('✅ Listado completado');
-        
+
     } catch (\Exception $e) {
         $this->error('Error: ' . $e->getMessage());
     }
@@ -251,35 +251,35 @@ Artisan::command('user:debug-session', function () {
     try {
         $this->info('Debugging sesión actual:');
         $this->info('=======================');
-        
+
         // Verificar si hay un usuario autenticado
         if (Auth::check()) {
             $user = Auth::user();
             $this->info("Usuario autenticado: {$user->name} ({$user->email})");
-            
+
             $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
             $this->info("Roles del usuario: {$roles}");
-            
+
             $isAdmin = $user->hasRole('Administrador');
             $this->info("¿Es administrador? " . ($isAdmin ? 'SÍ' : 'NO'));
-            
+
         } else {
             $this->error('No hay usuario autenticado');
         }
-        
+
         // Verificar sesiones activas
         $sessionDriver = config('session.driver');
         $this->info("Driver de sesión: {$sessionDriver}");
-        
+
         if ($sessionDriver === 'database') {
             $sessions = \Illuminate\Support\Facades\DB::table('sessions')->get();
             $this->info("Sesiones activas: " . $sessions->count());
-            
+
             foreach ($sessions as $session) {
                 $this->line("- Sesión ID: {$session->id} - Usuario ID: {$session->user_id}");
             }
         }
-        
+
     } catch (\Exception $e) {
         $this->error('Error: ' . $e->getMessage());
     }
@@ -288,23 +288,83 @@ Artisan::command('user:debug-session', function () {
 Artisan::command('user:check-by-id {id}', function (int $id) {
     try {
         $user = User::with('roles')->find($id);
-        
+
         if ($user) {
             $this->info("Usuario ID {$id}:");
             $this->info("Nombre: {$user->name}");
             $this->info("Email: {$user->email}");
-            
+
             $roles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
             $this->info("Roles: {$roles}");
-            
+
             $isAdmin = $user->hasRole('Administrador');
             $this->info("¿Es administrador? " . ($isAdmin ? 'SÍ' : 'NO'));
-            
+
         } else {
             $this->error("Usuario con ID {$id} no encontrado");
         }
-        
+
     } catch (\Exception $e) {
         $this->error('Error: ' . $e->getMessage());
     }
 })->purpose('Check specific user by ID.');
+
+Artisan::command('user:manage-roles {email} {action} {role?}', function (string $email, string $action, ?string $role = null) {
+    try {
+        $user = User::where('email', $email)->first();
+
+        if (!$user) {
+            $this->error("Usuario con email {$email} no encontrado");
+            return;
+        }
+
+        $this->info("Usuario: {$user->name} ({$user->email})");
+        $currentRoles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
+        $this->info("Roles actuales: {$currentRoles}");
+
+        switch ($action) {
+            case 'add':
+                if (!$role) {
+                    $this->error('Debes especificar un rol para agregar');
+                    return;
+                }
+                $user->assignRole($role);
+                $this->info("✅ Rol '{$role}' agregado");
+                break;
+
+            case 'remove':
+                if (!$role) {
+                    $this->error('Debes especificar un rol para quitar');
+                    return;
+                }
+                $user->removeRole($role);
+                $this->info("✅ Rol '{$role}' removido");
+                break;
+
+            case 'replace':
+                if (!$role) {
+                    $this->error('Debes especificar un rol para reemplazar');
+                    return;
+                }
+                $user->syncRoles([$role]);
+                $this->info("✅ Roles reemplazados por '{$role}'");
+                break;
+
+            case 'clear':
+                $user->syncRoles([]);
+                $this->info("✅ Todos los roles removidos");
+                break;
+
+            default:
+                $this->error("Acción '{$action}' no válida. Usa: add, remove, replace, clear");
+                return;
+        }
+
+        // Mostrar roles actualizados
+        $updatedRoles = $user->fresh()->roles->pluck('name')->join(', ') ?: 'Sin roles';
+        $this->info("Roles actualizados: {$updatedRoles}");
+
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Manage user roles: add, remove, replace, clear.');

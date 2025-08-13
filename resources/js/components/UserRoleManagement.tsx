@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Users, Shield, AlertCircle, CheckCircle } from 'lucide-react';
@@ -28,21 +28,38 @@ interface UserRoleManagementProps {
 }
 
 export default function UserRoleManagement({ users, roles }: UserRoleManagementProps) {
-    const [selectedRoles, setSelectedRoles] = useState<Record<number, number>>({});
+    const [selectedRoles, setSelectedRoles] = useState<Record<number, number[]>>({});
     const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({});
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
-    const handleRoleChange = (userId: number, roleId: number) => {
-        setSelectedRoles(prev => ({
-            ...prev,
-            [userId]: roleId
-        }));
+    const handleRoleChange = (userId: number, roleId: number, checked: boolean) => {
+        setSelectedRoles(prev => {
+            const currentRoles = prev[userId] || [];
+            
+            if (checked) {
+                // Agregar rol si no existe
+                if (!currentRoles.includes(roleId)) {
+                    return {
+                        ...prev,
+                        [userId]: [...currentRoles, roleId]
+                    };
+                }
+            } else {
+                // Remover rol si existe
+                return {
+                    ...prev,
+                    [userId]: currentRoles.filter(id => id !== roleId)
+                };
+            }
+            
+            return prev;
+        });
     };
 
-    const updateUserRole = async (userId: number) => {
-        const roleId = selectedRoles[userId];
-        if (!roleId) return;
+    const updateUserRoles = async (userId: number) => {
+        const roleIds = selectedRoles[userId];
+        if (!roleIds || roleIds.length === 0) return;
 
         setIsUpdating(prev => ({ ...prev, [userId]: true }));
         setError(null);
@@ -50,26 +67,26 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
 
         try {
             await router.patch(`/admin/users/${userId}/role`, {
-                role: roleId
+                roles: roleIds
             }, {
                 onSuccess: () => {
-                    setSuccess(`Rol actualizado exitosamente para el usuario`);
+                    setSuccess(`Roles actualizados exitosamente para el usuario`);
                     // Limpiar el estado después de un tiempo
                     setTimeout(() => setSuccess(null), 3000);
                 },
                 onError: (errors) => {
-                    setError(errors.role || 'Error al actualizar el rol');
+                    setError(errors.roles || 'Error al actualizar los roles');
                 }
             });
         } catch (err) {
-            setError('Error al actualizar el rol');
+            setError('Error al actualizar los roles');
         } finally {
             setIsUpdating(prev => ({ ...prev, [userId]: false }));
         }
     };
 
-    const getCurrentRole = (user: User) => {
-        return user.roles.length > 0 ? user.roles[0] : null;
+    const getCurrentRoles = (user: User) => {
+        return user.roles || [];
     };
 
     const getRoleBadgeColor = (roleName: string) => {
@@ -85,6 +102,17 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
         }
     };
 
+    const hasRoleChanges = (user: User) => {
+        const currentRoleIds = getCurrentRoles(user).map(role => role.id);
+        const selectedRoleIds = selectedRoles[user.id] || [];
+        
+        // Verificar si hay diferencias en cantidad o contenido
+        if (currentRoleIds.length !== selectedRoleIds.length) return true;
+        
+        return currentRoleIds.some(id => !selectedRoleIds.includes(id)) ||
+               selectedRoleIds.some(id => !currentRoleIds.includes(id));
+    };
+
     return (
         <div className="w-full pb-6">
             <div className="mb-6">
@@ -93,7 +121,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                     Gestión de Roles de Usuarios
                 </h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                    Cambia los roles y permisos de los usuarios existentes
+                    Selecciona múltiples roles para cada usuario. Los roles se acumulan y otorgan diferentes permisos.
                 </p>
             </div>
 
@@ -122,64 +150,75 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                         Usuarios del Sistema
                     </CardTitle>
                     <CardDescription>
-                        Selecciona un nuevo rol para cada usuario y guarda los cambios
+                        Marca los checkboxes para asignar roles. Puedes seleccionar múltiples roles por usuario.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         {users.length === 0 ? (
                             <div className="text-center py-8 text-muted-foreground">
                                 No hay usuarios registrados en el sistema
                             </div>
                         ) : (
                             users.map((user) => {
-                                const currentRole = getCurrentRole(user);
-                                const isRoleChanged = selectedRoles[user.id] &&
-                                    selectedRoles[user.id] !== currentRole?.id;
+                                const currentRoles = getCurrentRoles(user);
+                                const selectedRoleIds = selectedRoles[user.id] || currentRoles.map(role => role.id);
+                                const hasChanges = hasRoleChanges(user);
 
                                 return (
-                                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3">
-                                                <div>
-                                                    <h4 className="font-medium">{user.name}</h4>
-                                                    <p className="text-sm text-muted-foreground">{user.email}</p>
+                                    <div key={user.id} className="border rounded-lg p-6">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-3 mb-2">
+                                                    <div>
+                                                        <h4 className="font-medium">{user.name}</h4>
+                                                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                                                    </div>
                                                 </div>
-                                                {currentRole && (
-                                                    <Badge className={getRoleBadgeColor(currentRole.name)}>
-                                                        {currentRole.name}
-                                                    </Badge>
-                                                )}
+                                                <div className="flex flex-wrap gap-2">
+                                                    {currentRoles.map((role) => (
+                                                        <Badge key={role.id} className={getRoleBadgeColor(role.name)}>
+                                                            {role.name}
+                                                        </Badge>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <Select
-                                                value={selectedRoles[user.id]?.toString() || currentRole?.id.toString() || ''}
-                                                onValueChange={(value) => handleRoleChange(user.id, parseInt(value))}
-                                            >
-                                                <SelectTrigger className="w-48">
-                                                    <SelectValue placeholder="Seleccionar rol" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {roles.map((role) => (
-                                                        <SelectItem key={role.id} value={role.id.toString()}>
+                                        
+                                        <div className="space-y-3">
+                                            <h5 className="text-sm font-medium text-gray-700">Asignar roles:</h5>
+                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                                                {roles.map((role) => (
+                                                    <div key={role.id} className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id={`user-${user.id}-role-${role.id}`}
+                                                            checked={selectedRoleIds.includes(role.id)}
+                                                            onCheckedChange={(checked) => 
+                                                                handleRoleChange(user.id, role.id, checked as boolean)
+                                                            }
+                                                        />
+                                                        <label
+                                                            htmlFor={`user-${user.id}-role-${role.id}`}
+                                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                                        >
                                                             {role.name}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-
-                                            {isRoleChanged && (
+                                                        </label>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        
+                                        {hasChanges && (
+                                            <div className="mt-4 flex justify-end">
                                                 <Button
-                                                    onClick={() => updateUserRole(user.id)}
+                                                    onClick={() => updateUserRoles(user.id)}
                                                     disabled={isUpdating[user.id]}
                                                     size="sm"
                                                 >
-                                                    {isUpdating[user.id] ? 'Guardando...' : 'Guardar'}
+                                                    {isUpdating[user.id] ? 'Guardando...' : 'Guardar Cambios'}
                                                 </Button>
-                                            )}
-                                        </div>
+                                            </div>
+                                        )}
                                     </div>
                                 );
                             })

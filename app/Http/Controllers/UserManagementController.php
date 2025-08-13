@@ -51,22 +51,23 @@ class UserManagementController extends Controller
     }
 
     /**
-     * Actualizar el rol de un usuario
+     * Actualizar los roles de un usuario
      */
     public function updateRole(Request $request, User $user)
     {
         $request->validate([
-            'role' => 'required|exists:roles,id'
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,id'
         ]);
 
-        // Remover roles existentes
-        $user->syncRoles([]);
+        // Obtener los roles seleccionados
+        $roleIds = $request->roles;
+        $roles = Role::whereIn('id', $roleIds)->get();
 
-        // Asignar nuevo rol
-        $role = Role::find($request->role);
-        $user->assignRole($role);
+        // Sincronizar roles (reemplaza todos los roles existentes)
+        $user->syncRoles($roles);
 
-        return back()->with('success', 'Rol actualizado exitosamente');
+        return back()->with('success', 'Roles actualizados exitosamente');
     }
 
     /**
