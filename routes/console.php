@@ -49,17 +49,17 @@ Artisan::command('admin:test-controller', function () {
     try {
         $users = User::with('roles')->get();
         $roles = Role::all();
-        
+
         $this->info('Controlador funcionando correctamente');
         $this->info('Datos que se pasan a la vista:');
         $this->line('Usuarios: ' . $users->count());
         $this->line('Roles: ' . $roles->count());
-        
+
         foreach ($users as $user) {
             $userRoles = $user->roles->pluck('name')->join(', ') ?: 'Sin roles';
             $this->line("- {$user->name}: {$userRoles}");
         }
-        
+
     } catch (\Exception $e) {
         $this->error('Error en el controlador: ' . $e->getMessage());
     }
@@ -69,30 +69,30 @@ Artisan::command('admin:test-auth', function () {
     try {
         // Simular una petición HTTP
         $request = \Illuminate\Http\Request::create('/settings/administration', 'GET');
-        
+
         // Crear una instancia de la aplicación
         $app = app();
-        
+
         // Simular middleware de autenticación
         $this->info('Verificando autenticación...');
-        
+
         // Verificar si hay usuarios en la base de datos
         $userCount = User::count();
         $this->line("Usuarios en BD: {$userCount}");
-        
+
         // Verificar roles
         $roleCount = Role::count();
         $this->line("Roles en BD: {$roleCount}");
-        
+
         // Verificar si el primer usuario tiene roles
         $firstUser = User::with('roles')->first();
         if ($firstUser) {
             $roles = $firstUser->roles->pluck('name')->join(', ') ?: 'Sin roles';
             $this->line("Primer usuario: {$firstUser->name} - Roles: {$roles}");
         }
-        
+
         $this->info('✅ Todo parece estar bien con la autenticación y datos');
-        
+
     } catch (\Exception $e) {
         $this->error('Error: ' . $e->getMessage());
     }
@@ -101,27 +101,27 @@ Artisan::command('admin:test-auth', function () {
 Artisan::command('admin:check-session', function () {
     try {
         $this->info('Verificando configuración de sesión...');
-        
+
         // Verificar configuración de sesión
         $sessionDriver = config('session.driver');
         $this->line("Driver de sesión: {$sessionDriver}");
-        
+
         // Verificar configuración de cookies
         $cookieName = config('session.cookie');
         $this->line("Nombre de cookie: {$cookieName}");
-        
+
         // Verificar configuración de autenticación
         $authGuard = config('auth.defaults.guard');
         $this->line("Guard de autenticación: {$authGuard}");
-        
+
         // Verificar si hay sesiones activas en la base de datos
         if ($sessionDriver === 'database') {
             $sessionCount = \Illuminate\Support\Facades\DB::table('sessions')->count();
             $this->line("Sesiones activas en BD: {$sessionCount}");
         }
-        
+
         $this->info('✅ Configuración de sesión verificada');
-        
+
     } catch (\Exception $e) {
         $this->error('Error: ' . $e->getMessage());
     }

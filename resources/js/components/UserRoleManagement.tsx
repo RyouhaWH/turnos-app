@@ -134,7 +134,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                         ) : (
                             users.map((user) => {
                                 const currentRole = getCurrentRole(user);
-                                const isRoleChanged = selectedRoles[user.id] && 
+                                const isRoleChanged = selectedRoles[user.id] &&
                                     selectedRoles[user.id] !== currentRole?.id;
 
                                 return (
@@ -152,7 +152,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                 )}
                                             </div>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-3">
                                             <Select
                                                 value={selectedRoles[user.id]?.toString() || currentRole?.id.toString() || ''}
@@ -169,7 +169,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                     ))}
                                                 </SelectContent>
                                             </Select>
-                                            
+
                                             {isRoleChanged && (
                                                 <Button
                                                     onClick={() => updateUserRole(user.id)}
