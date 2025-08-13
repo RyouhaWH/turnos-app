@@ -105,8 +105,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
         $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
         $numeroCristianMontecinos  = "";
-        $numeroInformacionesAmzoma = "56985639782";
-        $numeroJorgeWaltemath      = "56951004035";
+        $numeroInformacionesAmzoma = "985639782";
+        $numeroJorgeWaltemath      = "951004035";
 
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
@@ -250,7 +250,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // dd('569' . $empleado->phone);
                 //$numeroAEnviar = ["56951004035", "56985639782"];
                 // $numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
-                
+
                 // Crear array de números para notificaciones (incluye números base + empleado si tiene teléfono)
                 $numerosAReportarCambios = [
                     $numeroJulioSarmiento,
@@ -262,7 +262,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $numeroInformacionesAmzoma,
                     $numeroJorgeWaltemath
                 ];
-                
+
                 // Agregar el número del empleado solo si no es null
                 if ($empleado->phone !== null) {
                     $numerosAReportarCambios[] = $empleado->phone;
@@ -291,7 +291,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $response = Http::post('http://localhost:3001/send-message', [
                         'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
 
-                        'numero'  => $numero,
+                        'numero'  => "56" . $numero,
                     ]);
                 }
 
@@ -299,7 +299,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $response = Http::post('http://localhost:3001/send-message', [
                         'mensaje' => "-------------",
 
-                        'numero'  => $numero,
+                        'numero'  => "56" . $numero,
                     ]);
                 }
             }
