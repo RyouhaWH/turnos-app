@@ -16,19 +16,15 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // TEMPORALMENTE: Permitir acceso sin verificación
-        // TODO: Restaurar verificación cuando se resuelva el problema de acceso
-
         // Verificar si el usuario está autenticado
-        // if (!Auth::check()) {
-        //     return redirect()->route('login')->with('error', 'Debes iniciar sesión para acceder a esta página.');
-        // }
+        if (!Auth::check()) {
+            return redirect()->route('login')->with('error', 'Debes iniciar sesión para acceder a esta página.');
+        }
 
-        // Permitir acceso a cualquier usuario autenticado
-        // (Comentado temporalmente para permitir acceso a todos los usuarios)
-        // if (!Auth::user()->hasRole('Administrador')) {
-        //     return redirect()->back()->with('error', 'No tienes permisos de administrador para acceder a esta función.');
-        // }
+        // Verificar si el usuario tiene el rol de administrador
+        if (!Auth::user()->hasRole('Administrador')) {
+            return redirect()->back()->with('error', 'No tienes permisos de administrador para acceder a esta función.');
+        }
 
         return $next($request);
     }
