@@ -22,9 +22,10 @@ interface Props {
     isProcesing: boolean;
     isCollapsed?: boolean;
     selectedDate?: Date; // Agregar fecha seleccionada para construir fechas correctamente
+    disabled?: boolean; // Nueva propiedad para deshabilitar el componente
 }
 
-const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date() }) => {
+const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date(), disabled = false }) => {
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
@@ -242,7 +243,7 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
                 <Button
                     onClick={handleClickActualizar}
                     className="w-full transform bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg transition-all duration-200 hover:scale-[1.02] hover:from-green-700 hover:to-green-800 hover:shadow-xl disabled:transform-none disabled:opacity-50"
-                    disabled={totalCambios === 0 || isProcesing}
+                    disabled={totalCambios === 0 || isProcesing || disabled}
                     size="lg"
                 >
                     {isProcesing ? (

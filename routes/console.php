@@ -368,3 +368,81 @@ Artisan::command('user:manage-roles {email} {action} {role?}', function (string 
         $this->error('Error: ' . $e->getMessage());
     }
 })->purpose('Manage user roles: add, remove, replace, clear.');
+
+Artisan::command('admin:debug-layout', function () {
+    try {
+        $this->info('Debugging layout de settings...');
+
+        // Verificar si hay usuarios con rol de administrador
+        $adminUsers = User::with('roles')->get()->filter(function($user) {
+            return $user->hasRole('Administrador');
+        });
+
+        $this->info("Usuarios con rol Administrador: " . $adminUsers->count());
+
+        foreach ($adminUsers as $user) {
+            $roles = $user->roles->pluck('name')->join(', ');
+            $this->line("- {$user->name} ({$user->email}): {$roles}");
+        }
+
+        // Verificar la lógica del layout
+        $this->info("\nProbando lógica del layout:");
+
+        foreach ($adminUsers as $user) {
+            $userRoles = $user->roles->map(function($role) {
+                return ['id' => $role->id, 'name' => $role->name];
+            })->toArray();
+
+            $hasAdminRole = collect($userRoles)->some(function($role) {
+                return $role['name'] === 'Administrador';
+            });
+            $this->line("- {$user->name}: tiene rol Administrador = " . ($hasAdminRole ? 'SÍ' : 'NO'));
+        }
+
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Debug settings layout logic.');
+
+Artisan::command('admin:debug-settings-pages', function () {
+    try {
+        $this->info('Debugging páginas de settings...');
+
+        // Verificar qué información se pasa a las páginas de settings
+        $this->info("Verificando información del usuario en páginas de settings:");
+
+        // Simular la información que se pasa a las páginas
+        $user = User::with('roles')->first();
+
+        if ($user) {
+            $this->info("Usuario: {$user->name} ({$user->email})");
+
+            $roles = $user->roles->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'name' => $role->name
+                ];
+            })->toArray();
+
+            $this->info("Roles: " . json_encode($roles));
+
+            // Verificar si tiene rol de administrador
+            $hasAdminRole = $user->hasRole('Administrador');
+            $this->info("¿Tiene rol Administrador? " . ($hasAdminRole ? 'SÍ' : 'NO'));
+
+            // Simular la lógica del layout
+            $userRoles = $user->roles->map(function($role) {
+                return ['id' => $role->id, 'name' => $role->name];
+            })->toArray();
+
+            $shouldShowAdmin = collect($userRoles)->some(function($role) {
+                return $role['name'] === 'Administrador';
+            });
+
+            $this->info("¿Debería mostrar enlace de administración? " . ($shouldShowAdmin ? 'SÍ' : 'NO'));
+        }
+
+    } catch (\Exception $e) {
+        $this->error('Error: ' . $e->getMessage());
+    }
+})->purpose('Debug settings pages user information.');

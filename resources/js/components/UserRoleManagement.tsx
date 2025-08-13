@@ -100,19 +100,19 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
     const getCurrentPrimaryRole = (user: User) => {
         const userRoles = getCurrentRoles(user);
         const roleNames = userRoles.map(role => role.name);
-        
+
         // Determinar el rol principal según la jerarquía
         if (roleNames.includes('Administrador')) return 'Administrador';
         if (roleNames.includes('Supervisor')) return 'Supervisor';
         if (roleNames.includes('Usuario')) return 'Usuario';
-        
+
         return 'Usuario'; // Por defecto
     };
 
     const hasRoleChanges = (user: User) => {
         const currentPrimaryRole = getCurrentPrimaryRole(user);
         const selectedRole = selectedRoles[user.id];
-        
+
         return selectedRole && selectedRole !== currentPrimaryRole;
     };
 
@@ -191,7 +191,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                 </div>
                                             </div>
                                         </div>
-                                        
+
                                         <div className="space-y-3">
                                             <h5 className="text-sm font-medium text-gray-700">Cambiar rol principal:</h5>
                                             <div className="flex items-center gap-3">
@@ -214,7 +214,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                         </SelectItem>
                                                     </SelectContent>
                                                 </Select>
-                                                
+
                                                 {hasChanges && (
                                                     <Button
                                                         onClick={() => updateUserRoles(user.id)}
@@ -225,7 +225,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                     </Button>
                                                 )}
                                             </div>
-                                            
+
                                             <div className="text-xs text-muted-foreground mt-2">
                                                 <strong>Jerarquía:</strong> Usuario → Supervisor → Administrador
                                             </div>

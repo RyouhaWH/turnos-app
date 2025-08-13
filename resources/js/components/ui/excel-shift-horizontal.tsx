@@ -21,10 +21,12 @@ interface TurnoData {
 
 interface Props {
     rowData: TurnoData[]
-    onResumenChange: (resumen: Record<string, Record<string, string>>) => void
+    onResumenChange: (cambios: Record<string, Record<string, string>>) => void
     onRowClicked?: (event: RowClickedEvent<TurnoData>) => void
-    month?: number // 0-11 (JavaScript month format)
+    month?: number
+    // 0-11 (JavaScript month format)
     year?: number
+    editable?: boolean // Nueva propiedad para controlar si las celdas son editables
 }
 
 export interface AgGridHorizontalRef {
@@ -128,7 +130,7 @@ const DateHeaderComponent = (props: any) => {
 };
 
 const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
-    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year }, ref) {
+    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true }, ref) {
 
         // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -205,7 +207,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                     headerComponentParams: {
                         dayInfo: dayInfo
                     },
-                    editable: true,
+                    editable: editable, // Usar la propiedad editable del componente
                     width: 50,
                     minWidth: 50,
                     maxWidth: 50,
@@ -226,7 +228,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                 });
             });
             return columns;
-        }, [daysInfo])
+        }, [daysInfo, editable])
 
         // Handle cell value changes
         const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {

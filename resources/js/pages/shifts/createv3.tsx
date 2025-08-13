@@ -20,8 +20,14 @@ interface TurnoData {
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const { data, setData, post, processing } = useForm({ cambios: {} });
-    const { props } = usePage<{ turnos: TurnoData[] }>();
+    const { props } = usePage<{ turnos: TurnoData[]; auth: { user: any } }>();
     const rowData = props.turnos;
+    
+    // Verificar si el usuario tiene permisos de supervisor o administrador
+    const user = props.auth?.user;
+    const hasEditPermissions = user?.roles?.some((role: any) => 
+        role.name === 'Supervisor' || role.name === 'Administrador'
+    ) || false;
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
     const [historial, setHistorial] = useState([]);
@@ -63,6 +69,22 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 <div className="flex flex-1 gap-4 overflow-hidden">
                     {/* AG Grid */}
                     <div className="ag-theme-alpine flex-1 overflow-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
+                        {!hasEditPermissions && (
+                            <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                                <div className="flex">
+                                    <div className="flex-shrink-0">
+                                        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                        </svg>
+                                    </div>
+                                    <div className="ml-3">
+                                        <p className="text-sm text-yellow-700">
+                                            <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes visualizar la información.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <AgGridHorizontal
                             rowData={rowData}
                             onResumenChange={handleResumenUpdate}
@@ -72,6 +94,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                 setEmpleadoSeleccionado(event.data);
                                 cargarHistorial(empleadoId);
                             }}
+                            editable={hasEditPermissions}
                         />
                     </div>
 
@@ -83,6 +106,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                 cambios={resumen}
                                 onActualizar={handleActualizarCambios}
                                 isProcesing={processing}
+                                disabled={!hasEditPermissions}
                             />
                         </div>
                     </div>
