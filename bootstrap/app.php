@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registrar middleware personalizado
         $middleware->alias([
             'admin' => \App\Http\Middleware\AdminMiddleware::class,
+            'supervisor' => \App\Http\Middleware\SupervisorMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

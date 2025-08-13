@@ -95,6 +95,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //importar turnos desde agGrid
     Route::post('turnos-mes/actualizar', function (Request $request) {
+        // Verificar permisos de supervisor o superior
+        if (!Auth::check()) {
+            return response()->json(['error' => 'Debes iniciar sesión para acceder a esta función.'], 401);
+        }
+
+        $user = Auth::user();
+        if (!$user->hasRole('Supervisor') && !$user->hasRole('Administrador')) {
+            return response()->json(['error' => 'No tienes permisos de supervisor para acceder a esta función.'], 403);
+        }
 
         $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
         $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
