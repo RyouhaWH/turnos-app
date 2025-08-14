@@ -49,7 +49,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [loading, setLoading] = useState(false);
     const [isChangesExpanded, setIsChangesExpanded] = useState(true); // Panel de cambios expandido por defecto
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
-    const [clearChanges, setClearChanges] = useState(false); // Nuevo estado para limpiar cambios
+    const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
     const gridRef = useRef<any>(null);
 
     const cargarHistorial = async (employeeId: number | string) => {
@@ -126,13 +126,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             onSuccess: () => {
                 setResumen({});
                 setComentario('');
-                setClearChanges(true); // Activar limpieza de cambios
+                setResetGrid(true); // Activar reinicio del grid
                 toast.success('Cambios guardados exitosamente', {
                     description: 'Los turnos fueron actualizados correctamente.',
                     duration: 3000,
                 });
                 // Resetear el flag después de un breve delay
-                setTimeout(() => setClearChanges(false), 100);
+                setTimeout(() => setResetGrid(false), 100);
                 cargarTurnosPorMes(selectedDate);
             },
             onError: () => {
@@ -270,7 +270,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                                 }
                                             }}
                                             editable={hasEditPermissions}
-                                            clearChanges={clearChanges}
+                                            resetGrid={resetGrid}
                                         />
                                     </div>
                                 </CardContent>

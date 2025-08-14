@@ -27,7 +27,7 @@ interface Props {
     // 0-11 (JavaScript month format)
     year?: number
     editable?: boolean // Nueva propiedad para controlar si las celdas son editables
-    clearChanges?: boolean; // Nueva prop para limpiar cambios
+    resetGrid?: boolean; // Cambiar a resetGrid para reiniciar el grid
 }
 
 export interface AgGridHorizontalRef {
@@ -131,7 +131,7 @@ const DateHeaderComponent = (props: any) => {
 };
 
 const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
-    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true, clearChanges = false }, ref) {
+    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true, resetGrid = false }, ref) {
 
         // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -163,13 +163,18 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
             }
         }, [daysInfo, rowData]);
 
-        // Efecto para limpiar cambios cuando se solicita
+        // Efecto para reiniciar el grid cuando se solicita
         useEffect(() => {
-            if (clearChanges) {
+            if (resetGrid) {
                 setCambios({});
-                console.log('🧹 Cambios limpiados desde el componente padre');
+                // Forzar refresco del grid
+                if (gridRef.current?.api) {
+                    gridRef.current.api.refreshCells();
+                    gridRef.current.api.redrawRows();
+                }
+                console.log('🔄 Grid reiniciado desde el componente padre');
             }
-        }, [clearChanges]);
+        }, [resetGrid]);
 
         // Expose grid methods to parent component
         useImperativeHandle(ref, () => ({
@@ -356,7 +361,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
             <div className="w-full h-full">
                 {/* Estilos CSS simples desde cero */}
 
-                <style jsx global>{`
+                <style>{`
                     /* Texto centrado y en negrita para todas las celdas de datos */
                     .ag-theme-alpine .ag-cell {
                         text-align: center !important;

@@ -34,7 +34,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [historial, setHistorial] = useState([]);
     const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [clearChanges, setClearChanges] = useState(false); // Nuevo estado para limpiar cambios
+    const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
 
     const cargarHistorial = async (employeeId: number | string) => {
         const res = await fetch(`/api/shift-change-log/${employeeId}`);
@@ -52,12 +52,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         post(route('post-updateShifts'), {
             onSuccess: () => {
                 setResumen({});
-                setClearChanges(true); // Activar limpieza de cambios
+                setResetGrid(true); // Activar reinicio del grid
                 toast('✅ Cambios guardados', {
                     description: 'Los turnos fueron actualizados correctamente.',
                 });
                 // Resetear el flag después de un breve delay
-                setTimeout(() => setClearChanges(false), 100);
+                setTimeout(() => setResetGrid(false), 100);
             },
             onError: () => {
                 toast('❌ Error al guardar', {
@@ -102,7 +102,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                 }
                             }}
                             editable={hasEditPermissions}
-                            clearChanges={clearChanges}
+                            resetGrid={resetGrid}
                         />
                     </div>
 
