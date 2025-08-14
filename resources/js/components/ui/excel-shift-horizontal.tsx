@@ -265,6 +265,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
             // Registrar el cambio en el historial si hay una función para ello
             if (onRegisterChange && valorAnterior !== turno) {
+                console.log('🔄 Llamando a onRegisterChange:', { funcionario, dayField, valorAnterior, turno });
                 onRegisterChange(funcionario, dayField, valorAnterior, turno);
             }
 

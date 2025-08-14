@@ -121,13 +121,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para deshacer el último cambio
     const undoLastChange = () => {
-        if (changeHistory.length === 0) return;
+        console.log('🔄 Intentando deshacer último cambio. Historial:', changeHistory);
+        
+        if (changeHistory.length === 0) {
+            console.log('❌ No hay cambios para deshacer');
+            return;
+        }
 
         const lastChange = changeHistory[changeHistory.length - 1];
-        
+        console.log('🔄 Deshaciendo cambio:', lastChange);
+
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
-        
+
         // Restaurar el valor anterior
         if (lastChange.oldValue === '') {
             // Si el valor anterior estaba vacío, eliminar la entrada
@@ -143,6 +149,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
             newResumen[lastChange.employee][lastChange.day] = lastChange.oldValue;
         }
+
+        console.log('🔄 Nuevo resumen después de deshacer:', newResumen);
 
         // Actualizar el resumen
         setResumen(newResumen);
@@ -166,10 +174,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         if (changeIndex === -1) return;
 
         const change = changeHistory[changeIndex];
-        
+
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
-        
+
         // Restaurar el valor anterior
         if (change.oldValue === '') {
             // Si el valor anterior estaba vacío, eliminar la entrada
@@ -204,6 +212,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para registrar un cambio en el historial
     const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
+        console.log('🔄 Registrando cambio:', { employee, day, oldValue, newValue });
+        
         const change = {
             id: `${employee}_${day}_${Date.now()}`,
             employee,
@@ -213,13 +223,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             timestamp: Date.now(),
         };
         
-        setChangeHistory(prev => [...prev, change]);
+        setChangeHistory(prev => {
+            const newHistory = [...prev, change];
+            console.log('📝 Historial actualizado:', newHistory);
+            return newHistory;
+        });
     };
 
     // Efecto para manejar Ctrl+Z
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+                console.log('⌨️ Ctrl+Z presionado');
                 event.preventDefault();
                 undoLastChange();
             }
