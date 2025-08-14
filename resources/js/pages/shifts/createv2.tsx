@@ -121,7 +121,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     }, []);
 
     // Función para deshacer el último cambio
-    const undoLastChange = () => {
+    const undoLastChange = async () => {
         if (changeHistory.length === 0) return;
 
         setIsUndoing(true); // Activar flag para evitar registrar cambios
@@ -177,6 +177,40 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
         }
 
+        // Actualizar la base de datos
+        try {
+            const response = await fetch('/post-updateShifts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    cambios: {
+                        [claveEmpleado]: {
+                            [lastChange.day]: lastChange.oldValue
+                        }
+                    },
+                    comentario: `Deshacer cambio: ${lastChange.employee} - día ${lastChange.day}`
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar la base de datos');
+            }
+
+            toast.success('Cambio deshecho y base de datos actualizada', {
+                description: `Se restauró el valor anterior para ${lastChange.employee}`,
+                duration: 2000,
+            });
+        } catch (error) {
+            console.error('Error al actualizar la base de datos:', error);
+            toast.error('Error al actualizar la base de datos', {
+                description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
+                duration: 4000,
+            });
+        }
+
         // Remover el cambio del historial
         setChangeHistory(prev => prev.slice(0, -1));
 
@@ -184,15 +218,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
-
-        toast.success('Cambio deshecho', {
-            description: `Se restauró el valor anterior para ${lastChange.employee}`,
-            duration: 2000,
-        });
     };
 
     // Función para deshacer un cambio específico
-    const undoSpecificChange = (changeId: string) => {
+    const undoSpecificChange = async (changeId: string) => {
         const changeIndex = changeHistory.findIndex(change => change.id === changeId);
         if (changeIndex === -1) return;
 
@@ -249,6 +278,40 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
         }
 
+        // Actualizar la base de datos
+        try {
+            const response = await fetch('/post-updateShifts', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({
+                    cambios: {
+                        [claveEmpleado]: {
+                            [change.day]: change.oldValue
+                        }
+                    },
+                    comentario: `Deshacer cambio específico: ${change.employee} - día ${change.day}`
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar la base de datos');
+            }
+
+            toast.success('Cambio deshecho y base de datos actualizada', {
+                description: `Se restauró el valor anterior para ${change.employee}`,
+                duration: 2000,
+            });
+        } catch (error) {
+            console.error('Error al actualizar la base de datos:', error);
+            toast.error('Error al actualizar la base de datos', {
+                description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
+                duration: 4000,
+            });
+        }
+
         // Remover el cambio del historial
         setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
 
@@ -256,11 +319,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
-
-        toast.success('Cambio deshecho', {
-            description: `Se restauró el valor anterior para ${change.employee}`,
-            duration: 2000,
-        });
     };
 
     // Función para registrar un cambio en el historial
