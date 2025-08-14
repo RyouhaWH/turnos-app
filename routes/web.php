@@ -111,6 +111,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
         $numeroCentralDespacho    = "964949887";
 
+        // Agregar números a la lista para notificaciones
+        $numerosAReportarCambios = [
+            $numeroInformacionesAmzoma,
+            $numeroJorgeWaltemath,
+            $numeroCentralDespacho,
+        ];
+
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
         $año       = $request->input('año', now()->year);
