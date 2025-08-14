@@ -216,7 +216,7 @@ export default function Dashboard() {
                                                 statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
                                                 icon: 'Bike'
                                             };
-                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta')) {
+                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('ciclopatrullaje')) {
                                             return {
                                                 from: 'from-emerald-500', to: 'to-emerald-600',
                                                 darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
