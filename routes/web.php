@@ -310,7 +310,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Ruta para datos de plataforma (solo administradores)
     Route::middleware(['auth', 'admin'])->group(function () {
-        
+
         // Vista principal
         Route::get('/platform-data', function () {
             $roles = \App\Models\Rol::all();
@@ -339,7 +339,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Actualizar rol
             Route::put('/{id}', function (Request $request, $id) {
                 $role = \App\Models\Rol::findOrFail($id);
-                
+
                 $request->validate([
                     'name' => 'required|string|max:255|unique:rols,name,' . $id,
                     'description' => 'nullable|string|max:500'
@@ -356,7 +356,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Eliminar rol
             Route::delete('/{id}', function ($id) {
                 $role = \App\Models\Rol::findOrFail($id);
-                
+
                 // Verificar si hay empleados usando este rol
                 $employeesCount = $role->employees()->count();
                 if ($employeesCount > 0) {
