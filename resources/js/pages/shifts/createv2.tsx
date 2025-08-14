@@ -190,7 +190,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             console.log('🔄 Enviando datos para deshacer:', requestData);
 
-            const response = await fetch('/post-updateShifts', {
+            const response = await fetch('/turnos-mes/actualizar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -302,7 +302,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             console.log('🔄 Enviando datos para deshacer específico:', requestData);
 
-            const response = await fetch('/post-updateShifts', {
+            const response = await fetch('/turnos-mes/actualizar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
