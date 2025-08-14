@@ -408,7 +408,7 @@ export default function Dashboard() {
                         {Object.entries(roles)
                             .filter(([roleId, roleName]) => {
                                 const lowerRoleName = roleName.toLowerCase();
-                                return !lowerRoleName.includes('administrativo') && 
+                                return !lowerRoleName.includes('administrativo') &&
                                        !lowerRoleName.includes('servicio') &&
                                        !lowerRoleName.includes('personal de servicio');
                             })

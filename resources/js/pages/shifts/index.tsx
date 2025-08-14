@@ -22,7 +22,10 @@ import {
     UserCheck,
     RefreshCw,
     AlertCircle,
-    TrendingUp
+    TrendingUp,
+    Search,
+    Radio,
+    Zap
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -174,19 +177,72 @@ export default function Dashboard() {
                                 {Object.entries(roles)
                                     .filter(([roleId, roleName]) => {
                                         const lowerRoleName = roleName.toLowerCase();
-                                        return !lowerRoleName.includes('administrativo') && 
+                                        return !lowerRoleName.includes('administrativo') &&
                                                !lowerRoleName.includes('servicio') &&
                                                !lowerRoleName.includes('personal de servicio');
                                     })
                                     .map(([roleId, roleName], index) => {
-                                    // Mapeo de colores por índice
-                                    const colorMap = [
-                                        { from: 'from-red-500', to: 'to-red-600', darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', buttonFrom: 'from-red-600', buttonTo: 'to-red-700' },
-                                        { from: 'from-amber-500', to: 'to-amber-600', darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700' },
-                                        { from: 'from-emerald-500', to: 'to-emerald-600', darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700' }
-                                    ];
+                                    // Mapeo de colores específicos por rol
+                                    const getRoleColors = (roleName: string) => {
+                                        const lowerRoleName = roleName.toLowerCase();
+                                        
+                                        if (lowerRoleName.includes('patrullaje') || lowerRoleName.includes('proximidad') || lowerRoleName.includes('alerta móvil')) {
+                                            return {
+                                                from: 'from-red-500', to: 'to-red-600', 
+                                                darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40', 
+                                                bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', 
+                                                buttonFrom: 'from-red-600', buttonTo: 'to-red-700',
+                                                statsBg: 'bg-red-50', statsText: 'text-red-600',
+                                                icon: 'Car'
+                                            };
+                                        } else if (lowerRoleName.includes('fiscalización') || lowerRoleName.includes('fiscalizacion')) {
+                                            return {
+                                                from: 'from-amber-500', to: 'to-amber-600', 
+                                                darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40', 
+                                                bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', 
+                                                buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700',
+                                                statsBg: 'bg-amber-50', statsText: 'text-amber-600',
+                                                icon: 'FileSpreadsheet'
+                                            };
+                                        } else if (lowerRoleName.includes('motorizado')) {
+                                            return {
+                                                from: 'from-emerald-500', to: 'to-emerald-600', 
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40', 
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', 
+                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
+                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                icon: 'Bike'
+                                            };
+                                        } else if (lowerRoleName.includes('investigación') || lowerRoleName.includes('investigacion')) {
+                                            return {
+                                                from: 'from-purple-500', to: 'to-purple-600', 
+                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40', 
+                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', 
+                                                buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
+                                                statsBg: 'bg-purple-50', statsText: 'text-purple-600',
+                                                icon: 'Search'
+                                            };
+                                        } else if (lowerRoleName.includes('comunicaciones') || lowerRoleName.includes('radio')) {
+                                            return {
+                                                from: 'from-blue-500', to: 'to-blue-600', 
+                                                darkFrom: 'dark:from-blue-700/40', darkTo: 'dark:to-blue-600/40', 
+                                                bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', 
+                                                buttonFrom: 'from-blue-600', buttonTo: 'to-blue-700',
+                                                statsBg: 'bg-blue-50', statsText: 'text-blue-600',
+                                                icon: 'Radio'
+                                            };
+                                        } else {
+                                            // Color por defecto para roles no especificados
+                                            const defaultColors = [
+                                                { from: 'from-indigo-500', to: 'to-indigo-600', darkFrom: 'dark:from-indigo-700/40', darkTo: 'dark:to-indigo-600/40', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', buttonFrom: 'from-indigo-600', buttonTo: 'to-indigo-700', statsBg: 'bg-indigo-50', statsText: 'text-indigo-600', icon: 'Users' },
+                                                { from: 'from-cyan-500', to: 'to-cyan-600', darkFrom: 'dark:from-cyan-700/40', darkTo: 'dark:to-cyan-600/40', bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', buttonFrom: 'from-cyan-600', buttonTo: 'to-cyan-700', statsBg: 'bg-cyan-50', statsText: 'text-cyan-600', icon: 'Shield' },
+                                                { from: 'from-orange-500', to: 'to-orange-600', darkFrom: 'dark:from-orange-700/40', darkTo: 'dark:to-orange-600/40', bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', buttonFrom: 'from-orange-600', buttonTo: 'to-orange-700', statsBg: 'bg-orange-50', statsText: 'text-orange-600', icon: 'Zap' }
+                                            ];
+                                            return defaultColors[index % defaultColors.length];
+                                        }
+                                    };
 
-                                    const colors = colorMap[index] || colorMap[0];
+                                    const colors = getRoleColors(roleName);
                                     const roleKey = roleName.toLowerCase().replace(/\s+/g, '');
                                     const roleStats = stats[roleKey] || { total: 0, activos: 0, trabajandoHoy: 0 };
 
@@ -195,7 +251,14 @@ export default function Dashboard() {
                                             <CardHeader className="pb-4">
                                                 <div className="flex items-center justify-between">
                                                     <div className={`p-3 bg-gradient-to-br ${colors.from} ${colors.to} ${colors.darkFrom} ${colors.darkTo} rounded-xl shadow-lg group-hover:shadow-xl transition-shadow`}>
-                                                        <Car className="h-6 w-6 text-white" />
+                                                        {colors.icon === 'Car' && <Car className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'FileSpreadsheet' && <FileSpreadsheet className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Bike' && <Bike className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Search' && <Search className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Radio' && <Radio className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Users' && <Users className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Shield' && <Shield className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Zap' && <Zap className="h-6 w-6 text-white" />}
                                                     </div>
                                                     <Badge variant="secondary" className={`${colors.bg} ${colors.text} ${colors.border}`}>
                                                         {loading ? '...' : `${roleStats.activos}/${roleStats.total}`}
@@ -210,11 +273,11 @@ export default function Dashboard() {
                                             </CardHeader>
                                             <CardContent className="space-y-4">
                                                 <div className="grid grid-cols-3 gap-3 text-center">
-                                                    <div className="p-3 bg-red-50 dark:bg-slate-700/30 rounded-lg">
-                                                        <p className="text-xl font-bold text-red-600 dark:text-slate-200">
+                                                    <div className={`p-3 ${colors.statsBg} dark:bg-slate-700/30 rounded-lg`}>
+                                                        <p className={`text-xl font-bold ${colors.statsText} dark:text-slate-200`}>
                                                             {loading ? '...' : roleStats.total}
                                                         </p>
-                                                        <p className="text-xs text-red-600/70 dark:text-slate-400">Total</p>
+                                                        <p className={`text-xs ${colors.statsText}/70 dark:text-slate-400`}>Total</p>
                                                     </div>
                                                     <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
                                                         <p className="text-xl font-bold text-green-600 dark:text-slate-200">
