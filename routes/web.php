@@ -309,9 +309,65 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('post-updateShifts');
 
     // Ruta para datos de plataforma (solo administradores)
-    Route::middleware(['auth', 'admin'])->get('/platform-data', function () {
-        return Inertia::render('settings/platform-data');
-    })->name('platform-data');
+    Route::middleware(['auth', 'admin'])->group(function () {
+        
+        // Vista principal
+        Route::get('/platform-data', function () {
+            $roles = \App\Models\Rol::all();
+            return Inertia::render('settings/platform-data', [
+                'roles' => $roles
+            ]);
+        })->name('platform-data');
+
+        // Rutas para roles
+        Route::prefix('platform-data/roles')->group(function () {
+            // Crear nuevo rol
+            Route::post('/', function (Request $request) {
+                $request->validate([
+                    'name' => 'required|string|max:255|unique:rols,name',
+                    'description' => 'nullable|string|max:500'
+                ]);
+
+                \App\Models\Rol::create([
+                    'name' => $request->name,
+                    'description' => $request->description
+                ]);
+
+                return redirect()->back()->with('success', 'Rol creado correctamente');
+            });
+
+            // Actualizar rol
+            Route::put('/{id}', function (Request $request, $id) {
+                $role = \App\Models\Rol::findOrFail($id);
+                
+                $request->validate([
+                    'name' => 'required|string|max:255|unique:rols,name,' . $id,
+                    'description' => 'nullable|string|max:500'
+                ]);
+
+                $role->update([
+                    'name' => $request->name,
+                    'description' => $request->description
+                ]);
+
+                return redirect()->back()->with('success', 'Rol actualizado correctamente');
+            });
+
+            // Eliminar rol
+            Route::delete('/{id}', function ($id) {
+                $role = \App\Models\Rol::findOrFail($id);
+                
+                // Verificar si hay empleados usando este rol
+                $employeesCount = $role->employees()->count();
+                if ($employeesCount > 0) {
+                    return redirect()->back()->with('error', 'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.');
+                }
+
+                $role->delete();
+                return redirect()->back()->with('success', 'Rol eliminado correctamente');
+            });
+        });
+    });
 
     /**
      * Extrae RUT de un nombre que puede contener RUT

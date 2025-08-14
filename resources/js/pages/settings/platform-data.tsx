@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,127 +33,68 @@ interface PlatformData {
     // Aquí podemos agregar más tipos de datos según necesites
 }
 
-export default function PlatformData() {
-    const [data, setData] = useState<PlatformData>({ roles: [] });
-    const [loading, setLoading] = useState(true);
+export default function PlatformData({ roles }: { roles: Rol[] }) {
+    const [data, setData] = useState<PlatformData>({ roles: roles || [] });
     const [editingRole, setEditingRole] = useState<number | null>(null);
     const [newRole, setNewRole] = useState({ name: '', description: '' });
     const [isAddingRole, setIsAddingRole] = useState(false);
 
-    // Cargar datos de la plataforma
-    const loadPlatformData = async () => {
-        try {
-            setLoading(true);
-            const response = await fetch('/api/platform-data');
-            const platformData = await response.json();
-            setData(platformData);
-        } catch (error) {
-            console.error('Error al cargar datos de la plataforma:', error);
-            toast.error('Error al cargar datos de la plataforma');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        loadPlatformData();
-    }, []);
-
     // Guardar rol
-    const saveRole = async (roleId: number, roleData: { name: string; description: string }) => {
-        try {
-            const response = await fetch(`/api/platform-data/roles/${roleId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify(roleData)
-            });
-
-            if (response.ok) {
+    const saveRole = (roleId: number, roleData: { name: string; description: string }) => {
+        router.put(`/platform-data/roles/${roleId}`, roleData, {
+            onSuccess: () => {
                 toast.success('Rol actualizado correctamente');
                 setEditingRole(null);
-                loadPlatformData(); // Recargar datos
-            } else {
-                throw new Error('Error al actualizar rol');
+                // Recargar la página para obtener los datos actualizados
+                router.reload();
+            },
+            onError: (errors) => {
+                toast.error('Error al actualizar rol');
+                console.error('Errores:', errors);
             }
-        } catch (error) {
-            console.error('Error al guardar rol:', error);
-            toast.error('Error al guardar rol');
-        }
+        });
     };
 
     // Eliminar rol
-    const deleteRole = async (roleId: number) => {
+    const deleteRole = (roleId: number) => {
         if (!confirm('¿Estás seguro de que quieres eliminar este rol?')) {
             return;
         }
 
-        try {
-            const response = await fetch(`/api/platform-data/roles/${roleId}`, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                }
-            });
-
-            if (response.ok) {
+        router.delete(`/platform-data/roles/${roleId}`, {
+            onSuccess: () => {
                 toast.success('Rol eliminado correctamente');
-                loadPlatformData(); // Recargar datos
-            } else {
-                throw new Error('Error al eliminar rol');
+                // Recargar la página para obtener los datos actualizados
+                router.reload();
+            },
+            onError: (errors) => {
+                toast.error('Error al eliminar rol');
+                console.error('Errores:', errors);
             }
-        } catch (error) {
-            console.error('Error al eliminar rol:', error);
-            toast.error('Error al eliminar rol');
-        }
+        });
     };
 
     // Agregar nuevo rol
-    const addRole = async () => {
+    const addRole = () => {
         if (!newRole.name.trim()) {
             toast.error('El nombre del rol es requerido');
             return;
         }
 
-        try {
-            const response = await fetch('/api/platform-data/roles', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify(newRole)
-            });
-
-            if (response.ok) {
+        router.post('/platform-data/roles', newRole, {
+            onSuccess: () => {
                 toast.success('Rol creado correctamente');
                 setNewRole({ name: '', description: '' });
                 setIsAddingRole(false);
-                loadPlatformData(); // Recargar datos
-            } else {
-                throw new Error('Error al crear rol');
+                // Recargar la página para obtener los datos actualizados
+                router.reload();
+            },
+            onError: (errors) => {
+                toast.error('Error al crear rol');
+                console.error('Errores:', errors);
             }
-        } catch (error) {
-            console.error('Error al crear rol:', error);
-            toast.error('Error al crear rol');
-        }
+        });
     };
-
-    if (loading) {
-        return (
-            <AppLayout>
-                <Head title="Datos de Plataforma" />
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                        <p className="mt-2 text-gray-600">Cargando datos de la plataforma...</p>
-                    </div>
-                </div>
-            </AppLayout>
-        );
-    }
 
     return (
         <AppLayout>
