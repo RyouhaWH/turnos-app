@@ -133,9 +133,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         foreach ($cambios as $employeeId => $fechas) {
             foreach ($fechas as $dia => $turno) {
 
-                // Buscar empleado por ID (convertir a integer si es necesario)
-                $employeeIdInt = (int) $employeeId;
-                $empleado = Employees::find($employeeIdInt);
+                // El frontend envía el nombre normalizado como clave, no el ID
+                // Necesitamos buscar el empleado por nombre normalizado
+                $nombreNormalizado = $employeeId;
+                
+                // Buscar empleado por nombre normalizado
+                $empleado = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?', 
+                    [strtolower(str_replace('_', ' ', $nombreNormalizado))])->first();
 
                 if (!$empleado) {
                     continue; // Saltar este empleado si no se encuentra
