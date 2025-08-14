@@ -198,11 +198,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
-
-        toast.success('Cambio deshecho', {
-            description: `Se restauró el valor anterior para ${lastChange.employee}`,
-            duration: 2000,
-        });
     };
 
     // Función para deshacer un cambio específico
@@ -284,11 +279,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
-
-        toast.success('Cambio deshecho', {
-            description: `Se restauró el valor anterior para ${change.employee}`,
-            duration: 2000,
-        });
     };
 
     // Función para registrar un cambio en el historial
