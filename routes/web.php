@@ -136,10 +136,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // El frontend envía el nombre normalizado como clave, no el ID
                 // Necesitamos buscar el empleado por nombre normalizado
                 $nombreNormalizado = $employeeId;
-                
-                // Buscar empleado por nombre normalizado
-                $empleado = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?', 
-                    [strtolower(str_replace('_', ' ', $nombreNormalizado))])->first();
+
+                // Buscar empleado por nombre normalizado (versión simplificada para SQLite)
+                $nombreBusqueda = strtolower(str_replace('_', ' ', $nombreNormalizado));
+                $empleado = Employees::whereRaw('LOWER(name) = ?', [$nombreBusqueda])->first();
+
+                // Si no se encuentra, intentar búsqueda más flexible
+                if (!$empleado) {
+                    $empleado = Employees::where('name', 'LIKE', '%' . str_replace('_', '%', $nombreNormalizado) . '%')->first();
+                }
 
                 if (!$empleado) {
                     continue; // Saltar este empleado si no se encuentra
