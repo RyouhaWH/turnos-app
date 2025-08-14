@@ -131,8 +131,22 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
-        // Usar employee_id directamente (ya no necesitamos normalizar)
-        const claveEmpleado = lastChange.employeeId || lastChange.employee;
+        // Buscar el empleado real en los datos del grid para obtener el ID correcto
+        const employeeData = rowData.find(row => row.nombre === lastChange.employee);
+        const employeeId = employeeData?.employee_id || employeeData?.id;
+
+        if (!employeeId) {
+            console.error('🔄 No se pudo encontrar el ID del empleado:', lastChange.employee);
+            toast.error('Error al deshacer cambio', {
+                description: 'No se pudo identificar al empleado',
+                duration: 4000,
+            });
+            setIsUndoing(false);
+            return;
+        }
+
+        // Usar el ID real del empleado
+        const claveEmpleado = employeeId.toString();
 
         // Restaurar el valor anterior
         if (lastChange.oldValue === '') {
@@ -254,8 +268,22 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
-        // Usar employee_id directamente (ya no necesitamos normalizar)
-        const claveEmpleado = change.employeeId || change.employee;
+        // Buscar el empleado real en los datos del grid para obtener el ID correcto
+        const employeeData = rowData.find(row => row.nombre === change.employee);
+        const employeeId = employeeData?.employee_id || employeeData?.id;
+
+        if (!employeeId) {
+            console.error('🔄 No se pudo encontrar el ID del empleado:', change.employee);
+            toast.error('Error al deshacer cambio', {
+                description: 'No se pudo identificar al empleado',
+                duration: 4000,
+            });
+            setIsUndoing(false);
+            return;
+        }
+
+        // Usar el ID real del empleado
+        const claveEmpleado = employeeId.toString();
 
         // Restaurar el valor anterior
         if (change.oldValue === '') {

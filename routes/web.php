@@ -98,6 +98,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
+
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
@@ -123,6 +124,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $año       = $request->input('año', now()->year);
         $actualUser = Auth::id();
 
+
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
             return response()->json(['message' => 'No hay cambios para guardar'], 400);
@@ -132,8 +134,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             foreach ($fechas as $dia => $turno) {
 
                 // Buscar empleado por ID (convertir a integer si es necesario)
-                $employeeIdInt = (int) $employeeId;
-                $empleado = Employees::find($employeeIdInt);
+                $empleado = Employees::where('name', $employeeId)->first();
+
+                dd($empleado);
 
                 if (!$empleado) {
                     continue; // Saltar este empleado si no se encuentra
