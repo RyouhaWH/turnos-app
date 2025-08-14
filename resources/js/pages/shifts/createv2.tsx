@@ -207,8 +207,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
             }
 
-            const result = await response.json();
-            console.log('🔄 Resultado exitoso:', result);
+            // Verificar el tipo de contenido de la respuesta
+            const contentType = response.headers.get('content-type');
+            console.log('🔄 Content-Type de la respuesta:', contentType);
+
+            if (contentType && contentType.includes('application/json')) {
+                const result = await response.json();
+                console.log('🔄 Resultado exitoso:', result);
+            } else {
+                const responseText = await response.text();
+                console.log('🔄 Respuesta no-JSON recibida:', responseText);
+                // Si no es JSON pero la respuesta fue exitosa, asumimos que funcionó
+                console.log('🔄 Respuesta exitosa (no-JSON)');
+            }
 
             toast.success('Cambio deshecho y base de datos actualizada', {
                 description: `Se restauró el valor anterior para ${lastChange.employee}`,
@@ -319,8 +330,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
             }
 
-            const result = await response.json();
-            console.log('🔄 Resultado exitoso (específico):', result);
+            // Verificar el tipo de contenido de la respuesta
+            const contentType = response.headers.get('content-type');
+            console.log('🔄 Content-Type de la respuesta (específico):', contentType);
+
+            if (contentType && contentType.includes('application/json')) {
+                const result = await response.json();
+                console.log('🔄 Resultado exitoso (específico):', result);
+            } else {
+                const responseText = await response.text();
+                console.log('🔄 Respuesta no-JSON recibida (específico):', responseText);
+                // Si no es JSON pero la respuesta fue exitosa, asumimos que funcionó
+                console.log('🔄 Respuesta exitosa (no-JSON) (específico)');
+            }
 
             toast.success('Cambio deshecho y base de datos actualizada', {
                 description: `Se restauró el valor anterior para ${change.employee}`,

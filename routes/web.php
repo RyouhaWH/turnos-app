@@ -109,13 +109,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // $numeroCristianMontecinos  = "";
         $numeroInformacionesAmzoma = "985639782";
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
-        $numeroCentralDespacho    = "964949887";
+        //$numeroCentralDespacho    = "964949887";
 
         // Agregar números a la lista para notificaciones
         $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
-            $numeroCentralDespacho,
+            //$numeroCentralDespacho,
         ];
 
         $cambios    = $request->input('cambios');
