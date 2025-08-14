@@ -55,6 +55,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [changeHistory, setChangeHistory] = useState<Array<{
         id: string;
         employee: string;
+        employeeId?: string | number;
         day: string;
         oldValue: string;
         newValue: string;
@@ -155,6 +156,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             cambios: newResumen,
         }));
 
+        // Actualizar visualmente el grid
+        if (gridRef.current?.api) {
+            const node = gridRef.current.api.getRowNode(lastChange.employeeId?.toString() || lastChange.employee);
+            if (node && node.data) {
+                node.setDataValue(lastChange.day, lastChange.oldValue);
+                gridRef.current.api.refreshCells({
+                    rowNodes: [node],
+                    columns: [lastChange.day]
+                });
+            }
+        }
+
         // Remover el cambio del historial
         setChangeHistory(prev => prev.slice(0, -1));
 
@@ -201,6 +214,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             ...prev,
             cambios: newResumen,
         }));
+
+        // Actualizar visualmente el grid
+        if (gridRef.current?.api) {
+            const node = gridRef.current.api.getRowNode(change.employeeId?.toString() || change.employee);
+            if (node && node.data) {
+                node.setDataValue(change.day, change.oldValue);
+                gridRef.current.api.refreshCells({
+                    rowNodes: [node],
+                    columns: [change.day]
+                });
+            }
+        }
 
         // Remover el cambio del historial
         setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
