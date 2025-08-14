@@ -6,6 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { CambiosPorFuncionario } from './shift-change-list';
 import ListaCambios from './shift-change-list';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -29,10 +30,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         role.name === 'Supervisor' || role.name === 'Administrador'
     ) || false;
 
-    const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
+    const [resumen, setResumen] = useState<CambiosPorFuncionario>({});
     const [historial, setHistorial] = useState([]);
     const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [clearChanges, setClearChanges] = useState(false); // Nuevo estado para limpiar cambios
 
     const cargarHistorial = async (employeeId: number | string) => {
         const res = await fetch(`/api/shift-change-log/${employeeId}`);
@@ -41,7 +43,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setIsModalOpen(true);
     };
 
-    const handleResumenUpdate = useCallback((ResumenCambios) => {
+    const handleResumenUpdate = useCallback((ResumenCambios: CambiosPorFuncionario) => {
         setResumen(ResumenCambios);
         setData({ cambios: ResumenCambios });
     }, []);
@@ -50,9 +52,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         post(route('post-updateShifts'), {
             onSuccess: () => {
                 setResumen({});
+                setClearChanges(true); // Activar limpieza de cambios
                 toast('✅ Cambios guardados', {
                     description: 'Los turnos fueron actualizados correctamente.',
                 });
+                // Resetear el flag después de un breve delay
+                setTimeout(() => setClearChanges(false), 100);
             },
             onError: () => {
                 toast('❌ Error al guardar', {
@@ -90,11 +95,14 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                             onResumenChange={handleResumenUpdate}
                             onRowClicked={(event) => {
                                 console.log('hola mundo')
-                                const empleadoId = event.data.id || event.data.employee_id;
+                                const empleadoId = event.data?.id || event.data?.employee_id;
                                 setEmpleadoSeleccionado(event.data);
-                                cargarHistorial(empleadoId);
+                                if (empleadoId) {
+                                    cargarHistorial(empleadoId);
+                                }
                             }}
                             editable={hasEditPermissions}
+                            clearChanges={clearChanges}
                         />
                     </div>
 

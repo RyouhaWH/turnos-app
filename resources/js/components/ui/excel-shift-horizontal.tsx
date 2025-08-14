@@ -27,6 +27,7 @@ interface Props {
     // 0-11 (JavaScript month format)
     year?: number
     editable?: boolean // Nueva propiedad para controlar si las celdas son editables
+    clearChanges?: boolean; // Nueva prop para limpiar cambios
 }
 
 export interface AgGridHorizontalRef {
@@ -130,7 +131,7 @@ const DateHeaderComponent = (props: any) => {
 };
 
 const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
-    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true }, ref) {
+    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true, clearChanges = false }, ref) {
 
         // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -161,6 +162,14 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                 });
             }
         }, [daysInfo, rowData]);
+
+        // Efecto para limpiar cambios cuando se solicita
+        useEffect(() => {
+            if (clearChanges) {
+                setCambios({});
+                console.log('🧹 Cambios limpiados desde el componente padre');
+            }
+        }, [clearChanges]);
 
         // Expose grid methods to parent component
         useImperativeHandle(ref, () => ({
