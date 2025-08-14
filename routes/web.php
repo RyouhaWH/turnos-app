@@ -99,7 +99,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
         //! Números base para notificaciones
-        // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
         // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
         // $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
         // $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
@@ -254,7 +254,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // Crear array de números para notificaciones (incluye números base + empleado si tiene teléfono)
                 $numerosAReportarCambios = [
-                    // $numeroJulioSarmiento,
+                    $numeroJulioSarmiento,
                     // $numeroMarianelaHuequelef,
                     // $numeroPriscilaEscobar,
                     // $numeroJavierAlvarado,
@@ -262,12 +262,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     // $numeroCristianMontecinos,
                     $numeroInformacionesAmzoma,
                     $numeroJorgeWaltemath,
-                    $numeroCentralDespacho,
+                    // $numeroCentralDespacho,
                 ];
 
                 // Agregar el número del empleado solo si no es null
                 if ($empleado->phone !== null) {
-                    $numerosAReportarCambios[] = $empleado->phone;
+                    //$numerosAReportarCambios[] = $empleado->phone;
                 }
 
                 $shiftComplete = match ($turno) {
