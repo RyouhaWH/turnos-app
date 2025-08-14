@@ -122,7 +122,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     // Función para deshacer el último cambio
     const undoLastChange = () => {
         console.log('🔄 Intentando deshacer último cambio. Historial:', changeHistory);
-        
+
         if (changeHistory.length === 0) {
             console.log('❌ No hay cambios para deshacer');
             return;
@@ -134,20 +134,31 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
+        // Normalizar la clave del empleado (igual que en AgGridHorizontal)
+        const claveEmpleado = lastChange.employee
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+
+        console.log('🔄 Clave normalizada del empleado:', claveEmpleado);
+
         // Restaurar el valor anterior
         if (lastChange.oldValue === '') {
             // Si el valor anterior estaba vacío, eliminar la entrada
-            delete newResumen[lastChange.employee][lastChange.day];
-            // Si no quedan cambios para este empleado, eliminar el empleado
-            if (Object.keys(newResumen[lastChange.employee]).length === 0) {
-                delete newResumen[lastChange.employee];
+            if (newResumen[claveEmpleado]) {
+                delete newResumen[claveEmpleado][lastChange.day];
+                // Si no quedan cambios para este empleado, eliminar el empleado
+                if (Object.keys(newResumen[claveEmpleado]).length === 0) {
+                    delete newResumen[claveEmpleado];
+                }
             }
         } else {
             // Restaurar el valor anterior
-            if (!newResumen[lastChange.employee]) {
-                newResumen[lastChange.employee] = {};
+            if (!newResumen[claveEmpleado]) {
+                newResumen[claveEmpleado] = {};
             }
-            newResumen[lastChange.employee][lastChange.day] = lastChange.oldValue;
+            newResumen[claveEmpleado][lastChange.day] = lastChange.oldValue;
         }
 
         console.log('🔄 Nuevo resumen después de deshacer:', newResumen);
@@ -178,20 +189,29 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
+        // Normalizar la clave del empleado (igual que en AgGridHorizontal)
+        const claveEmpleado = change.employee
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, '_')
+            .toLowerCase();
+
         // Restaurar el valor anterior
         if (change.oldValue === '') {
             // Si el valor anterior estaba vacío, eliminar la entrada
-            delete newResumen[change.employee][change.day];
-            // Si no quedan cambios para este empleado, eliminar el empleado
-            if (Object.keys(newResumen[change.employee]).length === 0) {
-                delete newResumen[change.employee];
+            if (newResumen[claveEmpleado]) {
+                delete newResumen[claveEmpleado][change.day];
+                // Si no quedan cambios para este empleado, eliminar el empleado
+                if (Object.keys(newResumen[claveEmpleado]).length === 0) {
+                    delete newResumen[claveEmpleado];
+                }
             }
         } else {
             // Restaurar el valor anterior
-            if (!newResumen[change.employee]) {
-                newResumen[change.employee] = {};
+            if (!newResumen[claveEmpleado]) {
+                newResumen[claveEmpleado] = {};
             }
-            newResumen[change.employee][change.day] = change.oldValue;
+            newResumen[claveEmpleado][change.day] = change.oldValue;
         }
 
         // Actualizar el resumen
@@ -213,7 +233,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     // Función para registrar un cambio en el historial
     const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
         console.log('🔄 Registrando cambio:', { employee, day, oldValue, newValue });
-        
+
         const change = {
             id: `${employee}_${day}_${Date.now()}`,
             employee,
@@ -222,7 +242,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             newValue,
             timestamp: Date.now(),
         };
-        
+
         setChangeHistory(prev => {
             const newHistory = [...prev, change];
             console.log('📝 Historial actualizado:', newHistory);
