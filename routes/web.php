@@ -339,7 +339,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         // Actualizar rol
             Route::put('/{id}', function (Request $request, $id) {
                 $role = \App\Models\Rol::findOrFail($id);
-                
+
                 $request->validate([
                     'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id,
                     'description' => 'nullable|string|max:500'

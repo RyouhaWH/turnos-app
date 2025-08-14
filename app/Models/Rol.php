@@ -5,6 +5,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Rol extends Model
 {
+    protected $fillable = [
+        'nombre',
+        'description'
+    ];
 
     public function usuarios()
     {
