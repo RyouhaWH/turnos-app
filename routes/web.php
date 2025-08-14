@@ -324,29 +324,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Crear nuevo rol
             Route::post('/', function (Request $request) {
                 $request->validate([
-                    'name' => 'required|string|max:255|unique:rols,name',
+                    'nombre' => 'required|string|max:255|unique:rols,nombre',
                     'description' => 'nullable|string|max:500'
                 ]);
 
                 \App\Models\Rol::create([
-                    'name' => $request->name,
+                    'nombre' => $request->nombre,
                     'description' => $request->description
                 ]);
 
                 return redirect()->back()->with('success', 'Rol creado correctamente');
             });
 
-            // Actualizar rol
+                        // Actualizar rol
             Route::put('/{id}', function (Request $request, $id) {
                 $role = \App\Models\Rol::findOrFail($id);
-
+                
                 $request->validate([
-                    'name' => 'required|string|max:255|unique:rols,name,' . $id,
+                    'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id,
                     'description' => 'nullable|string|max:500'
                 ]);
 
                 $role->update([
-                    'name' => $request->name,
+                    'nombre' => $request->nombre,
                     'description' => $request->description
                 ]);
 

@@ -22,7 +22,7 @@ import {
 
 interface Rol {
     id: number;
-    name: string;
+    nombre: string;
     description?: string;
     created_at: string;
     updated_at: string;
@@ -36,11 +36,11 @@ interface PlatformData {
 export default function PlatformData({ roles }: { roles: Rol[] }) {
     const [data, setData] = useState<PlatformData>({ roles: roles || [] });
     const [editingRole, setEditingRole] = useState<number | null>(null);
-    const [newRole, setNewRole] = useState({ name: '', description: '' });
+    const [newRole, setNewRole] = useState({ nombre: '', description: '' });
     const [isAddingRole, setIsAddingRole] = useState(false);
 
     // Guardar rol
-    const saveRole = (roleId: number, roleData: { name: string; description: string }) => {
+    const saveRole = (roleId: number, roleData: { nombre: string; description: string }) => {
         router.put(`/platform-data/roles/${roleId}`, roleData, {
             onSuccess: () => {
                 toast.success('Rol actualizado correctamente');
@@ -76,7 +76,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
 
     // Agregar nuevo rol
     const addRole = () => {
-        if (!newRole.name.trim()) {
+        if (!newRole.nombre.trim()) {
             toast.error('El nombre del rol es requerido');
             return;
         }
@@ -84,7 +84,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
         router.post('/platform-data/roles', newRole, {
             onSuccess: () => {
                 toast.success('Rol creado correctamente');
-                setNewRole({ name: '', description: '' });
+                setNewRole({ nombre: '', description: '' });
                 setIsAddingRole(false);
                 // Recargar la página para obtener los datos actualizados
                 router.reload();
@@ -163,8 +163,8 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                     <Label htmlFor="new-role-name">Nombre del Rol</Label>
                                                     <Input
                                                         id="new-role-name"
-                                                        value={newRole.name}
-                                                        onChange={(e) => setNewRole(prev => ({ ...prev, name: e.target.value }))}
+                                                                                                                 value={newRole.nombre}
+                                                         onChange={(e) => setNewRole(prev => ({ ...prev, nombre: e.target.value }))}
                                                         placeholder="Ej: Alerta Móvil"
                                                     />
                                                 </div>
@@ -185,10 +185,10 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                 </Button>
                                                 <Button 
                                                     variant="outline" 
-                                                    onClick={() => {
-                                                        setIsAddingRole(false);
-                                                        setNewRole({ name: '', description: '' });
-                                                    }}
+                                                                                                         onClick={() => {
+                                                         setIsAddingRole(false);
+                                                         setNewRole({ nombre: '', description: '' });
+                                                     }}
                                                     className="flex items-center gap-2"
                                                 >
                                                     <X className="h-4 w-4" />
@@ -208,16 +208,16 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         <div>
                                                             <Label htmlFor={`role-name-${role.id}`}>Nombre</Label>
-                                                            <Input
-                                                                id={`role-name-${role.id}`}
-                                                                defaultValue={role.name}
-                                                                onChange={(e) => {
-                                                                    const updatedRoles = data.roles.map(r => 
-                                                                        r.id === role.id ? { ...r, name: e.target.value } : r
-                                                                    );
-                                                                    setData(prev => ({ ...prev, roles: updatedRoles }));
-                                                                }}
-                                                            />
+                                                                                                                         <Input
+                                                                 id={`role-name-${role.id}`}
+                                                                 defaultValue={role.nombre}
+                                                                 onChange={(e) => {
+                                                                     const updatedRoles = data.roles.map(r => 
+                                                                         r.id === role.id ? { ...r, nombre: e.target.value } : r
+                                                                     );
+                                                                     setData(prev => ({ ...prev, roles: updatedRoles }));
+                                                                 }}
+                                                             />
                                                         </div>
                                                         <div>
                                                             <Label htmlFor={`role-description-${role.id}`}>Descripción</Label>
@@ -236,12 +236,12 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                             <Button 
                                                                 onClick={() => {
                                                                     const roleData = data.roles.find(r => r.id === role.id);
-                                                                    if (roleData) {
-                                                                        saveRole(role.id, {
-                                                                            name: roleData.name,
-                                                                            description: roleData.description || ''
-                                                                        });
-                                                                    }
+                                                                                                                                         if (roleData) {
+                                                                         saveRole(role.id, {
+                                                                             nombre: roleData.nombre,
+                                                                             description: roleData.description || ''
+                                                                         });
+                                                                     }
                                                                 }}
                                                                 className="flex items-center gap-2"
                                                             >
@@ -261,7 +261,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                 ) : (
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex-1">
-                                                            <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{role.name}</h3>
+                                                                                                                         <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{role.nombre}</h3>
                                                             {role.description && (
                                                                 <p className="text-gray-600 dark:text-gray-400 text-base mb-3">
                                                                     {role.description}
