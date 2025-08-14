@@ -298,16 +298,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     ]);
                 }
 
-                foreach ($numerosAReportarCambios as $numero) {
-                    $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => "-------------",
 
-                        'numero'  => "56" . $numero,
-                    ]);
-                }
 
-                array_pop($numerosAReportarCambios);
             }
+            foreach ($numerosAReportarCambios as $numero) {
+                $response = Http::post('http://localhost:3001/send-message', [
+                    'mensaje' => "-------------",
+
+                    'numero'  => "56" . $numero,
+                ]);
+            }
+            //! cuando modifique funcionario, borre el numero del array
+            //array_pop($numerosAReportarCambios);
+
         }
 
         return back()->with('success', 'Cambios guardados correctamente.');
