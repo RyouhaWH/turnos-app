@@ -98,15 +98,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
-        // Números base para notificaciones
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
-        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
-        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
-        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
-        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-        $numeroCristianMontecinos  = "";
+        //! Números base para notificaciones
+        // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+        // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
+        // $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
+        // $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
+        // $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
+        // $numeroCristianMontecinos  = "";
         $numeroInformacionesAmzoma = "985639782";
-        $numeroJorgeWaltemath      = "951004035";
+        $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
+        $numeroCentralDespacho    = "964949887";
 
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
@@ -253,14 +254,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // Crear array de números para notificaciones (incluye números base + empleado si tiene teléfono)
                 $numerosAReportarCambios = [
-                    $numeroJulioSarmiento,
-                    $numeroMarianelaHuequelef,
-                    $numeroPriscilaEscobar,
-                    $numeroJavierAlvarado,
-                    $numeroEduardoEsparza,
-                    $numeroCristianMontecinos,
+                    // $numeroJulioSarmiento,
+                    // $numeroMarianelaHuequelef,
+                    // $numeroPriscilaEscobar,
+                    // $numeroJavierAlvarado,
+                    // $numeroEduardoEsparza,
+                    // $numeroCristianMontecinos,
                     $numeroInformacionesAmzoma,
-                    $numeroJorgeWaltemath
+                    $numeroJorgeWaltemath,
+                    $numeroCentralDespacho,
                 ];
 
                 // Agregar el número del empleado solo si no es null
@@ -269,7 +271,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 }
 
                 $shiftComplete = match ($turno) {
-                    'A' => 'Administrativo',
+                    'PE'    => 'Patrulla Escolar',
+                    'A'     => 'Administrativo',
                     'LM'    => 'Licencia Médica',
                     'S'     => 'Día Sindical',
                     'M'     => 'Mañana',
@@ -302,6 +305,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         'numero'  => "56" . $numero,
                     ]);
                 }
+
+                array_pop($numerosAReportarCambios);
             }
         }
 
