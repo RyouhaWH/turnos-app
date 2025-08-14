@@ -191,62 +191,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
         }
 
-        // Actualizar la base de datos
-        try {
-            const requestData = {
-                cambios: {
-                    [claveEmpleado]: {
-                        [lastChange.day]: lastChange.oldValue
-                    }
-                },
-                comentario: `Deshacer cambio: ${lastChange.employee} - día ${lastChange.day}`
-            };
-
-            console.log('🔄 Enviando datos para deshacer:', requestData);
-
-            const response = await fetch('/turnos-mes/actualizar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            console.log('🔄 Respuesta del servidor:', response.status, response.statusText);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('🔄 Error en la respuesta:', errorText);
-                throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
-            }
-
-            // Verificar el tipo de contenido de la respuesta
-            const contentType = response.headers.get('content-type');
-            console.log('🔄 Content-Type de la respuesta:', contentType);
-
-            if (contentType && contentType.includes('application/json')) {
-                const result = await response.json();
-                console.log('🔄 Resultado exitoso:', result);
-            } else {
-                const responseText = await response.text();
-                console.log('🔄 Respuesta no-JSON recibida:', responseText);
-                // Si no es JSON pero la respuesta fue exitosa, asumimos que funcionó
-                console.log('🔄 Respuesta exitosa (no-JSON)');
-            }
-
-            toast.success('Cambio deshecho y base de datos actualizada', {
-                description: `Se restauró el valor anterior para ${lastChange.employee}`,
-                duration: 2000,
-            });
-        } catch (error) {
-            console.error('🔄 Error al actualizar la base de datos:', error);
-            toast.error('Error al actualizar la base de datos', {
-                description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
-                duration: 4000,
-            });
-        }
-
         // Remover el cambio del historial
         setChangeHistory(prev => prev.slice(0, -1));
 
@@ -254,6 +198,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
+
+        toast.success('Cambio deshecho', {
+            description: `Se restauró el valor anterior para ${lastChange.employee}`,
+            duration: 2000,
+        });
     };
 
     // Función para deshacer un cambio específico
@@ -328,62 +277,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
         }
 
-        // Actualizar la base de datos
-        try {
-            const requestData = {
-                cambios: {
-                    [claveEmpleado]: {
-                        [change.day]: change.oldValue
-                    }
-                },
-                comentario: `Deshacer cambio específico: ${change.employee} - día ${change.day}`
-            };
-
-            console.log('🔄 Enviando datos para deshacer específico:', requestData);
-
-            const response = await fetch('/turnos-mes/actualizar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify(requestData)
-            });
-
-            console.log('🔄 Respuesta del servidor (específico):', response.status, response.statusText);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('🔄 Error en la respuesta (específico):', errorText);
-                throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
-            }
-
-            // Verificar el tipo de contenido de la respuesta
-            const contentType = response.headers.get('content-type');
-            console.log('🔄 Content-Type de la respuesta (específico):', contentType);
-
-            if (contentType && contentType.includes('application/json')) {
-                const result = await response.json();
-                console.log('🔄 Resultado exitoso (específico):', result);
-            } else {
-                const responseText = await response.text();
-                console.log('🔄 Respuesta no-JSON recibida (específico):', responseText);
-                // Si no es JSON pero la respuesta fue exitosa, asumimos que funcionó
-                console.log('🔄 Respuesta exitosa (no-JSON) (específico)');
-            }
-
-            toast.success('Cambio deshecho y base de datos actualizada', {
-                description: `Se restauró el valor anterior para ${change.employee}`,
-                duration: 2000,
-            });
-        } catch (error) {
-            console.error('🔄 Error al actualizar la base de datos (específico):', error);
-            toast.error('Error al actualizar la base de datos', {
-                description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
-                duration: 4000,
-            });
-        }
-
         // Remover el cambio del historial
         setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
 
@@ -391,6 +284,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setTimeout(() => {
             setIsUndoing(false);
         }, 100);
+
+        toast.success('Cambio deshecho', {
+            description: `Se restauró el valor anterior para ${change.employee}`,
+            duration: 2000,
+        });
     };
 
     // Función para registrar un cambio en el historial

@@ -139,16 +139,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // Buscar empleado con múltiples estrategias
                 $empleado = null;
-                
+
                 // 1. Búsqueda exacta simple
                 $nombreBusqueda = strtolower(str_replace('_', ' ', $nombreNormalizado));
                 $empleado = Employees::whereRaw('LOWER(name) = ?', [$nombreBusqueda])->first();
-                
+
                 // 2. Si no se encuentra, búsqueda por similitud
                 if (!$empleado) {
                     $empleado = Employees::where('name', 'LIKE', '%' . str_replace('_', '%', $nombreNormalizado) . '%')->first();
                 }
-                
+
                 // 3. Si aún no se encuentra, búsqueda por palabras individuales
                 if (!$empleado) {
                     $palabras = explode('_', $nombreNormalizado);
@@ -158,7 +158,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         }
                     })->first();
                 }
-                
+
                 // 4. Si aún no se encuentra, búsqueda más flexible (cualquier palabra)
                 if (!$empleado) {
                     $palabras = explode('_', $nombreNormalizado);
