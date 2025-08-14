@@ -300,11 +300,11 @@ export default function Dashboard() {
                                     <h1 className="text-2xl font-bold">Plantilla de Funcionarios para el Día de Hoy</h1>
                                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
-                                        <span>{new Date().toLocaleDateString('es-CL', { 
-                                            weekday: 'long', 
-                                            year: 'numeric', 
-                                            month: 'long', 
-                                            day: 'numeric' 
+                                        <span>{new Date().toLocaleDateString('es-CL', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
                                         })}</span>
                                         {loading && (
                                             <div className="ml-2 flex items-center gap-1">
@@ -405,15 +405,22 @@ export default function Dashboard() {
 
                     {/* Columnas principales por roles - Solo trabajando */}
                     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        {Object.entries(roles).map(([roleId, roleName]) => (
-                            <RoleColumn
-                                key={roleId}
-                                roleId={parseInt(roleId)}
-                                roleName={roleName}
-                                employees={employeeStatus.trabajando}
-                                roleColor="text-red-700 dark:text-red-300"
-                            />
-                        ))}
+                        {Object.entries(roles)
+                            .filter(([roleId, roleName]) => {
+                                const lowerRoleName = roleName.toLowerCase();
+                                return !lowerRoleName.includes('administrativo') && 
+                                       !lowerRoleName.includes('servicio') &&
+                                       !lowerRoleName.includes('personal de servicio');
+                            })
+                            .map(([roleId, roleName]) => (
+                                <RoleColumn
+                                    key={roleId}
+                                    roleId={parseInt(roleId)}
+                                    roleName={roleName}
+                                    employees={employeeStatus.trabajando}
+                                    roleColor="text-red-700 dark:text-red-300"
+                                />
+                            ))}
                     </div>
 
                     {/* Sección inferior: Ausentes y Sin Turno */}

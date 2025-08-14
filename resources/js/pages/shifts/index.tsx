@@ -171,7 +171,14 @@ export default function Dashboard() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {Object.entries(roles).map(([roleId, roleName], index) => {
+                                {Object.entries(roles)
+                                    .filter(([roleId, roleName]) => {
+                                        const lowerRoleName = roleName.toLowerCase();
+                                        return !lowerRoleName.includes('administrativo') && 
+                                               !lowerRoleName.includes('servicio') &&
+                                               !lowerRoleName.includes('personal de servicio');
+                                    })
+                                    .map(([roleId, roleName], index) => {
                                     // Mapeo de colores por índice
                                     const colorMap = [
                                         { from: 'from-red-500', to: 'to-red-600', darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', buttonFrom: 'from-red-600', buttonTo: 'to-red-700' },
