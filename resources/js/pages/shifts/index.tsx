@@ -25,7 +25,10 @@ import {
     TrendingUp,
     Search,
     Radio,
-    Zap
+    Zap,
+    Plane,
+    UserCheck2,
+    CircleDot
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -185,48 +188,66 @@ export default function Dashboard() {
                                     // Mapeo de colores específicos por rol
                                     const getRoleColors = (roleName: string) => {
                                         const lowerRoleName = roleName.toLowerCase();
-                                        
+
                                         if (lowerRoleName.includes('patrullaje') || lowerRoleName.includes('proximidad') || lowerRoleName.includes('alerta móvil')) {
                                             return {
-                                                from: 'from-red-500', to: 'to-red-600', 
-                                                darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40', 
-                                                bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', 
+                                                from: 'from-red-500', to: 'to-red-600',
+                                                darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40',
+                                                bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200',
                                                 buttonFrom: 'from-red-600', buttonTo: 'to-red-700',
                                                 statsBg: 'bg-red-50', statsText: 'text-red-600',
                                                 icon: 'Car'
                                             };
                                         } else if (lowerRoleName.includes('fiscalización') || lowerRoleName.includes('fiscalizacion')) {
                                             return {
-                                                from: 'from-amber-500', to: 'to-amber-600', 
-                                                darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40', 
-                                                bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', 
+                                                from: 'from-amber-500', to: 'to-amber-600',
+                                                darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40',
+                                                bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200',
                                                 buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700',
                                                 statsBg: 'bg-amber-50', statsText: 'text-amber-600',
-                                                icon: 'FileSpreadsheet'
+                                                icon: 'UserCheck2'
                                             };
                                         } else if (lowerRoleName.includes('motorizado')) {
                                             return {
-                                                from: 'from-emerald-500', to: 'to-emerald-600', 
-                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40', 
-                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', 
+                                                from: 'from-emerald-500', to: 'to-emerald-600',
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
                                                 buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
                                                 statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
                                                 icon: 'Bike'
                                             };
+                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta')) {
+                                            return {
+                                                from: 'from-emerald-500', to: 'to-emerald-600',
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
+                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
+                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                icon: 'Bike'
+                                            };
+                                        } else if (lowerRoleName.includes('dron') || lowerRoleName.includes('drone')) {
+                                            return {
+                                                from: 'from-sky-500', to: 'to-sky-600',
+                                                darkFrom: 'dark:from-sky-700/40', darkTo: 'dark:to-sky-600/40',
+                                                bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200',
+                                                buttonFrom: 'from-sky-600', buttonTo: 'to-sky-700',
+                                                statsBg: 'bg-sky-50', statsText: 'text-sky-600',
+                                                icon: 'Plane'
+                                            };
                                         } else if (lowerRoleName.includes('investigación') || lowerRoleName.includes('investigacion')) {
                                             return {
-                                                from: 'from-purple-500', to: 'to-purple-600', 
-                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40', 
-                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200', 
+                                                from: 'from-purple-500', to: 'to-purple-600',
+                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40',
+                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200',
                                                 buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
                                                 statsBg: 'bg-purple-50', statsText: 'text-purple-600',
                                                 icon: 'Search'
                                             };
                                         } else if (lowerRoleName.includes('comunicaciones') || lowerRoleName.includes('radio')) {
                                             return {
-                                                from: 'from-blue-500', to: 'to-blue-600', 
-                                                darkFrom: 'dark:from-blue-700/40', darkTo: 'dark:to-blue-600/40', 
-                                                bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', 
+                                                from: 'from-blue-500', to: 'to-blue-600',
+                                                darkFrom: 'dark:from-blue-700/40', darkTo: 'dark:to-blue-600/40',
+                                                bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200',
                                                 buttonFrom: 'from-blue-600', buttonTo: 'to-blue-700',
                                                 statsBg: 'bg-blue-50', statsText: 'text-blue-600',
                                                 icon: 'Radio'
@@ -252,8 +273,9 @@ export default function Dashboard() {
                                                 <div className="flex items-center justify-between">
                                                     <div className={`p-3 bg-gradient-to-br ${colors.from} ${colors.to} ${colors.darkFrom} ${colors.darkTo} rounded-xl shadow-lg group-hover:shadow-xl transition-shadow`}>
                                                         {colors.icon === 'Car' && <Car className="h-6 w-6 text-white" />}
-                                                        {colors.icon === 'FileSpreadsheet' && <FileSpreadsheet className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'UserCheck2' && <UserCheck2 className="h-6 w-6 text-white" />}
                                                         {colors.icon === 'Bike' && <Bike className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Plane' && <Plane className="h-6 w-6 text-white" />}
                                                         {colors.icon === 'Search' && <Search className="h-6 w-6 text-white" />}
                                                         {colors.icon === 'Radio' && <Radio className="h-6 w-6 text-white" />}
                                                         {colors.icon === 'Users' && <Users className="h-6 w-6 text-white" />}
