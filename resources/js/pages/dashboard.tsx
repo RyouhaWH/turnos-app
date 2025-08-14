@@ -296,11 +296,16 @@ export default function Dashboard() {
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                             {/* Title Section */}
                             <div className="flex w-full items-start justify-between gap-4">
-                                <div>
-                                    <h1 className="text-2xl font-bold">Dashboard - Estado de Personal</h1>
-                                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                                <div className="flex-1 text-center">
+                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios para el Día de Hoy</h1>
+                                    <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
-                                        <span>Sistema activo - {new Date().toLocaleDateString('es-CL')}</span>
+                                        <span>{new Date().toLocaleDateString('es-CL', { 
+                                            weekday: 'long', 
+                                            year: 'numeric', 
+                                            month: 'long', 
+                                            day: 'numeric' 
+                                        })}</span>
                                         {loading && (
                                             <div className="ml-2 flex items-center gap-1">
                                                 <RefreshCw className="h-3 w-3 animate-spin" />
