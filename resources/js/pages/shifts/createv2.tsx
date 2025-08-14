@@ -156,13 +156,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             cambios: newResumen,
         }));
 
-        // Actualizar visualmente el grid
+        // Actualizar visualmente el grid - buscar por nombre del empleado
         if (gridRef.current?.api) {
-            const node = gridRef.current.api.getRowNode(lastChange.employeeId?.toString() || lastChange.employee);
-            if (node && node.data) {
-                node.setDataValue(lastChange.day, lastChange.oldValue);
+            let targetNode: any = null;
+            gridRef.current.api.forEachNode((node: any) => {
+                if (node.data && node.data.nombre === lastChange.employee) {
+                    targetNode = node;
+                }
+            });
+            
+            if (targetNode && targetNode.data) {
+                targetNode.setDataValue(lastChange.day, lastChange.oldValue);
                 gridRef.current.api.refreshCells({
-                    rowNodes: [node],
+                    rowNodes: [targetNode],
                     columns: [lastChange.day]
                 });
             }
@@ -215,13 +221,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             cambios: newResumen,
         }));
 
-        // Actualizar visualmente el grid
+        // Actualizar visualmente el grid - buscar por nombre del empleado
         if (gridRef.current?.api) {
-            const node = gridRef.current.api.getRowNode(change.employeeId?.toString() || change.employee);
-            if (node && node.data) {
-                node.setDataValue(change.day, change.oldValue);
+            let targetNode: any = null;
+            gridRef.current.api.forEachNode((node: any) => {
+                if (node.data && node.data.nombre === change.employee) {
+                    targetNode = node;
+                }
+            });
+            
+            if (targetNode && targetNode.data) {
+                targetNode.setDataValue(change.day, change.oldValue);
                 gridRef.current.api.refreshCells({
-                    rowNodes: [node],
+                    rowNodes: [targetNode],
                     columns: [change.day]
                 });
             }
