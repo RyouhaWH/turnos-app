@@ -447,12 +447,14 @@ class TurnController extends Controller
                 ->pluck('total', 'rol_id')
                 ->toArray();
 
-            // Mapear roles (1=Alerta Móvil, 2=Fiscalización, 3=Motorizado)
-            $roleMap = [
-                1 => 'alertaMovil',
-                2 => 'fiscalizacion',
-                3 => 'motorizado'
-            ];
+            // Obtener nombres de roles dinámicamente
+            $roles = \App\Models\Rol::all()->pluck('nombre', 'id')->toArray();
+            
+            // Mapear roles dinámicamente
+            $roleMap = [];
+            foreach ($roles as $roleId => $roleName) {
+                $roleMap[$roleId] = strtolower(str_replace(' ', '', $roleName));
+            }
 
             // Llenar estadísticas
             foreach ($roleMap as $roleId => $roleName) {
@@ -475,6 +477,7 @@ class TurnController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $stats,
+                'roles' => $roles, // Agregar nombres de roles
                 'date' => $today->format('Y-m-d'),
                 'message' => $stats['totals']['total'] === 0 ? 'No hay empleados registrados' : null,
                 'definitions' => [

@@ -183,7 +183,7 @@ export default function Dashboard() {
                                             </Badge>
                                         </div>
                                         <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Alerta Móvil
+                                            Patrullaje y Proximidad
                                         </CardTitle>
                                         <CardDescription className="dark:text-slate-300">
                                             Patrulleros de respuesta rápida y emergencias
