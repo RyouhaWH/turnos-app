@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
-import { AlertCircle, ArrowRight, Calendar, CheckCircle2, Clock, UserIcon } from 'lucide-react';
+import { AlertCircle, ArrowRight, Calendar, CheckCircle2, Clock, UserIcon, Undo2 } from 'lucide-react';
 import React, { useState } from 'react';
 
 export type TurnoTipo = 'M' | 'T' | 'N';
@@ -23,9 +23,19 @@ interface Props {
     isCollapsed?: boolean;
     selectedDate?: Date; // Agregar fecha seleccionada para construir fechas correctamente
     disabled?: boolean; // Nueva propiedad para deshabilitar el componente
+    onUndoLastChange?: () => void; // Nueva prop para deshacer último cambio
+    onUndoSpecificChange?: (changeId: string) => void; // Nueva prop para deshacer cambio específico
+    changeHistory?: Array<{
+        id: string;
+        employee: string;
+        day: string;
+        oldValue: string;
+        newValue: string;
+        timestamp: number;
+    }>; // Historial de cambios
 }
 
-const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date(), disabled = false }) => {
+const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date(), disabled = false, onUndoLastChange, onUndoSpecificChange, changeHistory = [] }) => {
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
@@ -203,16 +213,32 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        {/* Estadísticas */}
-                        <div className="mb-4 grid grid-cols-2 gap-3">
-                            <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
-                                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCambios}</p>
-                                <p className="text-xs text-blue-600/70 dark:text-blue-400/70">Empleados</p>
+                        {/* Header con estadísticas y botón de deshacer */}
+                        <div className="flex items-center justify-between">
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
+                                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCambios}</p>
+                                    <p className="text-xs text-blue-600/70 dark:text-blue-400/70">Empleados</p>
+                                </div>
+                                <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20">
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totalModificaciones}</p>
+                                    <p className="text-xs text-green-600/70 dark:text-green-400/70">Turnos</p>
+                                </div>
                             </div>
-                            <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20">
-                                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{totalModificaciones}</p>
-                                <p className="text-xs text-green-600/70 dark:text-green-400/70">Turnos</p>
-                            </div>
+                            
+                            {/* Botón de deshacer último cambio */}
+                            {onUndoLastChange && changeHistory.length > 0 && (
+                                <Button
+                                    onClick={onUndoLastChange}
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex items-center gap-2 text-xs"
+                                    disabled={isProcesing}
+                                >
+                                    <Undo2 className="h-3 w-3" />
+                                    Deshacer último
+                                </Button>
+                            )}
                         </div>
 
                         {/* Changes List */}

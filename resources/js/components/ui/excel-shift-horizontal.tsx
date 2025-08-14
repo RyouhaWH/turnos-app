@@ -20,14 +20,14 @@ interface TurnoData {
 }
 
 interface Props {
-    rowData: TurnoData[]
-    onResumenChange: (cambios: Record<string, Record<string, string>>) => void
-    onRowClicked?: (event: RowClickedEvent<TurnoData>) => void
-    month?: number
-    // 0-11 (JavaScript month format)
-    year?: number
-    editable?: boolean // Nueva propiedad para controlar si las celdas son editables
+    rowData: TurnoData[];
+    onResumenChange: (cambios: Record<string, Record<string, string>>) => void;
+    onRowClicked?: (event: any) => void;
+    editable?: boolean;
     resetGrid?: boolean; // Cambiar a resetGrid para reiniciar el grid
+    onRegisterChange?: (employee: string, day: string, oldValue: string, newValue: string) => void; // Nueva prop para registrar cambios
+    month?: number; // 0-11 (JavaScript month format)
+    year?: number;
 }
 
 export interface AgGridHorizontalRef {
@@ -130,8 +130,7 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
-const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
-    function AgGridHorizontal({ rowData, onResumenChange, onRowClicked, month, year, editable = true, resetGrid = false }, ref) {
+const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, month, year }, ref) => {
 
         // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -255,6 +254,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
             if (dayField === 'nombre' || dayField === 'id') return;
 
             const turno = e.value || '';
+            const valorAnterior = e.oldValue || '';
 
             console.log('🔄 Cambio detectado:', {
                 funcionario,
@@ -262,6 +262,11 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                 turno,
                 valorAnterior: e.oldValue
             });
+
+            // Registrar el cambio en el historial si hay una función para ello
+            if (onRegisterChange && valorAnterior !== turno) {
+                onRegisterChange(funcionario, dayField, valorAnterior, turno);
+            }
 
             setCambios(prev => {
                 const newCambios = { ...prev }
@@ -312,7 +317,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(
                 const resumen = contarTurnos(allData)
                 console.log('📊 Resumen de turnos:', resumen)
             }
-        }, [onResumenChange])
+        }, [onResumenChange, onRegisterChange])
 
         // Handle grid ready event
         const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {

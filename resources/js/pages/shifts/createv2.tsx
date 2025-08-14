@@ -8,7 +8,7 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { ChevronRight, FileSpreadsheet, FileText, History } from 'lucide-react';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
 
@@ -29,6 +29,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const { data, setData, post, processing, errors } = useForm({
         cambios: {},
         comentario: '',
+        mes: new Date().getMonth() + 1,
+        año: new Date().getFullYear(),
     });
 
     const { props } = usePage<{ turnos: TurnoData[]; auth: { user: any } }>();
@@ -50,6 +52,14 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isChangesExpanded, setIsChangesExpanded] = useState(true); // Panel de cambios expandido por defecto
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
     const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
+    const [changeHistory, setChangeHistory] = useState<Array<{
+        id: string;
+        employee: string;
+        day: string;
+        oldValue: string;
+        newValue: string;
+        timestamp: number;
+    }>>([]); // Historial de cambios para poder deshacer
     const gridRef = useRef<any>(null);
 
     const cargarHistorial = async (employeeId: number | string) => {
@@ -69,7 +79,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
             const data = await response.json();
 
-            const turnosArray = Object.values(data);
+            const turnosArray = Object.values(data) as TurnoData[];
 
             console.log(turnosArray);
             setRowData(turnosArray);
@@ -109,6 +119,116 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }));
     }, []);
 
+    // Función para deshacer el último cambio
+    const undoLastChange = () => {
+        if (changeHistory.length === 0) return;
+
+        const lastChange = changeHistory[changeHistory.length - 1];
+        
+        // Crear una copia del resumen actual
+        const newResumen = { ...resumen };
+        
+        // Restaurar el valor anterior
+        if (lastChange.oldValue === '') {
+            // Si el valor anterior estaba vacío, eliminar la entrada
+            delete newResumen[lastChange.employee][lastChange.day];
+            // Si no quedan cambios para este empleado, eliminar el empleado
+            if (Object.keys(newResumen[lastChange.employee]).length === 0) {
+                delete newResumen[lastChange.employee];
+            }
+        } else {
+            // Restaurar el valor anterior
+            if (!newResumen[lastChange.employee]) {
+                newResumen[lastChange.employee] = {};
+            }
+            newResumen[lastChange.employee][lastChange.day] = lastChange.oldValue;
+        }
+
+        // Actualizar el resumen
+        setResumen(newResumen);
+        setData((prev) => ({
+            ...prev,
+            cambios: newResumen,
+        }));
+
+        // Remover el cambio del historial
+        setChangeHistory(prev => prev.slice(0, -1));
+
+        toast.success('Cambio deshecho', {
+            description: `Se restauró el valor anterior para ${lastChange.employee}`,
+            duration: 2000,
+        });
+    };
+
+    // Función para deshacer un cambio específico
+    const undoSpecificChange = (changeId: string) => {
+        const changeIndex = changeHistory.findIndex(change => change.id === changeId);
+        if (changeIndex === -1) return;
+
+        const change = changeHistory[changeIndex];
+        
+        // Crear una copia del resumen actual
+        const newResumen = { ...resumen };
+        
+        // Restaurar el valor anterior
+        if (change.oldValue === '') {
+            // Si el valor anterior estaba vacío, eliminar la entrada
+            delete newResumen[change.employee][change.day];
+            // Si no quedan cambios para este empleado, eliminar el empleado
+            if (Object.keys(newResumen[change.employee]).length === 0) {
+                delete newResumen[change.employee];
+            }
+        } else {
+            // Restaurar el valor anterior
+            if (!newResumen[change.employee]) {
+                newResumen[change.employee] = {};
+            }
+            newResumen[change.employee][change.day] = change.oldValue;
+        }
+
+        // Actualizar el resumen
+        setResumen(newResumen);
+        setData((prev) => ({
+            ...prev,
+            cambios: newResumen,
+        }));
+
+        // Remover el cambio del historial
+        setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
+
+        toast.success('Cambio deshecho', {
+            description: `Se restauró el valor anterior para ${change.employee}`,
+            duration: 2000,
+        });
+    };
+
+    // Función para registrar un cambio en el historial
+    const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
+        const change = {
+            id: `${employee}_${day}_${Date.now()}`,
+            employee,
+            day,
+            oldValue,
+            newValue,
+            timestamp: Date.now(),
+        };
+        
+        setChangeHistory(prev => [...prev, change]);
+    };
+
+    // Efecto para manejar Ctrl+Z
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
+                event.preventDefault();
+                undoLastChange();
+            }
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [changeHistory, resumen]);
+
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
 
@@ -116,17 +236,20 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const mes = selectedDate.getMonth() + 1; // getMonth() devuelve 0-11, necesitamos 1-12
         const año = selectedDate.getFullYear();
 
+        // Actualizar los datos del formulario antes de enviar
+        setData({
+            cambios: resumen,
+            comentario: comentarioNuevo,
+            mes: mes,
+            año: año,
+        });
+
         post(route('post-updateShifts'), {
-            data: {
-                cambios: resumen,
-                comentario: comentarioNuevo,
-                mes: mes,
-                año: año,
-            },
             onSuccess: () => {
                 setResumen({});
                 setComentario('');
                 setResetGrid(true); // Activar reinicio del grid
+                setChangeHistory([]); // Limpiar historial de cambios
                 toast.success('Cambios guardados exitosamente', {
                     description: 'Los turnos fueron actualizados correctamente.',
                     duration: 3000,
@@ -271,6 +394,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             }}
                                             editable={hasEditPermissions}
                                             resetGrid={resetGrid}
+                                            onRegisterChange={registerChange}
                                         />
                                     </div>
                                 </CardContent>
@@ -319,6 +443,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             isCollapsed={false}
                                             selectedDate={selectedDate}
                                             disabled={!hasEditPermissions}
+                                            onUndoLastChange={undoLastChange}
+                                            onUndoSpecificChange={undoSpecificChange}
+                                            changeHistory={changeHistory}
                                         />
                                     </div>
                                 )}
@@ -357,43 +484,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     </div>
                                 )}
                             </Card>
-
-                            {/* Quick Actions Panel - Always Visible */}
-                            {/* <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-slate-800 dark:to-slate-700 border-blue-200 dark:border-slate-600 shadow-lg">
-                                <CardContent className="p-4">
-                                    <div className="flex items-center gap-3 mb-3">
-                                        <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                                            <Settings className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                        </div>
-                                        <h3 className="font-semibold text-slate-900 dark:text-white">Acciones Rápidas</h3>
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs bg-white/50 hover:bg-white/80 border-blue-200"
-                                            disabled
-                                        >
-                                            <Download className="h-3 w-3 mr-1" />
-                                            Exportar
-                                        </Button>
-                                        <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs bg-white/50 hover:bg-white/80 border-blue-200"
-                                            disabled
-                                        >
-                                            <RefreshCw className="h-3 w-3 mr-1" />
-                                            Sincronizar
-                                        </Button>
-                                    </div>
-
-                                    <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
-                                        <p>💡 <strong>Tip:</strong> Haz clic en una fila para ver el historial del empleado</p>
-                                    </div>
-                                </CardContent>
-                            </Card> */}
                         </div>
                     </div>
                 </div>
