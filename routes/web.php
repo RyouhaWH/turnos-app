@@ -134,9 +134,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             foreach ($fechas as $dia => $turno) {
 
                 // Buscar empleado por ID (convertir a integer si es necesario)
-                $empleado = Employees::where('name', $employeeId)->first();
-
-                dd($empleado);
+                $employeeIdInt = (int) $employeeId;
+                $empleado = Employees::find($employeeIdInt);
 
                 if (!$empleado) {
                     continue; // Saltar este empleado si no se encuentra
