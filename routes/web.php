@@ -137,13 +137,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // Necesitamos buscar el empleado por nombre normalizado
                 $nombreNormalizado = $employeeId;
 
-                // Buscar empleado por nombre normalizado (versión simplificada para SQLite)
+                // Buscar empleado con múltiples estrategias
+                $empleado = null;
+                
+                // 1. Búsqueda exacta simple
                 $nombreBusqueda = strtolower(str_replace('_', ' ', $nombreNormalizado));
                 $empleado = Employees::whereRaw('LOWER(name) = ?', [$nombreBusqueda])->first();
-
-                // Si no se encuentra, intentar búsqueda más flexible
+                
+                // 2. Si no se encuentra, búsqueda por similitud
                 if (!$empleado) {
                     $empleado = Employees::where('name', 'LIKE', '%' . str_replace('_', '%', $nombreNormalizado) . '%')->first();
+                }
+                
+                // 3. Si aún no se encuentra, búsqueda por palabras individuales
+                if (!$empleado) {
+                    $palabras = explode('_', $nombreNormalizado);
+                    $empleado = Employees::where(function($query) use ($palabras) {
+                        foreach ($palabras as $palabra) {
+                            $query->where('name', 'LIKE', '%' . $palabra . '%');
+                        }
+                    })->first();
+                }
+                
+                // 4. Si aún no se encuentra, búsqueda más flexible (cualquier palabra)
+                if (!$empleado) {
+                    $palabras = explode('_', $nombreNormalizado);
+                    $empleado = Employees::where(function($query) use ($palabras) {
+                        foreach ($palabras as $palabra) {
+                            $query->orWhere('name', 'LIKE', '%' . $palabra . '%');
+                        }
+                    })->first();
                 }
 
                 if (!$empleado) {
