@@ -178,11 +178,11 @@ export default function Dashboard() {
                                         { from: 'from-amber-500', to: 'to-amber-600', darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700' },
                                         { from: 'from-emerald-500', to: 'to-emerald-600', darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700' }
                                     ];
-                                    
+
                                     const colors = colorMap[index] || colorMap[0];
                                     const roleKey = roleName.toLowerCase().replace(/\s+/g, '');
                                     const roleStats = stats[roleKey] || { total: 0, activos: 0, trabajandoHoy: 0 };
-                                    
+
                                     return (
                                         <Card key={roleId} className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
                                             <CardHeader className="pb-4">

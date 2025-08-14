@@ -72,7 +72,7 @@ interface RoleColumnProps {
 
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
 
-    console.log(roleId, roleName, employees);
+    console.log(roleName);
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
@@ -103,7 +103,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
             <CardHeader>
                 <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
                     <UserCheck className="h-5 w-5" />
-                    {roleName}
+                    {roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName}
                     <Badge variant="secondary" className="ml-auto">
                         {trabajando.length}
                     </Badge>
