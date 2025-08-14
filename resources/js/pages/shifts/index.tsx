@@ -33,7 +33,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Dashboard() {
-    const { stats, loading, error, message, refetch } = useDashboardStats();
+    const { stats, roles, loading, error, message, refetch } = useDashboardStats();
 
     if (error) {
         return (
@@ -171,152 +171,68 @@ export default function Dashboard() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Alerta Móvil */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700/40 dark:to-red-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <Car className="h-6 w-6 text-white dark:text-red-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/50">
-                                                {loading ? '...' : `${stats.alertaMovil.activos}/${stats.alertaMovil.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Patrullaje y Proximidad
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Patrulleros de respuesta rápida y emergencias
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-red-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-red-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.total}
-                                                </p>
-                                                <p className="text-xs text-red-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700/60 dark:to-red-600/60 hover:from-red-700 hover:to-red-800 dark:hover:from-red-600/70 dark:hover:to-red-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 1 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Fiscalización */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 dark:from-amber-700/40 dark:to-amber-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <FileSpreadsheet className="h-6 w-6 text-white dark:text-amber-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/50">
-                                                {loading ? '...' : `${stats.fiscalizacion.activos}/${stats.fiscalizacion.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Fiscalización
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Personal de control y supervisión normativa
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-amber-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-amber-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.total}
-                                                </p>
-                                                <p className="text-xs text-amber-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-700/60 dark:to-amber-600/60 hover:from-amber-700 hover:to-amber-800 dark:hover:from-amber-600/70 dark:hover:to-amber-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 2 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Personal Motorizado */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-700/40 dark:to-emerald-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <Bike className="h-6 w-6 text-white dark:text-emerald-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50">
-                                                {loading ? '...' : `${stats.motorizado.activos}/${stats.motorizado.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Personal Motorizado
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Unidades móviles de patrullaje urbano
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-emerald-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-emerald-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.total}
-                                                </p>
-                                                <p className="text-xs text-emerald-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-700/60 dark:to-emerald-600/60 hover:from-emerald-700 hover:to-emerald-800 dark:hover:from-emerald-600/70 dark:hover:to-emerald-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 3 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                {Object.entries(roles).map(([roleId, roleName], index) => {
+                                    // Mapeo de colores por índice
+                                    const colorMap = [
+                                        { from: 'from-red-500', to: 'to-red-600', darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200', buttonFrom: 'from-red-600', buttonTo: 'to-red-700' },
+                                        { from: 'from-amber-500', to: 'to-amber-600', darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200', buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700' },
+                                        { from: 'from-emerald-500', to: 'to-emerald-600', darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700' }
+                                    ];
+                                    
+                                    const colors = colorMap[index] || colorMap[0];
+                                    const roleKey = roleName.toLowerCase().replace(/\s+/g, '');
+                                    const roleStats = stats[roleKey] || { total: 0, activos: 0, trabajandoHoy: 0 };
+                                    
+                                    return (
+                                        <Card key={roleId} className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
+                                            <CardHeader className="pb-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className={`p-3 bg-gradient-to-br ${colors.from} ${colors.to} ${colors.darkFrom} ${colors.darkTo} rounded-xl shadow-lg group-hover:shadow-xl transition-shadow`}>
+                                                        <Car className="h-6 w-6 text-white" />
+                                                    </div>
+                                                    <Badge variant="secondary" className={`${colors.bg} ${colors.text} ${colors.border}`}>
+                                                        {loading ? '...' : `${roleStats.activos}/${roleStats.total}`}
+                                                    </Badge>
+                                                </div>
+                                                <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
+                                                    {roleName}
+                                                </CardTitle>
+                                                <CardDescription className="dark:text-slate-300">
+                                                    Personal operativo especializado
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4">
+                                                <div className="grid grid-cols-3 gap-3 text-center">
+                                                    <div className="p-3 bg-red-50 dark:bg-slate-700/30 rounded-lg">
+                                                        <p className="text-xl font-bold text-red-600 dark:text-slate-200">
+                                                            {loading ? '...' : roleStats.total}
+                                                        </p>
+                                                        <p className="text-xs text-red-600/70 dark:text-slate-400">Total</p>
+                                                    </div>
+                                                    <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
+                                                        <p className="text-xl font-bold text-green-600 dark:text-slate-200">
+                                                            {loading ? '...' : roleStats.activos}
+                                                        </p>
+                                                        <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
+                                                    </div>
+                                                    <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
+                                                        <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
+                                                            {loading ? '...' : roleStats.trabajandoHoy}
+                                                        </p>
+                                                        <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
+                                                    </div>
+                                                </div>
+                                                <Button asChild className={`w-full bg-gradient-to-r ${colors.buttonFrom} ${colors.buttonTo} hover:from-${colors.buttonFrom.split('-')[1]}-700 hover:to-${colors.buttonTo.split('-')[1]}-800 group-hover:shadow-lg transition-all`}>
+                                                    <Link href={route('create-shifts', { id: parseInt(roleId) })} as="button">
+                                                        <Clock className="mr-2 h-4 w-4" />
+                                                        Gestionar Turnos
+                                                        <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         </section>
 
