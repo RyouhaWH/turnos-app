@@ -20,6 +20,7 @@ export interface NavItem {
     href: string;
     icon?: LucideIcon | null;
     isActive?: boolean;
+    adminOnly?: boolean; // Solo visible para administradores
 }
 
 export interface SharedData {

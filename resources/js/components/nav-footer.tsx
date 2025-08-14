@@ -21,6 +21,10 @@ export function NavFooter({
 
     // Filtrar elementos según permisos
     const filteredItems = items.filter((item) => {
+        // Si el elemento es solo para administradores, verificar permisos
+        if (item.adminOnly) {
+            return hasAdminPermissions;
+        }
         // Si es "Subir turnos", solo mostrar a administradores
         if (item.title === 'Subir turnos') {
             return hasAdminPermissions;

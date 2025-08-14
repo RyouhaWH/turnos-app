@@ -98,7 +98,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
-
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
@@ -123,7 +122,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $mes        = $request->input('mes', now()->month);
         $año       = $request->input('año', now()->year);
         $actualUser = Auth::id();
-
 
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
@@ -261,83 +259,111 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 'changed_by'        => $actualUser,
                                 'old_shift'         => '',
                                 'new_shift'         => $nuevoTurno,
-                                'comment'           => 'Turno creado desde plataforma',
+                                'comment'           => "Turno creado desde plataforma",
                             ]);
                         }
+
+                        $shiftComplete = match ($turno) {
+                            'PE'    => 'Patrulla Escolar',
+                            'A'     => 'Administrativo',
+                            'LM'    => 'Licencia Médica',
+                            'S'     => 'Día Sindical',
+                            'M'     => 'Mañana',
+                            'T'     => 'Tarde',
+                            'N'     => 'Noche',
+                            'F'     => 'Franco',
+                            'L'     => 'Libre',
+                            '1'     => 'Primer Turno',
+                            '2'     => 'Segundo Turno',
+                            '3'     => 'Tercer Turno',
+                            null    => 'Sin Turno',
+                            ''      => 'Sin Turno',
+                            ' '     => 'Sin Turno',
+                            default => 'Desconocido',
+                        };
+
+                        foreach ($numerosAReportarCambios as $numero) {
+
+                            $response = Http::post('http://localhost:3001/send-message', [
+                                'mensaje' => "Se ha actualizado el turno de *{$empleado->name}* del *$fecha* a *$shiftComplete*",
+
+                                'numero'  => "56" . $numero,
+                            ]);
+                        }
+
                     }
                 }
-
-                //aquí es donde se envía el mensaje, para poder obtener de cada personal al que se le edita los datos su número y enviar el turno editado
-                //aquí se toma el número que tiene el personal en la base de datos
-
-                // dd('569' . $empleado->phone);
-                //$numeroAEnviar = ["56951004035", "56985639782"];
-                // $numeroAEnviar = ["56951004035", "56985639782", "56961542579"];
-
-                // Crear array de números para notificaciones (incluye números base + empleado si tiene teléfono)
-                $numerosAReportarCambios = [
-                    // $numeroJulioSarmiento,
-                    // $numeroMarianelaHuequelef,
-                    // $numeroPriscilaEscobar,
-                    // $numeroJavierAlvarado,
-                    // $numeroEduardoEsparza,
-                    // $numeroCristianMontecinos,
-                    $numeroInformacionesAmzoma,
-                    $numeroJorgeWaltemath,
-                    // $numeroCentralDespacho,
-                ];
-
-                // Agregar el número del empleado solo si no es null
-                if ($empleado->phone !== null) {
-                    //$numerosAReportarCambios[] = $empleado->phone;
-                }
-
-                $shiftComplete = match ($turno) {
-                    'PE'    => 'Patrulla Escolar',
-                    'A'     => 'Administrativo',
-                    'LM'    => 'Licencia Médica',
-                    'S'     => 'Día Sindical',
-                    'M'     => 'Mañana',
-                    'T'     => 'Tarde',
-                    'N'     => 'Noche',
-                    'F'     => 'Franco',
-                    'L'     => 'Libre',
-                    '1'     => 'Primer Turno',
-                    '2'     => 'Segundo Turno',
-                    '3'     => 'Tercer Turno',
-                    null    => 'Sin Turno',
-                    ''      => 'Sin Turno',
-                    ' '     => 'Sin Turno',
-                    default => 'Desconocido',
-                };
-
-                foreach ($numerosAReportarCambios as $numero) {
-
-                    $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => "Se ha actualizado el turno de *{$empleado->name}* del *$fecha* a *$shiftComplete*",
-
-                        'numero'  => "56" . $numero,
-                    ]);
-                }
-
-
-
             }
+
+            // Enviar mensaje de separador
             foreach ($numerosAReportarCambios as $numero) {
                 $response = Http::post('http://localhost:3001/send-message', [
                     'mensaje' => "-------------",
-
                     'numero'  => "56" . $numero,
                 ]);
             }
-            //! cuando modifique funcionario, borre el numero del array
-            //array_pop($numerosAReportarCambios);
-
         }
 
         return back()->with('success', 'Cambios guardados correctamente.');
     })
         ->name('post-updateShifts');
+
+    // Ruta para datos de plataforma (solo administradores)
+    Route::middleware(['auth', 'admin'])->group(function () {
+
+        // Vista principal
+        Route::get('/platform-data', function () {
+            $roles = \App\Models\Rol::all();
+            return Inertia::render('settings/platform-data', [
+                'roles' => $roles
+            ]);
+        })->name('platform-data');
+
+        // Rutas para roles
+        Route::prefix('platform-data/roles')->group(function () {
+            // Crear nuevo rol
+            Route::post('/', function (Request $request) {
+                $request->validate([
+                    'nombre' => 'required|string|max:255|unique:rols,nombre'
+                ]);
+
+                \App\Models\Rol::create([
+                    'nombre' => $request->nombre
+                ]);
+
+                return redirect()->back()->with('success', 'Rol creado correctamente');
+            });
+
+                                    // Actualizar rol
+            Route::put('/{id}', function (Request $request, $id) {
+                $role = \App\Models\Rol::findOrFail($id);
+
+                $request->validate([
+                    'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id
+                ]);
+
+                $role->update([
+                    'nombre' => $request->nombre
+                ]);
+
+                return redirect()->back()->with('success', 'Rol actualizado correctamente');
+            });
+
+            // Eliminar rol
+            Route::delete('/{id}', function ($id) {
+                $role = \App\Models\Rol::findOrFail($id);
+
+                // Verificar si hay empleados usando este rol
+                $employeesCount = $role->employees()->count();
+                if ($employeesCount > 0) {
+                    return redirect()->back()->with('error', 'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.');
+                }
+
+                $role->delete();
+                return redirect()->back()->with('success', 'Rol eliminado correctamente');
+            });
+        });
+    });
 
     /**
      * Extrae RUT de un nombre que puede contener RUT

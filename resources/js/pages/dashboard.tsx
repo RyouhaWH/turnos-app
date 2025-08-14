@@ -14,12 +14,7 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-// Mapeo de roles
-const ROLE_NAMES: Record<number, string> = {
-    1: 'Alerta Móvil',
-    2: 'Fiscalización',
-    3: 'Motorizado',
-};
+// Mapeo de roles - ahora se obtiene dinámicamente desde la API
 
 // Mapeo de roles a colores
 const ROLE_COLORS: Record<number, string> = {
@@ -76,6 +71,8 @@ interface RoleColumnProps {
 }
 
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
+
+    console.log(roleName);
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
@@ -106,7 +103,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
             <CardHeader>
                 <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
                     <UserCheck className="h-5 w-5" />
-                    {roleName}
+                    {roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName}
                     <Badge variant="secondary" className="ml-auto">
                         {trabajando.length}
                     </Badge>
@@ -208,9 +205,10 @@ interface BottomSectionProps {
     bgColor: string;
     borderColor: string;
     textColor: string;
+    roles: Record<number, string>;
 }
 
-function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderColor, textColor }: BottomSectionProps) {
+function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderColor, textColor, roles }: BottomSectionProps) {
     const [showAll, setShowAll] = useState(false);
     const displayEmployees = showAll ? employees : employees.slice(0, 6);
 
@@ -238,7 +236,7 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
                                         variant="outline"
                                         className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 text-gray-800 dark:bg-slate-700/30 dark:text-slate-300'}`}
                                     >
-                                        {ROLE_NAMES[employee.rol_id] || `Rol ${employee.rol_id}`}
+                                        {roles[employee.rol_id] || `Rol ${employee.rol_id}`}
                                     </Badge>
                                 </div>
                                 {employee.shift_label && (
@@ -265,7 +263,7 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
 }
 
 export default function Dashboard() {
-    const { employeeStatus, counts, totalActivos, totalEmpleados, loading, error, refetch } = useEmployeeStatus();
+    const { employeeStatus, counts, totalActivos, totalEmpleados, roles, loading, error, refetch } = useEmployeeStatus();
 
     const today = new Date().toLocaleDateString('es-ES', {
         weekday: 'long',
@@ -298,11 +296,16 @@ export default function Dashboard() {
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                             {/* Title Section */}
                             <div className="flex w-full items-start justify-between gap-4">
-                                <div>
-                                    <h1 className="text-2xl font-bold">Dashboard - Estado de Personal</h1>
-                                    <div className="mt-2 flex items-center gap-2 text-sm text-slate-500">
+                                <div className="flex-1 text-center">
+                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios para el Día de Hoy</h1>
+                                    <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
-                                        <span>Sistema activo - {new Date().toLocaleDateString('es-CL')}</span>
+                                        <span>{new Date().toLocaleDateString('es-CL', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}</span>
                                         {loading && (
                                             <div className="ml-2 flex items-center gap-1">
                                                 <RefreshCw className="h-3 w-3 animate-spin" />
@@ -402,26 +405,22 @@ export default function Dashboard() {
 
                     {/* Columnas principales por roles - Solo trabajando */}
                     <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-                        <RoleColumn
-                            roleId={1}
-                            roleName="Alerta Móvil"
-                            employees={employeeStatus.trabajando}
-                            roleColor="text-red-700 dark:text-red-300"
-                        />
-
-                        <RoleColumn
-                            roleId={2}
-                            roleName="Fiscalización"
-                            employees={employeeStatus.trabajando}
-                            roleColor="text-amber-700 dark:text-amber-300"
-                        />
-
-                        <RoleColumn
-                            roleId={3}
-                            roleName="Motorizado"
-                            employees={employeeStatus.trabajando}
-                            roleColor="text-emerald-700 dark:text-emerald-300"
-                        />
+                        {Object.entries(roles)
+                            .filter(([roleId, roleName]) => {
+                                const lowerRoleName = roleName.toLowerCase();
+                                return !lowerRoleName.includes('administrativo') &&
+                                       !lowerRoleName.includes('servicio') &&
+                                       !lowerRoleName.includes('personal de servicio');
+                            })
+                            .map(([roleId, roleName]) => (
+                                <RoleColumn
+                                    key={roleId}
+                                    roleId={parseInt(roleId)}
+                                    roleName={roleName}
+                                    employees={employeeStatus.trabajando}
+                                    roleColor="text-red-700 dark:text-red-300"
+                                />
+                            ))}
                     </div>
 
                     {/* Sección inferior: Ausentes y Sin Turno */}
@@ -439,6 +438,7 @@ export default function Dashboard() {
                                 bgColor="bg-red-50 dark:bg-slate-800/25"
                                 borderColor="border-red-200 dark:border-slate-600/40"
                                 textColor="text-red-700 dark:text-slate-300"
+                                roles={roles}
                             />
 
                             <BottomSection
@@ -449,6 +449,7 @@ export default function Dashboard() {
                                 bgColor="bg-gray-50 dark:bg-slate-800/25"
                                 borderColor="border-gray-200 dark:border-slate-600/40"
                                 textColor="text-gray-700 dark:text-slate-300"
+                                roles={roles}
                             />
                         </div>
                     </div>

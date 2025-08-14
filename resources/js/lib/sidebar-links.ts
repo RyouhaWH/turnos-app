@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2} from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings} from 'lucide-react';
 
 
 const mainNavItems: NavItem[] = [
@@ -25,6 +25,12 @@ const footerNavItems: NavItem[] = [
         title: 'Subir turnos',
         href: '/upload-csv',
         icon: Folder,
+    },
+    {
+        title: 'Datos de Plataforma',
+        href: '/platform-data',
+        icon: Settings,
+        adminOnly: true, // Solo visible para administradores
     },
 
     // {

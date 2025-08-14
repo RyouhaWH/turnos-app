@@ -7,15 +7,14 @@ interface DepartmentStats {
 }
 
 interface DashboardStats {
-  alertaMovil: DepartmentStats;
-  fiscalizacion: DepartmentStats;
-  motorizado: DepartmentStats;
+  [key: string]: DepartmentStats;
   totals: DepartmentStats;
 }
 
 interface DashboardStatsResponse {
   success: boolean;
   data: DashboardStats;
+  roles?: Record<number, string>;
   date: string;
   message?: string;
   error_details?: string;
@@ -23,11 +22,9 @@ interface DashboardStatsResponse {
 
 export const useDashboardStats = () => {
   const [stats, setStats] = useState<DashboardStats>({
-    alertaMovil: { total: 0, activos: 0, trabajandoHoy: 0 },
-    fiscalizacion: { total: 0, activos: 0, trabajandoHoy: 0 },
-    motorizado: { total: 0, activos: 0, trabajandoHoy: 0 },
     totals: { total: 0, activos: 0, trabajandoHoy: 0 }
   });
+  const [roles, setRoles] = useState<Record<number, string>>({});
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -49,6 +46,9 @@ export const useDashboardStats = () => {
 
       if (data.success) {
         setStats(data.data);
+        if (data.roles) {
+          setRoles(data.roles);
+        }
         setMessage(data.message || null);
 
         // Si todos los totales son 0, mostrar mensaje informativo
@@ -72,9 +72,6 @@ export const useDashboardStats = () => {
 
       // Mantener stats en 0 si hay error
       setStats({
-        alertaMovil: { total: 0, activos: 0, trabajandoHoy: 0 },
-        fiscalizacion: { total: 0, activos: 0, trabajandoHoy: 0 },
-        motorizado: { total: 0, activos: 0, trabajandoHoy: 0 },
         totals: { total: 0, activos: 0, trabajandoHoy: 0 }
       });
     } finally {
@@ -93,6 +90,7 @@ export const useDashboardStats = () => {
 
   return {
     stats,
+    roles,
     loading,
     error,
     message,

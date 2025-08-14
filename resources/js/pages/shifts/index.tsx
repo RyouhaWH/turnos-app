@@ -22,7 +22,13 @@ import {
     UserCheck,
     RefreshCw,
     AlertCircle,
-    TrendingUp
+    TrendingUp,
+    Search,
+    Radio,
+    Zap,
+    Plane,
+    UserCheck2,
+    CircleDot
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -33,7 +39,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 export default function Dashboard() {
-    const { stats, loading, error, message, refetch } = useDashboardStats();
+    const { stats, roles, loading, error, message, refetch } = useDashboardStats();
 
     if (error) {
         return (
@@ -171,152 +177,154 @@ export default function Dashboard() {
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {/* Alerta Móvil */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-red-500 to-red-600 dark:from-red-700/40 dark:to-red-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <Car className="h-6 w-6 text-white dark:text-red-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 dark:border-red-700/50">
-                                                {loading ? '...' : `${stats.alertaMovil.activos}/${stats.alertaMovil.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Alerta Móvil
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Patrulleros de respuesta rápida y emergencias
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-red-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-red-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.total}
-                                                </p>
-                                                <p className="text-xs text-red-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.alertaMovil.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-red-600 to-red-700 dark:from-red-700/60 dark:to-red-600/60 hover:from-red-700 hover:to-red-800 dark:hover:from-red-600/70 dark:hover:to-red-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 1 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                {Object.entries(roles)
+                                    .filter(([roleId, roleName]) => {
+                                        const lowerRoleName = roleName.toLowerCase();
+                                        return !lowerRoleName.includes('administrativo') &&
+                                               !lowerRoleName.includes('servicio') &&
+                                               !lowerRoleName.includes('personal de servicio');
+                                    })
+                                    .map(([roleId, roleName], index) => {
+                                    // Mapeo de colores específicos por rol
+                                    const getRoleColors = (roleName: string) => {
+                                        const lowerRoleName = roleName.toLowerCase();
 
-                                {/* Fiscalización */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-amber-500 to-amber-600 dark:from-amber-700/40 dark:to-amber-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <FileSpreadsheet className="h-6 w-6 text-white dark:text-amber-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-700/50">
-                                                {loading ? '...' : `${stats.fiscalizacion.activos}/${stats.fiscalizacion.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Fiscalización
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Personal de control y supervisión normativa
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-amber-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-amber-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.total}
-                                                </p>
-                                                <p className="text-xs text-amber-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.fiscalizacion.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-amber-600 to-amber-700 dark:from-amber-700/60 dark:to-amber-600/60 hover:from-amber-700 hover:to-amber-800 dark:hover:from-amber-600/70 dark:hover:to-amber-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 2 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                        if (lowerRoleName.includes('patrullaje') || lowerRoleName.includes('proximidad') || lowerRoleName.includes('alerta móvil')) {
+                                            return {
+                                                from: 'from-red-500', to: 'to-red-600',
+                                                darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40',
+                                                bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200',
+                                                buttonFrom: 'from-red-600', buttonTo: 'to-red-700',
+                                                statsBg: 'bg-red-50', statsText: 'text-red-600',
+                                                icon: 'Car'
+                                            };
+                                        } else if (lowerRoleName.includes('fiscalización') || lowerRoleName.includes('fiscalizacion')) {
+                                            return {
+                                                from: 'from-amber-500', to: 'to-amber-600',
+                                                darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40',
+                                                bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200',
+                                                buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700',
+                                                statsBg: 'bg-amber-50', statsText: 'text-amber-600',
+                                                icon: 'UserCheck2'
+                                            };
+                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('ciclopatrullaje')) {
+                                            return {
+                                                from: 'from-emerald-500', to: 'to-emerald-600',
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
+                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
+                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                icon: 'Bike'
+                                            };
+                                        } else if (lowerRoleName.includes('motorizado')) {
+                                            return {
+                                                from: 'from-emerald-500', to: 'to-emerald-600',
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
+                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
+                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                icon: 'Car'
+                                            };
+                                        } else if (lowerRoleName.includes('dron') || lowerRoleName.includes('drone')) {
+                                            return {
+                                                from: 'from-sky-500', to: 'to-sky-600',
+                                                darkFrom: 'dark:from-sky-700/40', darkTo: 'dark:to-sky-600/40',
+                                                bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200',
+                                                buttonFrom: 'from-sky-600', buttonTo: 'to-sky-700',
+                                                statsBg: 'bg-sky-50', statsText: 'text-sky-600',
+                                                icon: 'Plane'
+                                            };
+                                        } else if (lowerRoleName.includes('investigación') || lowerRoleName.includes('investigacion')) {
+                                            return {
+                                                from: 'from-purple-500', to: 'to-purple-600',
+                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40',
+                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200',
+                                                buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
+                                                statsBg: 'bg-purple-50', statsText: 'text-purple-600',
+                                                icon: 'Search'
+                                            };
+                                        } else if (lowerRoleName.includes('comunicaciones') || lowerRoleName.includes('radio')) {
+                                            return {
+                                                from: 'from-blue-500', to: 'to-blue-600',
+                                                darkFrom: 'dark:from-blue-700/40', darkTo: 'dark:to-blue-600/40',
+                                                bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200',
+                                                buttonFrom: 'from-blue-600', buttonTo: 'to-blue-700',
+                                                statsBg: 'bg-blue-50', statsText: 'text-blue-600',
+                                                icon: 'Radio'
+                                            };
+                                        } else {
+                                            // Color por defecto para roles no especificados
+                                            const defaultColors = [
+                                                { from: 'from-indigo-500', to: 'to-indigo-600', darkFrom: 'dark:from-indigo-700/40', darkTo: 'dark:to-indigo-600/40', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', buttonFrom: 'from-indigo-600', buttonTo: 'to-indigo-700', statsBg: 'bg-indigo-50', statsText: 'text-indigo-600', icon: 'Users' },
+                                                { from: 'from-cyan-500', to: 'to-cyan-600', darkFrom: 'dark:from-cyan-700/40', darkTo: 'dark:to-cyan-600/40', bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', buttonFrom: 'from-cyan-600', buttonTo: 'to-cyan-700', statsBg: 'bg-cyan-50', statsText: 'text-cyan-600', icon: 'Shield' },
+                                                { from: 'from-orange-500', to: 'to-orange-600', darkFrom: 'dark:from-orange-700/40', darkTo: 'dark:to-orange-600/40', bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', buttonFrom: 'from-orange-600', buttonTo: 'to-orange-700', statsBg: 'bg-orange-50', statsText: 'text-orange-600', icon: 'Zap' }
+                                            ];
+                                            return defaultColors[index % defaultColors.length];
+                                        }
+                                    };
 
-                                {/* Personal Motorizado */}
-                                <Card className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
-                                    <CardHeader className="pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="p-3 bg-gradient-to-br from-emerald-500 to-emerald-600 dark:from-emerald-700/40 dark:to-emerald-600/40 rounded-xl shadow-lg group-hover:shadow-xl transition-shadow">
-                                                <Bike className="h-6 w-6 text-white dark:text-emerald-200" />
-                                            </div>
-                                            <Badge variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-700/50">
-                                                {loading ? '...' : `${stats.motorizado.activos}/${stats.motorizado.total}`}
-                                            </Badge>
-                                        </div>
-                                        <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                            Personal Motorizado
-                                        </CardTitle>
-                                        <CardDescription className="dark:text-slate-300">
-                                            Unidades móviles de patrullaje urbano
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="grid grid-cols-3 gap-3 text-center">
-                                            <div className="p-3 bg-emerald-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-emerald-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.total}
-                                                </p>
-                                                <p className="text-xs text-emerald-600/70 dark:text-slate-400">Total</p>
-                                            </div>
-                                            <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-green-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.activos}
-                                                </p>
-                                                <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                            </div>
-                                            <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
-                                                <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
-                                                    {loading ? '...' : stats.motorizado.trabajandoHoy}
-                                                </p>
-                                                <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
-                                            </div>
-                                        </div>
-                                        <Button asChild className="w-full bg-gradient-to-r from-emerald-600 to-emerald-700 dark:from-emerald-700/60 dark:to-emerald-600/60 hover:from-emerald-700 hover:to-emerald-800 dark:hover:from-emerald-600/70 dark:hover:to-emerald-500/70 group-hover:shadow-lg transition-all">
-                                            <Link href={route('create-shifts', { id: 3 })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                    const colors = getRoleColors(roleName);
+                                    const roleKey = roleName.toLowerCase().replace(/\s+/g, '');
+                                    const roleStats = stats[roleKey] || { total: 0, activos: 0, trabajandoHoy: 0 };
+
+                                    return (
+                                        <Card key={roleId} className="group hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 pb-6">
+                                            <CardHeader className="pb-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className={`p-3 bg-gradient-to-br ${colors.from} ${colors.to} ${colors.darkFrom} ${colors.darkTo} rounded-xl shadow-lg group-hover:shadow-xl transition-shadow`}>
+                                                        {colors.icon === 'Car' && <Car className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'UserCheck2' && <UserCheck2 className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Bike' && <Bike className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Plane' && <Plane className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Search' && <Search className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Radio' && <Radio className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Users' && <Users className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Shield' && <Shield className="h-6 w-6 text-white" />}
+                                                        {colors.icon === 'Zap' && <Zap className="h-6 w-6 text-white" />}
+                                                    </div>
+                                                    <Badge variant="secondary" className={`${colors.bg} ${colors.text} ${colors.border}`}>
+                                                        {loading ? '...' : `${roleStats.activos}/${roleStats.total}`}
+                                                    </Badge>
+                                                </div>
+                                                <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
+                                                    {roleName}
+                                                </CardTitle>
+                                                <CardDescription className="dark:text-slate-300">
+                                                    Personal operativo especializado
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent className="space-y-4">
+                                                <div className="grid grid-cols-3 gap-3 text-center">
+                                                    <div className={`p-3 ${colors.statsBg} dark:bg-slate-700/30 rounded-lg`}>
+                                                        <p className={`text-xl font-bold ${colors.statsText} dark:text-slate-200`}>
+                                                            {loading ? '...' : roleStats.total}
+                                                        </p>
+                                                        <p className={`text-xs ${colors.statsText}/70 dark:text-slate-400`}>Total</p>
+                                                    </div>
+                                                    <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
+                                                        <p className="text-xl font-bold text-green-600 dark:text-slate-200">
+                                                            {loading ? '...' : roleStats.activos}
+                                                        </p>
+                                                        <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
+                                                    </div>
+                                                    <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
+                                                        <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
+                                                            {loading ? '...' : roleStats.trabajandoHoy}
+                                                        </p>
+                                                        <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
+                                                    </div>
+                                                </div>
+                                                <Button asChild className={`w-full bg-gradient-to-r ${colors.buttonFrom} ${colors.buttonTo} hover:from-${colors.buttonFrom.split('-')[1]}-700 hover:to-${colors.buttonTo.split('-')[1]}-800 group-hover:shadow-lg transition-all`}>
+                                                    <Link href={route('create-shifts', { id: parseInt(roleId) })} as="button">
+                                                        <Clock className="mr-2 h-4 w-4" />
+                                                        Gestionar Turnos
+                                                        <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                                    </Link>
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                             </div>
                         </section>
 
