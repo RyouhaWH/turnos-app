@@ -179,32 +179,43 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         // Actualizar la base de datos
         try {
+            const requestData = {
+                cambios: {
+                    [claveEmpleado]: {
+                        [lastChange.day]: lastChange.oldValue
+                    }
+                },
+                comentario: `Deshacer cambio: ${lastChange.employee} - día ${lastChange.day}`
+            };
+
+            console.log('🔄 Enviando datos para deshacer:', requestData);
+
             const response = await fetch('/post-updateShifts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
-                body: JSON.stringify({
-                    cambios: {
-                        [claveEmpleado]: {
-                            [lastChange.day]: lastChange.oldValue
-                        }
-                    },
-                    comentario: `Deshacer cambio: ${lastChange.employee} - día ${lastChange.day}`
-                })
+                body: JSON.stringify(requestData)
             });
 
+            console.log('🔄 Respuesta del servidor:', response.status, response.statusText);
+
             if (!response.ok) {
-                throw new Error('Error al actualizar la base de datos');
+                const errorText = await response.text();
+                console.error('🔄 Error en la respuesta:', errorText);
+                throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
             }
+
+            const result = await response.json();
+            console.log('🔄 Resultado exitoso:', result);
 
             toast.success('Cambio deshecho y base de datos actualizada', {
                 description: `Se restauró el valor anterior para ${lastChange.employee}`,
                 duration: 2000,
             });
         } catch (error) {
-            console.error('Error al actualizar la base de datos:', error);
+            console.error('🔄 Error al actualizar la base de datos:', error);
             toast.error('Error al actualizar la base de datos', {
                 description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
                 duration: 4000,
@@ -280,32 +291,43 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         // Actualizar la base de datos
         try {
+            const requestData = {
+                cambios: {
+                    [claveEmpleado]: {
+                        [change.day]: change.oldValue
+                    }
+                },
+                comentario: `Deshacer cambio específico: ${change.employee} - día ${change.day}`
+            };
+
+            console.log('🔄 Enviando datos para deshacer específico:', requestData);
+
             const response = await fetch('/post-updateShifts', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
                 },
-                body: JSON.stringify({
-                    cambios: {
-                        [claveEmpleado]: {
-                            [change.day]: change.oldValue
-                        }
-                    },
-                    comentario: `Deshacer cambio específico: ${change.employee} - día ${change.day}`
-                })
+                body: JSON.stringify(requestData)
             });
 
+            console.log('🔄 Respuesta del servidor (específico):', response.status, response.statusText);
+
             if (!response.ok) {
-                throw new Error('Error al actualizar la base de datos');
+                const errorText = await response.text();
+                console.error('🔄 Error en la respuesta (específico):', errorText);
+                throw new Error(`Error al actualizar la base de datos: ${response.status} ${response.statusText}`);
             }
+
+            const result = await response.json();
+            console.log('🔄 Resultado exitoso (específico):', result);
 
             toast.success('Cambio deshecho y base de datos actualizada', {
                 description: `Se restauró el valor anterior para ${change.employee}`,
                 duration: 2000,
             });
         } catch (error) {
-            console.error('Error al actualizar la base de datos:', error);
+            console.error('🔄 Error al actualizar la base de datos (específico):', error);
             toast.error('Error al actualizar la base de datos', {
                 description: 'El cambio se deshizo localmente pero no se pudo actualizar la base de datos',
                 duration: 4000,
