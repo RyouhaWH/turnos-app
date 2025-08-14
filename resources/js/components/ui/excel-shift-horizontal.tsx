@@ -171,7 +171,6 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     gridRef.current.api.refreshCells();
                     gridRef.current.api.redrawRows();
                 }
-                console.log('🔄 Grid reiniciado desde el componente padre');
             }
         }, [resetGrid]);
 
@@ -248,36 +247,25 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             if (!e || !e.data || !e.colDef?.field) return
 
             const funcionario = e.data.nombre;
+            const employeeId = e.data.employee_id || e.data.id;
             const dayField = e.colDef.field;
 
             // Verificar que sea un día válido
-            if (dayField === 'nombre' || dayField === 'id') return;
+            if (dayField === 'nombre' || dayField === 'id' || dayField === 'employee_id' || dayField === 'rut') return;
 
             const turno = e.value || '';
             const valorAnterior = e.oldValue || '';
 
-            console.log('🔄 Cambio detectado:', {
-                funcionario,
-                day: dayField,
-                turno,
-                valorAnterior: e.oldValue
-            });
-
             // Registrar el cambio en el historial si hay una función para ello
             if (onRegisterChange && valorAnterior !== turno) {
-                console.log('🔄 Llamando a onRegisterChange:', { funcionario, dayField, valorAnterior, turno });
                 onRegisterChange(funcionario, dayField, valorAnterior, turno);
             }
 
             setCambios(prev => {
                 const newCambios = { ...prev }
 
-                // Crear clave normalizada para el empleado
-                const clave = funcionario
-                    .normalize("NFD")
-                    .replace(/[\u0300-\u036f]/g, "")
-                    .replace(/\s+/g, '_')
-                    .toLowerCase()
+                // Usar employee_id como clave en lugar del nombre normalizado
+                const clave = employeeId.toString();
 
                 if (!newCambios[clave]) {
                     newCambios[clave] = {}
@@ -316,7 +304,6 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     if (node.data) allData.push(node.data)
                 })
                 const resumen = contarTurnos(allData)
-                console.log('📊 Resumen de turnos:', resumen)
             }
         }, [onResumenChange, onRegisterChange])
 
@@ -343,7 +330,6 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             if (dayField && funcionario) {
                 const dayInfo = daysInfo.find(d => d.day.toString() === dayField);
                 if (dayInfo) {
-                    console.log(`👤 Click: "${funcionario}" - ${dayInfo.nombreCompleto} ${dayInfo.day} - Turno: "${turno || 'vacío'}"`)
                 }
             }
         }, [daysInfo])

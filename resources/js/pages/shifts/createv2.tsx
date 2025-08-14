@@ -81,7 +81,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             const turnosArray = Object.values(data) as TurnoData[];
 
-            console.log(turnosArray);
             setRowData(turnosArray);
             setCurrentMonthTitle(fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
 
@@ -121,27 +120,15 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para deshacer el último cambio
     const undoLastChange = () => {
-        console.log('🔄 Intentando deshacer último cambio. Historial:', changeHistory);
-
-        if (changeHistory.length === 0) {
-            console.log('❌ No hay cambios para deshacer');
-            return;
-        }
+        if (changeHistory.length === 0) return;
 
         const lastChange = changeHistory[changeHistory.length - 1];
-        console.log('🔄 Deshaciendo cambio:', lastChange);
 
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
-        // Normalizar la clave del empleado (igual que en AgGridHorizontal)
-        const claveEmpleado = lastChange.employee
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, '_')
-            .toLowerCase();
-
-        console.log('🔄 Clave normalizada del empleado:', claveEmpleado);
+        // Usar employee_id directamente (ya no necesitamos normalizar)
+        const claveEmpleado = lastChange.employeeId || lastChange.employee;
 
         // Restaurar el valor anterior
         if (lastChange.oldValue === '') {
@@ -160,8 +147,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             }
             newResumen[claveEmpleado][lastChange.day] = lastChange.oldValue;
         }
-
-        console.log('🔄 Nuevo resumen después de deshacer:', newResumen);
 
         // Actualizar el resumen
         setResumen(newResumen);
@@ -189,12 +174,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
-        // Normalizar la clave del empleado (igual que en AgGridHorizontal)
-        const claveEmpleado = change.employee
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, '_')
-            .toLowerCase();
+        // Usar employee_id directamente (ya no necesitamos normalizar)
+        const claveEmpleado = change.employeeId || change.employee;
 
         // Restaurar el valor anterior
         if (change.oldValue === '') {
@@ -232,29 +213,27 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para registrar un cambio en el historial
     const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
-        console.log('🔄 Registrando cambio:', { employee, day, oldValue, newValue });
+        // Buscar el employee_id del empleado en los datos
+        const employeeData = rowData.find(row => row.nombre === employee);
+        const employeeId = employeeData?.employee_id || employeeData?.id;
 
         const change = {
-            id: `${employee}_${day}_${Date.now()}`,
+            id: `${employeeId}_${day}_${Date.now()}`,
             employee,
+            employeeId,
             day,
             oldValue,
             newValue,
             timestamp: Date.now(),
         };
 
-        setChangeHistory(prev => {
-            const newHistory = [...prev, change];
-            console.log('📝 Historial actualizado:', newHistory);
-            return newHistory;
-        });
+        setChangeHistory(prev => [...prev, change]);
     };
 
     // Efecto para manejar Ctrl+Z
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 'z') {
-                console.log('⌨️ Ctrl+Z presionado');
                 event.preventDefault();
                 undoLastChange();
             }

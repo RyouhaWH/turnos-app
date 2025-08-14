@@ -119,36 +119,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return response()->json(['message' => 'No hay cambios para guardar'], 400);
         }
 
-        foreach ($cambios as $nombreCompleto => $fechas) {
+        foreach ($cambios as $employeeId => $fechas) {
             foreach ($fechas as $dia => $turno) {
 
-                // Normaliza el nombres
-                $nombreCompleto = ucwords(str_replace('_', ' ', $nombreCompleto));
+                // Buscar empleado por ID (convertir a integer si es necesario)
+                $employeeIdInt = (int) $employeeId;
+                $empleado = Employees::find($employeeIdInt);
 
-                // Buscar empleado con múltiples estrategias
-                $empleado = null;
-
-                // 1. Primero intentar búsqueda exacta
-                $empleado = Employees::where('name', $nombreCompleto)->first();
-
-                // 2. Si no se encuentra, intentar búsqueda con normalización mejorada
-                if (! $empleado) {
-                    $nombreNormalized = normalizeString($nombreCompleto);
-                    $empleado         = Employees::whereRaw('LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(name, "á", "a"), "é", "e"), "í", "i"), "ó", "o"), "ú", "u"), "ñ", "n"), "Á", "A"), "É", "E"), "Í", "I"), "Ó", "O"), "Ú", "U"), "Ñ", "N")) = ?',
-                        [$nombreNormalized])->first();
-                }
-
-                // 3. Si aún no se encuentra, intentar por RUT
-                if (! $empleado) {
-                    $rutFromName = $this->extractRutFromName($nombreCompleto);
-                    if ($rutFromName) {
-                        $empleado = Employees::where('rut', $rutFromName)->first();
-                    }
-                }
-
-                // 4. Si aún no se encuentra, intentar búsqueda por similitud
-                if (! $empleado) {
-                    $empleado = Employees::where('name', 'LIKE', '%' . str_replace(' ', '%', $nombreCompleto) . '%')->first();
+                if (!$empleado) {
+                    continue; // Saltar este empleado si no se encuentra
                 }
 
                 if ($empleado) {
@@ -292,7 +271,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 foreach ($numerosAReportarCambios as $numero) {
 
                     $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => "Se ha actualizado el turno de *$nombreCompleto* del *$fecha* a *$shiftComplete*",
+                        'mensaje' => "Se ha actualizado el turno de *{$empleado->name}* del *$fecha* a *$shiftComplete*",
 
                         'numero'  => "56" . $numero,
                     ]);
