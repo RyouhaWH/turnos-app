@@ -207,15 +207,6 @@ export default function Dashboard() {
                                                 statsBg: 'bg-amber-50', statsText: 'text-amber-600',
                                                 icon: 'UserCheck2'
                                             };
-                                        } else if (lowerRoleName.includes('motorizado')) {
-                                            return {
-                                                from: 'from-emerald-500', to: 'to-emerald-600',
-                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
-                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
-                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
-                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
-                                                icon: 'Bike'
-                                            };
                                         } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('ciclopatrullaje')) {
                                             return {
                                                 from: 'from-emerald-500', to: 'to-emerald-600',
@@ -224,6 +215,15 @@ export default function Dashboard() {
                                                 buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
                                                 statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
                                                 icon: 'Bike'
+                                            };
+                                        } else if (lowerRoleName.includes('motorizado')) {
+                                            return {
+                                                from: 'from-emerald-500', to: 'to-emerald-600',
+                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
+                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
+                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
+                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                icon: 'Car'
                                             };
                                         } else if (lowerRoleName.includes('dron') || lowerRoleName.includes('drone')) {
                                             return {
