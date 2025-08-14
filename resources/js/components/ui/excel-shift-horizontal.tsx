@@ -26,6 +26,7 @@ interface Props {
     editable?: boolean;
     resetGrid?: boolean; // Cambiar a resetGrid para reiniciar el grid
     onRegisterChange?: (employee: string, day: string, oldValue: string, newValue: string) => void; // Nueva prop para registrar cambios
+    isUndoing?: boolean; // Prop para evitar registrar cambios durante deshacer
     month?: number; // 0-11 (JavaScript month format)
     year?: number;
 }
@@ -130,7 +131,7 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
-const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, month, year }, ref) => {
+const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year }, ref) => {
 
         // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -256,46 +257,49 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             const turno = e.value || '';
             const valorAnterior = e.oldValue || '';
 
-            // Registrar el cambio en el historial si hay una función para ello
-            if (onRegisterChange && valorAnterior !== turno) {
+            // No registrar cambios si estamos deshaciendo
+            if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
                 onRegisterChange(funcionario, dayField, valorAnterior, turno);
             }
 
-            setCambios(prev => {
-                const newCambios = { ...prev }
+            // No actualizar el resumen si estamos deshaciendo
+            if (!isUndoing) {
+                setCambios(prev => {
+                    const newCambios = { ...prev }
 
-                // Usar employee_id como clave en lugar del nombre normalizado
-                const clave = employeeId.toString();
+                    // Usar employee_id como clave en lugar del nombre normalizado
+                    const clave = employeeId.toString();
 
-                if (!newCambios[clave]) {
-                    newCambios[clave] = {}
-                }
+                    if (!newCambios[clave]) {
+                        newCambios[clave] = {}
+                    }
 
-                // Verificar si realmente hay un cambio
-                const valorAnterior = e.oldValue || '';
-                const valorNuevo = turno || '';
+                    // Verificar si realmente hay un cambio
+                    const valorAnterior = e.oldValue || '';
+                    const valorNuevo = turno || '';
 
-                // Solo agregar al resumen si hay un cambio real
-                if (valorAnterior !== valorNuevo) {
-                    if (turno) {
-                        newCambios[clave][dayField] = turno
+                    // Solo agregar al resumen si hay un cambio real
+                    if (valorAnterior !== valorNuevo) {
+                        if (turno) {
+                            newCambios[clave][dayField] = turno
+                        } else {
+                            // Enviar valor vacío explícitamente para indicar eliminación
+                            newCambios[clave][dayField] = ''
+                        }
                     } else {
-                        // Enviar valor vacío explícitamente para indicar eliminación
-                        newCambios[clave][dayField] = ''
-                    }
-                } else {
-                    // Si no hay cambio, remover del resumen
-                    delete newCambios[clave][dayField]
+                        // Si no hay cambio, remover del resumen
+                        delete newCambios[clave][dayField]
 
-                    // Limpiar objetos vacíos
-                    if (Object.keys(newCambios[clave]).length === 0) {
-                        delete newCambios[clave]
+                        // Limpiar objetos vacíos
+                        if (Object.keys(newCambios[clave]).length === 0) {
+                            delete newCambios[clave]
+                        }
                     }
-                }
 
-                onResumenChange(newCambios)
-                return newCambios
-            })
+                    onResumenChange(newCambios)
+                    return newCambios
+                })
+            }
 
             // Log del resumen de turnos
             if (gridRef.current?.api) {
@@ -305,7 +309,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 })
                 const resumen = contarTurnos(allData)
             }
-        }, [onResumenChange, onRegisterChange])
+        }, [onResumenChange, onRegisterChange, isUndoing])
 
         // Handle grid ready event
         const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {

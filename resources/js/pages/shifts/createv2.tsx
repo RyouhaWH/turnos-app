@@ -52,6 +52,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isChangesExpanded, setIsChangesExpanded] = useState(true); // Panel de cambios expandido por defecto
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
     const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
+    const [isUndoing, setIsUndoing] = useState(false); // Estado para evitar registrar cambios durante deshacer
     const [changeHistory, setChangeHistory] = useState<Array<{
         id: string;
         employee: string;
@@ -123,6 +124,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const undoLastChange = () => {
         if (changeHistory.length === 0) return;
 
+        setIsUndoing(true); // Activar flag para evitar registrar cambios
+
         const lastChange = changeHistory[changeHistory.length - 1];
 
         // Crear una copia del resumen actual
@@ -164,7 +167,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     targetNode = node;
                 }
             });
-            
+
             if (targetNode && targetNode.data) {
                 targetNode.setDataValue(lastChange.day, lastChange.oldValue);
                 gridRef.current.api.refreshCells({
@@ -177,6 +180,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Remover el cambio del historial
         setChangeHistory(prev => prev.slice(0, -1));
 
+        // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
+        setTimeout(() => {
+            setIsUndoing(false);
+        }, 100);
+
         toast.success('Cambio deshecho', {
             description: `Se restauró el valor anterior para ${lastChange.employee}`,
             duration: 2000,
@@ -187,6 +195,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const undoSpecificChange = (changeId: string) => {
         const changeIndex = changeHistory.findIndex(change => change.id === changeId);
         if (changeIndex === -1) return;
+
+        setIsUndoing(true); // Activar flag para evitar registrar cambios
 
         const change = changeHistory[changeIndex];
 
@@ -229,7 +239,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     targetNode = node;
                 }
             });
-            
+
             if (targetNode && targetNode.data) {
                 targetNode.setDataValue(change.day, change.oldValue);
                 gridRef.current.api.refreshCells({
@@ -241,6 +251,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         // Remover el cambio del historial
         setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
+
+        // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
+        setTimeout(() => {
+            setIsUndoing(false);
+        }, 100);
 
         toast.success('Cambio deshecho', {
             description: `Se restauró el valor anterior para ${change.employee}`,
@@ -446,6 +461,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             editable={hasEditPermissions}
                                             resetGrid={resetGrid}
                                             onRegisterChange={registerChange}
+                                            isUndoing={isUndoing}
                                         />
                                     </div>
                                 </CardContent>

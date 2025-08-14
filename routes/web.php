@@ -98,6 +98,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
+        $numerosAReportarCambios = [];
+
         //! Números base para notificaciones
         // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
         // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
