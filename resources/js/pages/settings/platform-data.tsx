@@ -260,16 +260,18 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                     </div>
                                                 ) : (
                                                     <div className="flex items-center justify-between">
-                                                        <div>
-                                                            <h3 className="font-semibold text-lg">{role.name}</h3>
+                                                        <div className="flex-1">
+                                                            <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{role.name}</h3>
                                                             {role.description && (
-                                                                <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
+                                                                <p className="text-gray-600 dark:text-gray-400 text-base mb-3">
                                                                     {role.description}
                                                                 </p>
                                                             )}
-                                                            <p className="text-xs text-gray-500 mt-2">
-                                                                ID: {role.id} • Creado: {new Date(role.created_at).toLocaleDateString()}
-                                                            </p>
+                                                            <div className="flex items-center gap-4 text-xs text-gray-400">
+                                                                <span>ID: {role.id}</span>
+                                                                <span>•</span>
+                                                                <span>Creado: {new Date(role.created_at).toLocaleDateString()}</span>
+                                                            </div>
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <Button
