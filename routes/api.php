@@ -1,58 +1,86 @@
 <?php
 
-use App\Http\Controllers\TurnController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Models\Rol;
 
-Route::get('/user', function (Request $request) {
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
+
+Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
-})->middleware('auth:sanctum');
-
-Route::get('/test', function () {
-    return response()->json(['ok' => true]);
 });
 
+// Rutas para datos de plataforma (solo administradores)
+Route::middleware(['auth:sanctum', 'admin'])->prefix('platform-data')->group(function () {
+    
+    // Obtener todos los datos de la plataforma
+    Route::get('/', function () {
+        $roles = Rol::all();
+        
+        return response()->json([
+            'roles' => $roles
+        ]);
+    });
 
-// //ruta de turnos filtrados
-// Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
+    // Rutas para roles
+    Route::prefix('roles')->group(function () {
+        // Crear nuevo rol
+        Route::post('/', function (Request $request) {
+            $request->validate([
+                'name' => 'required|string|max:255|unique:rols,name',
+                'description' => 'nullable|string|max:500'
+            ]);
 
-// // ruta de todos los turnos sin filtrar
-// Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV']);
+            $role = Rol::create([
+                'name' => $request->name,
+                'description' => $request->description
+            ]);
 
-// //retorna turnos desde base de datos
-// Route::get('/turnos', [TurnController::class, 'getShiftsFromDB']);
+            return response()->json($role, 201);
+        });
 
-// //Retorna turnos modificados
-// Route::get('/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee']);
+        // Actualizar rol
+        Route::put('/{id}', function (Request $request, $id) {
+            $role = Rol::findOrFail($id);
+            
+            $request->validate([
+                'name' => 'required|string|max:255|unique:rols,name,' . $id,
+                'description' => 'nullable|string|max:500'
+            ]);
 
-// //Retorna turnos según fecha
-// Route::get('/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts']);
+            $role->update([
+                'name' => $request->name,
+                'description' => $request->description
+            ]);
 
-// //Retorna todos los turnos modificados
-// Route::get('/shift-change-log', [TurnController::class, 'getShiftsChangeLog']);
+            return response()->json($role);
+        });
 
+        // Eliminar rol
+        Route::delete('/{id}', function ($id) {
+            $role = Rol::findOrFail($id);
+            
+            // Verificar si hay empleados usando este rol
+            $employeesCount = $role->employees()->count();
+            if ($employeesCount > 0) {
+                return response()->json([
+                    'error' => 'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.'
+                ], 400);
+            }
 
-
-// Rutas de debug para dashboard
-Route::prefix('dashboard')->group(function () {
-
-    // Tests básicos
-    Route::get('/test', [TurnController::class, 'test']);
-
-    Route::get('/test-models', [TurnController::class, 'testModels']);
-
-    Route::get('/debug-info', [TurnController::class, 'getDebugInfo']);
-
-    // Información específica
-    // Route::get('/employees-by-role', [TurnController::class, 'getEmployeesByRole']);
-
-    // Route::get('/today-shifts', [TurnController::class, 'getTodayShifts']);
-
-    // Estadísticas principales
-    // Route::get('/stats', [TurnController::class, 'getDashboardStats']);
-
-    // Estado de empleados para dashboard
-    // Route::get('/employee-status', [TurnController::class, 'getEmployeeStatus']);
+            $role->delete();
+            return response()->json(['message' => 'Rol eliminado correctamente']);
+        });
+    });
 });
 
 
