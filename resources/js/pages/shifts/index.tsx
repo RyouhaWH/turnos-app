@@ -268,7 +268,7 @@ export default function Dashboard() {
                                                     </Badge>
                                                 </div>
                                                 <CardTitle className="text-xl text-slate-900 dark:text-slate-100">
-                                                    {roleName}
+                                                    {roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName}
                                                 </CardTitle>
                                                 <CardDescription className="dark:text-slate-300">
                                                     Personal operativo especializado

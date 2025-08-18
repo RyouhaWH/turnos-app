@@ -427,7 +427,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             </div>
                                             <div>
                                                 <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                                                    Turnos del Personal
+                                                    Turnos del Personal {employee_rol_id === 1 ? "- Patrullaje y Proximidad" : ""}
                                                 </CardTitle>
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                                     {getTotalEmployees()} empleados registrados
