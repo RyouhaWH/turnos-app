@@ -116,7 +116,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
-            //$numeroJulioSarmiento,
+            $numeroJulioSarmiento,
             //$numeroCentralDespacho,
         ];
 

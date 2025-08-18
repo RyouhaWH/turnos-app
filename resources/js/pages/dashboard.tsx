@@ -141,7 +141,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard v2',
+        title: 'Dashboard',
         href: '/dashboardv2',
     },
 ];
