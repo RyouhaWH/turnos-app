@@ -4,17 +4,147 @@ import { useEmployeeStatus } from '@/hooks/useEmployeeStatus';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX } from 'lucide-react';
-import { useState } from 'react';
+import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+
+// Hook personalizado para obtener datos de una fecha específica
+const useEmployeeStatusWithDate = (selectedDate: string) => {
+    const [employeeStatus, setEmployeeStatus] = useState<{
+        trabajando: Array<{
+            id: number;
+            name: string;
+            rol_id: number;
+            amzoma?: boolean;
+            shift?: string;
+            shift_label?: string;
+        }>;
+        descanso: Array<{
+            id: number;
+            name: string;
+            rol_id: number;
+            amzoma?: boolean;
+            shift?: string;
+            shift_label?: string;
+        }>;
+        ausente: Array<{
+            id: number;
+            name: string;
+            rol_id: number;
+            amzoma?: boolean;
+            shift?: string;
+            shift_label?: string;
+        }>;
+        sinTurno: Array<{
+            id: number;
+            name: string;
+            rol_id: number;
+            amzoma?: boolean;
+            shift?: string;
+            shift_label?: string;
+        }>;
+    }>({
+        trabajando: [],
+        descanso: [],
+        ausente: [],
+        sinTurno: []
+    });
+
+    const [counts, setCounts] = useState<{
+        trabajando: { total: number; byRole: Record<number, number> };
+        descanso: { total: number; byRole: Record<number, number> };
+        ausente: { total: number; byRole: Record<number, number> };
+        sinTurno: { total: number; byRole: Record<number, number> };
+    }>({
+        trabajando: { total: 0, byRole: {} },
+        descanso: { total: 0, byRole: {} },
+        ausente: { total: 0, byRole: {} },
+        sinTurno: { total: 0, byRole: {} }
+    });
+
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [totalActivos, setTotalActivos] = useState(0);
+    const [totalEmpleados, setTotalEmpleados] = useState(0);
+    const [roles, setRoles] = useState<Record<number, string>>({});
+
+    const fetchEmployeeStatus = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+
+            const response = await fetch(`/api/dashboard/employee-status?date=${selectedDate}`);
+
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                setEmployeeStatus(data.data.status);
+                setCounts(data.data.counts);
+                setTotalActivos(data.data.totalActivos);
+                setTotalEmpleados(data.data.totalEmpleados);
+                setRoles(data.data.roles);
+            } else {
+                setError('Error al cargar estado de empleados del servidor');
+            }
+        } catch (err) {
+            console.error('Error fetching employee status:', err);
+
+            if (err instanceof TypeError && err.message.includes('fetch')) {
+                setError('Error de conexión con el servidor');
+            } else if (err instanceof Error) {
+                setError(err.message);
+            } else {
+                setError('Error desconocido al cargar estado de empleados');
+            }
+
+            // Resetear datos en caso de error
+            setEmployeeStatus({
+                trabajando: [],
+                descanso: [],
+                ausente: [],
+                sinTurno: []
+            });
+            setCounts({
+                trabajando: { total: 0, byRole: {} },
+                descanso: { total: 0, byRole: {} },
+                ausente: { total: 0, byRole: {} },
+                sinTurno: { total: 0, byRole: {} }
+            });
+            setTotalActivos(0);
+            setTotalEmpleados(0);
+            setRoles({});
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchEmployeeStatus();
+    }, [selectedDate]);
+
+    return {
+        employeeStatus,
+        counts,
+        totalActivos,
+        totalEmpleados,
+        roles,
+        loading,
+        error,
+        refetch: fetchEmployeeStatus
+    };
+};
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Dashboard',
-        href: '/dashboard',
+        title: 'Dashboard v2',
+        href: '/dashboardv2',
     },
 ];
-
-// Mapeo de roles - ahora se obtiene dinámicamente desde la API
 
 // Mapeo de roles a colores
 const ROLE_COLORS: Record<number, string> = {
@@ -136,59 +266,26 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     );
 }
 
-// Componente especial para Alerta Móvil que separa por empresa
+// Componente especial para Alerta Móvil con lista unificada
 function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
-    // Debug: Log para ver qué datos llegan
-    console.log('AlertaMovilColumn - roleId:', roleId);
-    console.log('AlertaMovilColumn - employees:', employees);
-
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
-    console.log('AlertaMovilColumn - roleEmployees:', roleEmployees);
-    console.log('AlertaMovilColumn - Total empleados recibidos:', employees.length);
-    console.log('AlertaMovilColumn - Empleados por rol_id:', employees.reduce((acc, emp) => {
-        acc[emp.rol_id] = (acc[emp.rol_id] || 0) + 1;
-        return acc;
-    }, {} as Record<number, number>));
 
     // Solo empleados trabajando (excluir turno administrativo A)
     const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
-    console.log('AlertaMovilColumn - trabajando:', trabajando);
 
-    // Debug: Mostrar también todos los empleados del rol para verificar
-    console.log('AlertaMovilColumn - TODOS los empleados del rol:', roleEmployees);
-
-    // Debug: Ver valores de amzoma para cada empleado
-    console.log('AlertaMovilColumn - Valores de amzoma por empleado:');
-    trabajando.forEach(emp => {
-        console.log(`  ${emp.name}: amzoma = ${emp.amzoma} (tipo: ${typeof emp.amzoma})`);
-    });
-
-    // Separar por empresa - usar comparación más flexible para boolean
-    const amzomaEmployees = trabajando.filter((emp) => Boolean(emp.amzoma));
-    const noAmzomaEmployees = trabajando.filter((emp) => !Boolean(emp.amzoma));
-    console.log('AlertaMovilColumn - amzomaEmployees:', amzomaEmployees);
-    console.log('AlertaMovilColumn - noAmzomaEmployees:', noAmzomaEmployees);
-
-    // Agrupar por turnos para cada empresa
-    const agruparPorTurnos = (empleados: typeof trabajando) => {
-        const turnosMañanaTardeNoche = {
-            M: { label: 'Mañana', emoji: '🌅', employees: empleados.filter((emp) => emp.shift === 'M') },
-            T: { label: 'Tarde' , emoji: '🌇', employees: empleados.filter((emp) => emp.shift === 'T') },
-            N: { label: 'Noche' , emoji: '🌙', employees: empleados.filter((emp) => emp.shift === 'N') },
-        };
-
-        const turnosNumericos = {
-            '1': { label: '1er Turno', emoji: '1️⃣', employees: empleados.filter((emp) => emp.shift === '1') },
-            '2': { label: '2do Turno', emoji: '2️⃣', employees: empleados.filter((emp) => emp.shift === '2') },
-            '3': { label: '3er Turno', emoji: '3️⃣', employees: empleados.filter((emp) => emp.shift === '3') },
-        };
-
-        return { turnosMañanaTardeNoche, turnosNumericos };
+    // Agrupar por turnos (lista unificada)
+    const turnosMañanaTardeNoche = {
+        M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
+        T: { label: 'Tarde' , emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
+        N: { label: 'Noche' , emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
     };
 
-    const amzomaTurnos = agruparPorTurnos(amzomaEmployees);
-    const noAmzomaTurnos = agruparPorTurnos(noAmzomaEmployees);
+    const turnosNumericos = {
+        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter((emp) => emp.shift === '1') },
+        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
+        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
+    };
 
     const [showAll, setShowAll] = useState(true);
 
@@ -207,69 +304,74 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                 {trabajando.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
-                    <div className="space-y-6">
-                        {/* Tabla con dos columnas */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                            {/* Columna izquierda - No AMZOMA */}
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 border-b border-blue-200 pb-1">
-                                    Personal Municipal ({noAmzomaEmployees.length})
-                                </h4>
-                                {noAmzomaEmployees.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground italic">Sin personal municipal trabajando</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {/* Turnos Mañana, Tarde, Noche */}
-                                        {Object.entries(noAmzomaTurnos.turnosMañanaTardeNoche).map(
-                                            ([turno, data]) =>
-                                                data.employees.length > 0 && (
-                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                                ),
-                                        )}
+                    <div className="space-y-3">
+                        {/* Turnos Mañana, Tarde, Noche */}
+                        {Object.entries(turnosMañanaTardeNoche).map(
+                            ([turno, data]) =>
+                                data.employees.length > 0 && (
+                                    <TurnoSectionWithIndicator key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                ),
+                        )}
 
-                                        {/* Turnos Numéricos */}
-                                        {Object.entries(noAmzomaTurnos.turnosNumericos).map(
-                                            ([turno, data]) =>
-                                                data.employees.length > 0 && (
-                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                                ),
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Columna derecha - AMZOMA */}
-                            <div className="space-y-3">
-                                <h4 className="text-sm font-semibold text-red-700 dark:text-red-300 border-b border-red-200 pb-1">
-                                    Personal AMZOMA ({amzomaEmployees.length})
-                                </h4>
-                                {amzomaEmployees.length === 0 ? (
-                                    <p className="text-xs text-muted-foreground italic">Sin personal AMZOMA trabajando</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {/* Turnos Mañana, Tarde, Noche */}
-                                        {Object.entries(amzomaTurnos.turnosMañanaTardeNoche).map(
-                                            ([turno, data]) =>
-                                                data.employees.length > 0 && (
-                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                                ),
-                                        )}
-
-                                        {/* Turnos Numéricos */}
-                                        {Object.entries(amzomaTurnos.turnosNumericos).map(
-                                            ([turno, data]) =>
-                                                data.employees.length > 0 && (
-                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                                ),
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                        {/* Turnos Numéricos */}
+                        {Object.entries(turnosNumericos).map(
+                            ([turno, data]) =>
+                                data.employees.length > 0 && (
+                                    <TurnoSectionWithIndicator key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                ),
+                        )}
                     </div>
                 )}
             </CardContent>
         </Card>
+    );
+}
+
+// Componente para mostrar empleados de un turno específico con indicador de empresa
+interface TurnoSectionWithIndicatorProps {
+    title: string;
+    employees: Array<{
+        id: number;
+        name: string;
+        rol_id: number;
+        amzoma?: boolean;
+        shift?: string;
+        shift_label?: string;
+    }>;
+    showAll: boolean;
+}
+
+function TurnoSectionWithIndicator({ title, employees, showAll }: TurnoSectionWithIndicatorProps) {
+    const displayEmployees = showAll ? employees : employees.slice(0, 4);
+
+    return (
+        <div className="space-y-2">
+            <h5 className="rounded-lg border bg-green-100 flex flex-row justify-center gap-2 items-center px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
+                {title} <p className="text-xs font-light">({employees.length})</p>
+            </h5>
+            <div className="space-y-1">
+                {displayEmployees.map((employee) => (
+                    <div key={employee.id} className="flex items-center justify-center gap-2 rounded-md p-2">
+                        <span className="text-center text-xs font-medium text-green-900 dark:text-slate-200">
+                            {employee.name}
+                        </span>
+                        <Badge
+                            variant="outline"
+                            className={`text-xs px-1 py-0 ${
+                                Boolean(employee.amzoma)
+                                    ? 'bg-red-100 text-red-700 border-red-300 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50'
+                                    : 'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50'
+                            }`}
+                        >
+                            {Boolean(employee.amzoma) ? 'AMZ' : 'MUN'}
+                        </Badge>
+                    </div>
+                ))}
+                {!showAll && employees.length > 4 && (
+                    <p className="text-center text-xs text-green-600 italic dark:text-slate-400">+{employees.length - 4} más...</p>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -398,10 +500,13 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
     );
 }
 
-export default function Dashboard() {
-    const { employeeStatus, counts, totalActivos, totalEmpleados, roles, loading, error, refetch } = useEmployeeStatus();
+export default function DashboardV2() {
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Formato YYYY-MM-DD
 
-    const today = new Date().toLocaleDateString('es-ES', {
+    // Hook personalizado para obtener datos de una fecha específica
+    const { employeeStatus, counts, totalActivos, totalEmpleados, roles, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
+
+    const selectedDateFormatted = new Date(selectedDate).toLocaleDateString('es-ES', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -411,7 +516,7 @@ export default function Dashboard() {
     if (loading) {
         return (
             <AppLayout breadcrumbs={breadcrumbs}>
-                <Head title="Dashboard" />
+                <Head title="Dashboard v2" />
                 <div className="flex h-64 items-center justify-center">
                     <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
                     <span className="ml-2 text-muted-foreground">Cargando estado de empleados...</span>
@@ -422,8 +527,7 @@ export default function Dashboard() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
-
+            <Head title="Dashboard v2" />
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
                 {/* header v2 */}
@@ -433,15 +537,10 @@ export default function Dashboard() {
                             {/* Title Section */}
                             <div className="flex w-full items-start justify-between gap-4">
                                 <div className="flex-1 text-center">
-                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios para el Día de Hoy</h1>
+                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios (v2)</h1>
                                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
-                                        <span>{new Date().toLocaleDateString('es-CL', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}</span>
+                                        <span>{selectedDateFormatted}</span>
                                         {loading && (
                                             <div className="ml-2 flex items-center gap-1">
                                                 <RefreshCw className="h-3 w-3 animate-spin" />
@@ -451,86 +550,280 @@ export default function Dashboard() {
                                     </div>
                                 </div>
 
-                                <button
-                                    onClick={refetch}
-                                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
-                                >
-                                    <RefreshCw className="h-4 w-4" />
-                                    Actualizar
-                                </button>
+                                <div className="flex items-center gap-4">
+                                    {/* Selector de fecha */}
+                                    <div className="flex items-center gap-2">
+                                        <Label htmlFor="date-selector" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                            Fecha:
+                                        </Label>
+                                        <Input
+                                            id="date-selector"
+                                            type="date"
+                                            value={selectedDate}
+                                            onChange={(e) => setSelectedDate(e.target.value)}
+                                            className="w-40"
+                                        />
+                                    </div>
+
+                                    <button
+                                        onClick={refetch}
+                                        className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
+                                    >
+                                        <RefreshCw className="h-4 w-4" />
+                                        Actualizar
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Resumen por roles */}
-                {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/30">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2">
-                                <Users className="h-5 w-5 text-red-600 dark:text-red-300" />
-                                <div>
-                                    <p className="text-2xl font-bold text-red-700 dark:text-red-200">
-                                        {counts.trabajando.byRole[1] || 0}
-                                    </p>
-                                    <p className="text-sm text-red-600 dark:text-red-300">Alerta Móvil</p>
-                                    <p className="text-xs text-red-500 dark:text-red-400">
-                                        trabajando hoy
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                {/* Total de funcionarios del día */}
+                <div className="mx-6 my-8">
 
-                    <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/30">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2">
-                                <UserCheck className="h-5 w-5 text-amber-600 dark:text-amber-300" />
-                                <div>
-                                    <p className="text-2xl font-bold text-amber-700 dark:text-amber-200">
-                                        {counts.trabajando.byRole[2] || 0}
-                                    </p>
-                                    <p className="text-sm text-amber-600 dark:text-amber-300">Fiscalización</p>
-                                    <p className="text-xs text-amber-500 dark:text-amber-400">
-                                        trabajando hoy
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Desglose de personal por rol */}
+                    <div className="mb-6">
+                        <h2 className="text-xl font-semibold text-gray-700 dark:text-slate-200 mb-4">
+                            Desglose de Personal - {selectedDateFormatted}
+                        </h2>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                            {/* Patrullaje y Proximidad - Todos los turnos */}
+                            <Card className="bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-red-600 dark:text-red-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-red-700 dark:text-red-200">Patrullaje y Proximidad</p>
+                                            <p className="text-xs text-red-600 dark:text-red-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 1 && emp.shift === 'M').length}
+                                            </p>
+                                            <p className="text-xs text-red-600 dark:text-red-300">Mañana</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 1 && emp.shift === 'T').length}
+                                            </p>
+                                            <p className="text-xs text-red-600 dark:text-red-300">Tarde</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 1 && emp.shift === 'N').length}
+                                            </p>
+                                            <p className="text-xs text-red-600 dark:text-red-300">Noche</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-red-200 dark:border-red-700/30">
+                                        <p className="text-3xl font-bold text-red-700 dark:text-red-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 1).length}
+                                        </p>
+                                        <p className="text-sm text-red-600 dark:text-red-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                    <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/30">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2">
-                                <Coffee className="h-5 w-5 text-emerald-600 dark:text-emerald-300" />
-                                <div>
-                                    <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-200">
-                                        {counts.trabajando.byRole[3] || 0}
-                                    </p>
-                                    <p className="text-sm text-emerald-600 dark:text-emerald-300">Motorizado</p>
-                                    <p className="text-xs text-emerald-500 dark:text-emerald-400">
-                                        trabajando hoy
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                            {/* Fiscalización - Todos los turnos */}
+                            <Card className="bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-amber-600 dark:text-amber-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">Fiscalización</p>
+                                            <p className="text-xs text-amber-600 dark:text-amber-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 2 && emp.shift === '1').length}
+                                            </p>
+                                            <p className="text-xs text-amber-600 dark:text-amber-300">1er Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 2 && emp.shift === '2').length}
+                                            </p>
+                                            <p className="text-xs text-amber-600 dark:text-amber-300">2do Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 2 && emp.shift === '3').length}
+                                            </p>
+                                            <p className="text-xs text-amber-600 dark:text-amber-300">3er Turno</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-amber-200 dark:border-amber-700/30">
+                                        <p className="text-3xl font-bold text-amber-700 dark:text-amber-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 2).length}
+                                        </p>
+                                        <p className="text-sm text-amber-600 dark:text-amber-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
 
-                    <Card className="bg-gray-50 dark:bg-slate-800/30 border-gray-200 dark:border-slate-600/40">
-                        <CardContent className="p-6">
-                            <div className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-gray-600 dark:text-slate-300" />
-                                <div>
-                                    <p className="text-2xl font-bold text-gray-700 dark:text-slate-100">{counts.trabajando.total}</p>
-                                    <p className="text-sm text-gray-600 dark:text-slate-300">Total Trabajando</p>
-                                    <p className="text-xs text-gray-500 dark:text-slate-400">
-                                        de {totalEmpleados} empleados
-                                    </p>
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </div> */}
+                            {/* Motorizado - Todos los turnos */}
+                            <Card className="bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-200">Motorizado</p>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 3 && emp.shift === '1').length}
+                                            </p>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">1er Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 3 && emp.shift === '2').length}
+                                            </p>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">2do Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 3 && emp.shift === '3').length}
+                                            </p>
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">3er Turno</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-emerald-200 dark:border-emerald-700/30">
+                                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 3).length}
+                                        </p>
+                                        <p className="text-sm text-emerald-600 dark:text-emerald-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Ciclopatrullaje - Todos los turnos */}
+                            <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-blue-600 dark:text-blue-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-blue-700 dark:text-blue-200">Ciclopatrullaje</p>
+                                            <p className="text-xs text-blue-600 dark:text-blue-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 6 && emp.shift === '1').length}
+                                            </p>
+                                            <p className="text-xs text-blue-600 dark:text-blue-300">1er Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 6 && emp.shift === '2').length}
+                                            </p>
+                                            <p className="text-xs text-blue-600 dark:text-blue-300">2do Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 6 && emp.shift === '3').length}
+                                            </p>
+                                            <p className="text-xs text-blue-600 dark:text-blue-300">3er Turno</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-blue-200 dark:border-blue-700/30">
+                                        <p className="text-3xl font-bold text-blue-700 dark:text-blue-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 6).length}
+                                        </p>
+                                        <p className="text-sm text-blue-600 dark:text-blue-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Dron - Todos los turnos */}
+                            <Card className="bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-purple-700 dark:text-purple-200">Dron</p>
+                                            <p className="text-xs text-purple-600 dark:text-purple-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 5 && emp.shift === '1').length}
+                                            </p>
+                                            <p className="text-xs text-purple-600 dark:text-purple-300">1er Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 5 && emp.shift === '2').length}
+                                            </p>
+                                            <p className="text-xs text-purple-600 dark:text-purple-300">2do Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 5 && emp.shift === '3').length}
+                                            </p>
+                                            <p className="text-xs text-purple-600 dark:text-purple-300">3er Turno</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-purple-200 dark:border-purple-700/30">
+                                        <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 5).length}
+                                        </p>
+                                        <p className="text-sm text-purple-600 dark:text-purple-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* Coordinador Despacho - Todos los turnos */}
+                            <Card className="bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700/30">
+                                <CardContent className="p-4">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <UserCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
+                                        <div>
+                                            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Coordinador Despacho</p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">Todos los turnos</p>
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 mb-3">
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '1').length}
+                                            </p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">1er Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '2').length}
+                                            </p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">2do Turno</p>
+                                        </div>
+                                        <div className="text-center">
+                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '3').length}
+                                            </p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">3er Turno</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center pt-3 border-t border-indigo-200 dark:border-indigo-700/30">
+                                        <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-200">
+                                            {employeeStatus.trabajando.filter(emp => emp.rol_id === 8).length}
+                                        </p>
+                                        <p className="text-sm text-indigo-600 dark:text-indigo-300">Total</p>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="mx-6 my-8">
                     {/* Error message */}
                     {error && (
@@ -549,12 +842,14 @@ export default function Dashboard() {
                                        !lowerRoleName.includes('personal de servicio');
                             })
                             .map(([roleId, roleName]) => {
-                                console.log(`Renderizando rol ${roleId} (${roleName}) con ${employeeStatus.trabajando.length} empleados trabajando`);
+                                const roleIdNum = parseInt(roleId);
+                                const roleNameStr = String(roleName);
+                                console.log(`Renderizando rol ${roleIdNum} (${roleNameStr}) con ${employeeStatus.trabajando.length} empleados trabajando`);
                                 return (
                                     <RoleColumn
                                         key={roleId}
-                                        roleId={parseInt(roleId)}
-                                        roleName={roleName}
+                                        roleId={roleIdNum}
+                                        roleName={roleNameStr}
                                         employees={employeeStatus.trabajando}
                                         roleColor="text-red-700 dark:text-red-300"
                                     />

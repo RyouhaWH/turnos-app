@@ -27,7 +27,7 @@ Route::get('calendario-turnos-patrulleros', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
-    Route::inertia('/dashboardv2', 'dashboardv2')->name('dashboardv2');
+
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
     // Rutas para gestión de usuarios

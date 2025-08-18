@@ -8,11 +8,7 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-    {
-        title: 'Dashboard v2',
-        href: '/dashboardv2',
-        icon: LayoutGrid,
-    },
+
     {
         title: 'Turnos',
         href: route('shifts'),
