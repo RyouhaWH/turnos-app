@@ -501,27 +501,17 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
 }
 
 export default function DashboardV2() {
-    const [selectedDate, setSelectedDate] = useState(() => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }); // Formato YYYY-MM-DD
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]); // Formato YYYY-MM-DD
 
     // Hook personalizado para obtener datos de una fecha específica
     const { employeeStatus, counts, totalActivos, totalEmpleados, roles, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
 
-    const selectedDateFormatted = (() => {
-        const [year, month, day] = selectedDate.split('-').map(Number);
-        const date = new Date(year, month - 1, day); // month - 1 porque getMonth() devuelve 0-11
-        return date.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-        });
-    })();
+    const selectedDateFormatted = new Date(selectedDate).toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+    });
 
     if (loading) {
         return (
@@ -537,7 +527,7 @@ export default function DashboardV2() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Dashboard" />
+            <Head title="Dashboard v2" />
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
                 {/* header v2 */}

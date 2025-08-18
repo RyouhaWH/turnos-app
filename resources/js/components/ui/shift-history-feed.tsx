@@ -20,6 +20,7 @@ interface LogItem {
     changed_at: string;
     changed_by: string;
     empleado: string;
+    shift_date?: string;
 }
 
 export default function ShiftHistoryFeed() {
@@ -113,6 +114,8 @@ export default function ShiftHistoryFeed() {
         );
     }
 
+    console.log(logs);
+
     return (
         <div className="h-full bg-white dark:bg-slate-900 overflow-hidden">
             {/* Feed Content */}
@@ -153,7 +156,13 @@ export default function ShiftHistoryFeed() {
                                                     {log.changed_by}
                                                 </span>
                                                 <span className="text-slate-600 dark:text-slate-400">
-                                                    cambió el turno de
+                                                    cambió el turno del día
+                                                </span>
+                                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                                    {log.shift_date || 'N/A'}
+                                                </span>
+                                                <span className="text-slate-600 dark:text-slate-400">
+                                                    de
                                                 </span>
                                                 <span className="font-medium text-slate-700 dark:text-slate-300">
                                                     {log.empleado}
@@ -215,7 +224,7 @@ export default function ShiftHistoryFeed() {
                 </div>
             </div>
 
-            <style jsx>{`
+            <style>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 4px;
                 }

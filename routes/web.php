@@ -270,9 +270,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                     'changed_by'        => $actualUser,
                                     'old_shift'         => optional($turnoActual)->shift,
                                     'new_shift'         => $nuevoTurno,
-                                    'comment'           => $turnoActual
-                                    ? "modificado el turno desde plataforma"
-                                    : "Turno creado desde plataforma",
+                                                                    'comment'           => $turnoActual
+                                ? "modificado el turno desde plataforma"
+                                : "Turno creado desde plataforma",
                                 ]);
 
                             }
@@ -382,12 +382,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 }
 
                 // Enviar mensaje al funcionario si tiene teléfono
-                if ($datosFuncionario['telefono']) {
-                    $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => $mensaje,
-                        'numero'  => "56" . $numeroJorgeWaltemath,
-                    ]);
-                }
+                // if ($datosFuncionario['telefono']) {
+                //     $response = Http::post('http://localhost:3001/send-message', [
+                //         'mensaje' => $mensaje,
+                //         'numero'  => "56" . $numeroJorgeWaltemath,
+                //     ]);
+                // }
 
                 // Enviar separador después de cada funcionario
                 foreach ($numerosAReportarCambios as $numero) {

@@ -60,20 +60,25 @@ class TurnController extends Controller
     public function getShiftsChangeLogByEmployee($employeeId)
     {
 
-        $logs = ShiftChangeLog::with(['changedBy', 'employeeShift.employee'])
-            ->whereHas('employeeShift', function ($query) use ($employeeId) {
-                $query->where('employee_id', $employeeId);
-            })
-            ->orderBy('changed_at', 'desc')
+                $logs = ShiftChangeLog::with(['changedBy', 'employee', 'employeeShift'])
+            ->where('employee_id', $employeeId)
+            ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($log) {
+                // Obtener fecha del turno desde employeeShift si está disponible
+                $shiftDate = 'N/A';
+                if ($log->employeeShift && $log->employeeShift->date) {
+                    $shiftDate = date('d/m/Y', strtotime($log->employeeShift->date));
+                }
+
                 return [
                     'employee'   => $log->employee->name,
                     'old_shift'  => $log->old_shift,
                     'new_shift'  => $log->new_shift,
                     'comment'    => $log->comment,
-                    'changed_at' => $log->changed_at->format('Y-m-d H:i:s'),
+                    'changed_at' => $log->created_at->format('Y-m-d H:i:s'),
                     'changed_by' => optional($log->changedBy)->name ?? 'Desconocido',
+                    'shift_date' => $shiftDate,
                 ];
             });
 
@@ -86,20 +91,25 @@ class TurnController extends Controller
     public function getShiftsChangeLog()
     {
 
-        $logs = ShiftChangeLog::with(['changedBy', 'employeeShift.employee'])
-            ->orderBy('changed_at', 'desc')
+                $logs = ShiftChangeLog::with(['changedBy', 'employee', 'employeeShift'])
+            ->orderBy('created_at', 'desc')
             ->take(50)
             ->get()
             ->map(function ($log) {
+                // Obtener fecha del turno desde employeeShift si está disponible
+                $shiftDate = 'N/A';
+                if ($log->employeeShift && $log->employeeShift->date) {
+                    $shiftDate = date('d/m/Y', strtotime($log->employeeShift->date));
+                }
+
                 return [
                     'old_shift'  => $log->old_shift,
                     'new_shift'  => $log->new_shift,
                     'comment'    => $log->comment,
-                    'changed_at' => $log->updated_at->format('Y-m-d H:i:s'),
+                    'changed_at' => $log->created_at->format('Y-m-d H:i:s'),
                     'changed_by' => optional($log->changedBy)->name ?? 'Desconocido',
-                    'empleado'   => optional(optional($log->employeeShift)->employee)->name ?? 'Desconocido',
-                    // Si quieres devolver el objeto completo:
-                    // 'empleado' => $log->employeeShift?->employee,
+                    'empleado'   => optional($log->employee)->name ?? 'Desconocido',
+                    'shift_date' => $shiftDate,
                 ];
             });
 
