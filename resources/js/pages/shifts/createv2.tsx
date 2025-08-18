@@ -464,7 +464,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             </div>
                                         </div>
                                     )}
-                                    <div className="ag-theme-alpine h-full flex-1 overflow-hidden rounded-b-lg border-0">
+                                    <div className="ag-theme-alpine h-full flex-1 overflow-hidden rounded-b-lg border-0 min-h-[400px]">
                                         <AgGridHorizontal
                                             ref={gridRef}
                                             rowData={rowData}

@@ -101,7 +101,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
-        // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
         // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
         // $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
         // $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
@@ -115,6 +115,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
+            $numeroJulioSarmiento,
             //$numeroCentralDespacho,
         ];
 
