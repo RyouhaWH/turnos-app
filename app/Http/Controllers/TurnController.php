@@ -410,16 +410,20 @@ class TurnController extends Controller
                 'totals' => ['total' => 0, 'activos' => 0, 'trabajandoHoy' => 0]
             ];
 
-            // 1. PERSONAL TOTAL: Todos los empleados por rol
-            $empleadosTotales = Employees::selectRaw('rol_id, count(*) as total')
+            // Definir roles operativos (solo estos se contarán en el dashboard)
+            $operationalRoles = [1, 2, 3, 5, 6, 8]; // Alerta Móvil, Fiscalización, Motorizado, Dron, Ciclopatrullaje, Despachadores
+
+            // 1. PERSONAL TOTAL: Solo empleados de roles operativos
+            $empleadosTotales = Employees::whereIn('rol_id', $operationalRoles)
+                ->selectRaw('rol_id, count(*) as total')
                 ->groupBy('rol_id')
                 ->get()
                 ->pluck('total', 'rol_id')
                 ->toArray();
 
-            // 2. PERSONAL ACTIVO: Empleados con turno asignado HOY (cualquier turno, incluso descanso)
-            // Si tienen turno (aunque sea F o L) significa que están programados/activos
+            // 2. PERSONAL ACTIVO: Solo empleados operativos con turno asignado HOY
             $empleadosActivos = Employees::join('employee_shifts', 'employees.id', '=', 'employee_shifts.employee_id')
+                ->whereIn('employees.rol_id', $operationalRoles)
                 ->whereDate('employee_shifts.date', $today)
                 ->whereNotNull('employee_shifts.shift')
                 ->where('employee_shifts.shift', '!=', '') // Campo no vacío
@@ -429,8 +433,9 @@ class TurnController extends Controller
                 ->pluck('total', 'rol_id')
                 ->toArray();
 
-            // 3. TRABAJANDO HOY: Con turno asignado hoy, excluyendo descansos y ausencias
+            // 3. TRABAJANDO HOY: Solo empleados operativos con turno asignado hoy, excluyendo descansos y ausencias
             $trabajandoHoy = Employees::join('employee_shifts', 'employees.id', '=', 'employee_shifts.employee_id')
+                ->whereIn('employees.rol_id', $operationalRoles)
                 ->whereDate('employee_shifts.date', $today)
                 ->whereNotNull('employee_shifts.shift')
                 ->where('employee_shifts.shift', '!=', '') // Campo no vacío
@@ -439,7 +444,8 @@ class TurnController extends Controller
                     'L',  // Libre (descanso)
                     'V',  // Vacaciones
                     'LM', // Licencia Médica
-                    'S'   // Sindical
+                    'S',  // Sindical
+                    'A'   // Administrativo
                 ])
                 ->selectRaw('employees.rol_id, count(*) as total')
                 ->groupBy('employees.rol_id')
@@ -449,7 +455,7 @@ class TurnController extends Controller
 
             // Obtener nombres de roles dinámicamente
             $roles = \App\Models\Rol::all()->pluck('nombre', 'id')->toArray();
-            
+
             // Mapear roles dinámicamente
             $roleMap = [];
             foreach ($roles as $roleId => $roleName) {
@@ -481,9 +487,10 @@ class TurnController extends Controller
                 'date' => $today->format('Y-m-d'),
                 'message' => $stats['totals']['total'] === 0 ? 'No hay empleados registrados' : null,
                 'definitions' => [
-                    'total' => 'Todos los empleados registrados en el sistema',
-                    'activos' => 'Empleados con turno asignado hoy (incluyendo descansos F, L)',
-                    'trabajandoHoy' => 'Empleados trabajando hoy (excluye F, L, V, LM, S)'
+                    'total' => 'Todos los empleados operativos registrados en el sistema',
+                    'activos' => 'Empleados operativos con turno asignado hoy (incluyendo descansos F, L)',
+                    'trabajandoHoy' => 'Empleados operativos trabajando hoy (excluye F, L, V, LM, S, A)',
+                    'operational_roles' => 'Solo se cuentan roles operativos: Patrullaje y Proximidad (1), Fiscalización (2), Motorizado (3), Dron (5), Ciclopatrullaje (6), Despachadores (8)'
                 ]
             ]);
 
@@ -513,8 +520,11 @@ class TurnController extends Controller
         try {
             $today = Carbon::today();
 
-            // Obtener todos los empleados
-            $employees = Employees::all();
+            // Definir roles operativos (solo estos se contarán en el dashboard)
+            $operationalRoles = [1, 2, 3, 5, 6, 8]; // Alerta Móvil, Fiscalización, Motorizado, Dron, Ciclopatrullaje, Despachadores
+
+            // Obtener solo empleados de roles operativos
+            $employees = Employees::whereIn('rol_id', $operationalRoles)->get();
 
             // Obtener los turnos de hoy
             $todayShifts = EmployeeShifts::whereDate('date', $today)->get();
@@ -596,12 +606,22 @@ class TurnController extends Controller
                     $counts['ausente']['total']++;
                     $counts['ausente']['byRole'][$roleId]++;
 
+                } elseif ($todayShift->shift === 'A') {
+                    // Turno administrativo = AUSENTE (no operativo)
+                    $status['ausente'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'rol_id' => $roleId,
+                        'shift' => $todayShift->shift,
+                        'shift_label' => 'Día Administrativo'
+                    ];
+                    $counts['ausente']['total']++;
+                    $counts['ausente']['byRole'][$roleId]++;
                 } else {
-                    // Trabajando = ACTIVO (M, T, N, 1, 2, 3, A)
+                    // Trabajando = ACTIVO (M, T, N, 1, 2, 3)
                     $shiftLabels = [
                         'M' => 'Mañana', 'T' => 'Tarde', 'N' => 'Noche',
-                        '1' => '1er Turno', '2' => '2do Turno', '3' => '3er Turno',
-                        'A' => 'Administrativo'
+                        '1' => '1er Turno', '2' => '2do Turno', '3' => '3er Turno'
                     ];
 
                     $status['trabajando'][] = [
@@ -643,12 +663,13 @@ class TurnController extends Controller
                     'roles' => $roles
                 ],
                 'definitions' => [
-                    'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3, A',
+                    'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3',
                     'descanso' => 'Descansos programados: F (Franco), L (Libre)',
-                    'ausente' => 'Ausencias programadas: V (Vacaciones), LM (Licencia Médica), S (Sindical)',
+                    'ausente' => 'Ausencias programadas: V (Vacaciones), LM (Licencia Médica), S (Sindical), A (Día Administrativo)',
                     'sinTurno' => 'Sin turno asignado = NO ACTIVOS hoy',
                     'activos' => 'trabajando + descanso + ausente (tienen turno asignado)',
-                    'inactivos' => 'sinTurno (no tienen turno asignado)'
+                    'inactivos' => 'sinTurno (no tienen turno asignado)',
+                    'operational_roles' => 'Solo se cuentan roles operativos: Alerta Móvil (1), Fiscalización (2), Motorizado (3), Dron (5), Ciclopatrullaje (6), Despachadores (8)'
                 ]
             ]);
 

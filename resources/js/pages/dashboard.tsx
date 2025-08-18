@@ -72,12 +72,11 @@ interface RoleColumnProps {
 
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
 
-    console.log(roleName);
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
-    // Solo empleados trabajando (no mostrar descanso)
-    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3', 'A'].includes(emp.shift));
+    // Solo empleados trabajando (excluir turno administrativo A)
+    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
 
     // Agrupar por turnos
     const turnosMañanaTardeNoche = {
@@ -92,9 +91,9 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
         '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
     };
 
-    const turnoAdministrativo = {
-        A: { label: 'Administrativo', emoji: '💼', employees: trabajando.filter((emp) => emp.shift === 'A') },
-    };
+    // const turnoAdministrativo = {
+    //     A: { label: 'Administrativo', emoji: '💼', employees: trabajando.filter((emp) => emp.shift === 'A') },
+    // };
 
     const [showAll, setShowAll] = useState(true);
 
@@ -104,8 +103,8 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                 <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
                     <UserCheck className="h-5 w-5" />
                     {roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName}
-                    <Badge variant="secondary" className="ml-auto">
-                        {trabajando.length}
+                    <Badge variant="secondary" className="ml-auto text-xs font-light p-2 justify-between items-center">
+                        Total:   {trabajando.length}
                     </Badge>
                 </CardTitle>
             </CardHeader>
@@ -131,13 +130,13 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                         )}
 
                         {/* Turno Administrativo */}
-                        {turnoAdministrativo.A.employees.length > 0 && (
+                        {/* {turnoAdministrativo.A.employees.length > 0 && (
                             <TurnoSection
                                 title={`${turnoAdministrativo.A.emoji} ${turnoAdministrativo.A.label}`}
                                 employees={turnoAdministrativo.A.employees}
                                 showAll={showAll}
                             />
-                        )}
+                        )} */}
 
                         {/* {trabajando.length > 8 && (
                             <button
@@ -172,8 +171,8 @@ function TurnoSection({ title, employees, showAll }: TurnoSectionProps) {
 
     return (
         <div className="space-y-2">
-            <h5 className="rounded-lg border bg-green-100 px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
-                {title} ({employees.length})
+            <h5 className="rounded-lg border bg-green-100 flex flex-row justify-center gap-2 items-center px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
+                {title} <p className="text-xs font-light">({employees.length})</p>
             </h5>
             <div className="space-y-1">
                 {displayEmployees.map((employee) => (
@@ -210,7 +209,10 @@ interface BottomSectionProps {
 
 function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderColor, textColor, roles }: BottomSectionProps) {
     const [showAll, setShowAll] = useState(false);
-    const displayEmployees = showAll ? employees : employees.slice(0, 6);
+
+    // Para "Sin Turno Asignado" mostrar solo 4, para otros mostrar 6
+    const initialCount = title === "Sin Turno Asignado" ? 4 : 6;
+    const displayEmployees = showAll ? employees : employees.slice(0, initialCount);
 
     return (
         <Card>
@@ -247,14 +249,26 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
                                 {employee.reason && <span className="text-xs text-muted-foreground dark:text-slate-400">{employee.reason}</span>}
                             </div>
                         ))}
-                        {/* {employees.length > 6 && (
+
+                        {/* Botón dropdown solo para "Sin Turno Asignado" */}
+                        {title === "Sin Turno Asignado" && employees.length > 4 && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
-                                className="text-sm text-primary hover:underline mt-2"
+                                className="w-full mt-3 p-2 text-sm text-gray-600 dark:text-slate-400 hover:text-gray-800 dark:hover:text-slate-200 border border-gray-200 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700/30 transition-colors"
                             >
-                                {showAll ? 'Ver menos' : `Ver ${employees.length - 6} más...`}
+                                {showAll ? (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <span>Ocultar empleados</span>
+                                        <span className="text-xs">({employees.length - 4} menos)</span>
+                                    </span>
+                                ) : (
+                                    <span className="flex items-center justify-center gap-2">
+                                        <span>Ver todos los empleados</span>
+                                        <span className="text-xs">({employees.length - 4} más)</span>
+                                    </span>
+                                )}
                             </button>
-                        )} */}
+                        )}
                     </div>
                 )}
             </CardContent>

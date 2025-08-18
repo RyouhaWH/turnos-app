@@ -6,6 +6,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import {
+    Plane,
     Car,
     Users,
     Bike,
@@ -26,7 +27,6 @@ import {
     Search,
     Radio,
     Zap,
-    Plane,
     UserCheck2,
     CircleDot
 } from 'lucide-react';
@@ -40,6 +40,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Dashboard() {
     const { stats, roles, loading, error, message, refetch } = useDashboardStats();
+
+    console.log(roles);
 
     if (error) {
         return (
@@ -73,12 +75,9 @@ export default function Dashboard() {
                         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                             {/* Title Section */}
                             <div className="flex items-start gap-4">
-                                {/* <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
-                                    <Shield className="h-7 w-7 text-white" />
-                                </div> */}
                                 <div>
                                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                                        Centro de Control
+                                        Centro de roles de funcionarios
                                     </h1>
                                     <p className="text-slate-600 dark:text-slate-400 mt-1">
                                         Gestión centralizada de turnos y personal operativo
@@ -97,8 +96,8 @@ export default function Dashboard() {
                             </div>
 
                             {/* Quick Stats */}
-                            <div className="flex flex-wrap gap-4">
-                                <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-800/40 dark:to-emerald-700/40 border-0 shadow-lg dark:shadow-slate-900/20">
+                            <div className="flex gap-4 h-auto">
+                                {/* <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 dark:from-emerald-800/40 dark:to-emerald-700/40 border-0 shadow-lg dark:shadow-slate-900/20">
                                     <CardContent className="flex items-center gap-3 p-4">
                                         <div className="p-2 bg-white/20 dark:bg-emerald-700/40 rounded-lg">
                                             <UserCheck className="h-5 w-5 text-white dark:text-emerald-200" />
@@ -110,10 +109,10 @@ export default function Dashboard() {
                                             <p className="text-emerald-100 dark:text-emerald-200 text-sm">Personal Activo</p>
                                         </div>
                                     </CardContent>
-                                </Card>
+                                </Card> */}
 
-                                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-800/40 dark:to-blue-700/40 border-0 shadow-lg dark:shadow-slate-900/20">
-                                    <CardContent className="flex items-center gap-3 p-4">
+                                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 dark:from-blue-800/40 dark:to-blue-700/40 border-0 shadow-lg dark:shadow-slate-900/2 max-h-22">
+                                    <CardContent className="flex items-center gap-3 p-4 h-auto">
                                         <div className="p-2 bg-white/20 dark:bg-blue-700/40 rounded-lg">
                                             <Users className="h-5 w-5 text-white dark:text-blue-200" />
                                         </div>
@@ -126,7 +125,7 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
 
-                                <Card className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-800/40 dark:to-amber-700/40 border-0 shadow-lg dark:shadow-slate-900/20">
+                                <Card className="bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-800/40 dark:to-amber-700/40 border-0 shadow-lg dark:shadow-slate-900/20 max-h-22">
                                     <CardContent className="flex items-center gap-3 p-4">
                                         <div className="p-2 bg-white/20 dark:bg-amber-700/40 rounded-lg">
                                             <TrendingUp className="h-5 w-5 text-white dark:text-amber-200" />
@@ -189,7 +188,7 @@ export default function Dashboard() {
                                     const getRoleColors = (roleName: string) => {
                                         const lowerRoleName = roleName.toLowerCase();
 
-                                        if (lowerRoleName.includes('patrullaje') || lowerRoleName.includes('proximidad') || lowerRoleName.includes('alerta móvil')) {
+                                        if (lowerRoleName.includes('proximidad') ) {
                                             return {
                                                 from: 'from-red-500', to: 'to-red-600',
                                                 darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40',
@@ -207,13 +206,13 @@ export default function Dashboard() {
                                                 statsBg: 'bg-amber-50', statsText: 'text-amber-600',
                                                 icon: 'UserCheck2'
                                             };
-                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('ciclopatrullaje')) {
+                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('Ciclopatrullaje')) {
                                             return {
-                                                from: 'from-emerald-500', to: 'to-emerald-600',
-                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
-                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
-                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
-                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
+                                                from: 'from-purple-500', to: 'to-purple-600',
+                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40',
+                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200',
+                                                buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
+                                                statsBg: 'bg-purple-50', statsText: 'text-purple-600',
                                                 icon: 'Bike'
                                             };
                                         } else if (lowerRoleName.includes('motorizado')) {
@@ -223,7 +222,7 @@ export default function Dashboard() {
                                                 bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
                                                 buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
                                                 statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
-                                                icon: 'Car'
+                                                icon: 'Bike'
                                             };
                                         } else if (lowerRoleName.includes('dron') || lowerRoleName.includes('drone')) {
                                             return {
@@ -234,25 +233,7 @@ export default function Dashboard() {
                                                 statsBg: 'bg-sky-50', statsText: 'text-sky-600',
                                                 icon: 'Plane'
                                             };
-                                        } else if (lowerRoleName.includes('investigación') || lowerRoleName.includes('investigacion')) {
-                                            return {
-                                                from: 'from-purple-500', to: 'to-purple-600',
-                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40',
-                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200',
-                                                buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
-                                                statsBg: 'bg-purple-50', statsText: 'text-purple-600',
-                                                icon: 'Search'
-                                            };
-                                        } else if (lowerRoleName.includes('comunicaciones') || lowerRoleName.includes('radio')) {
-                                            return {
-                                                from: 'from-blue-500', to: 'to-blue-600',
-                                                darkFrom: 'dark:from-blue-700/40', darkTo: 'dark:to-blue-600/40',
-                                                bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200',
-                                                buttonFrom: 'from-blue-600', buttonTo: 'to-blue-700',
-                                                statsBg: 'bg-blue-50', statsText: 'text-blue-600',
-                                                icon: 'Radio'
-                                            };
-                                        } else {
+                                        }  else {
                                             // Color por defecto para roles no especificados
                                             const defaultColors = [
                                                 { from: 'from-indigo-500', to: 'to-indigo-600', darkFrom: 'dark:from-indigo-700/40', darkTo: 'dark:to-indigo-600/40', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', buttonFrom: 'from-indigo-600', buttonTo: 'to-indigo-700', statsBg: 'bg-indigo-50', statsText: 'text-indigo-600', icon: 'Users' },
@@ -294,19 +275,19 @@ export default function Dashboard() {
                                                 </CardDescription>
                                             </CardHeader>
                                             <CardContent className="space-y-4">
-                                                <div className="grid grid-cols-3 gap-3 text-center">
+                                                <div className="grid grid-cols-2 gap-3 text-center ">
                                                     <div className={`p-3 ${colors.statsBg} dark:bg-slate-700/30 rounded-lg`}>
                                                         <p className={`text-xl font-bold ${colors.statsText} dark:text-slate-200`}>
                                                             {loading ? '...' : roleStats.total}
                                                         </p>
                                                         <p className={`text-xs ${colors.statsText}/70 dark:text-slate-400`}>Total</p>
                                                     </div>
-                                                    <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
+                                                    {/* <div className="p-3 bg-green-50 dark:bg-slate-700/30 rounded-lg">
                                                         <p className="text-xl font-bold text-green-600 dark:text-slate-200">
                                                             {loading ? '...' : roleStats.activos}
                                                         </p>
                                                         <p className="text-xs text-green-600/70 dark:text-slate-400">Activos</p>
-                                                    </div>
+                                                    </div> */}
                                                     <div className="p-3 bg-blue-50 dark:bg-slate-700/30 rounded-lg">
                                                         <p className="text-xl font-bold text-blue-600 dark:text-slate-200">
                                                             {loading ? '...' : roleStats.trabajandoHoy}
