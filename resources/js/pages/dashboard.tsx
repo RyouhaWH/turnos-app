@@ -547,7 +547,7 @@ export default function DashboardV2() {
                             {/* Title Section */}
                             <div className="flex w-full items-start justify-between gap-4">
                                 <div className="flex-1 text-center">
-                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios (v2)</h1>
+                                    <h1 className="text-2xl font-bold">Plantilla de Funcionarios</h1>
                                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
                                         <span>{selectedDateFormatted}</span>
