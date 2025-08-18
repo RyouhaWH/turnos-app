@@ -81,8 +81,8 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     // Agrupar por turnos
     const turnosMañanaTardeNoche = {
         M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
-        T: { label: 'Tarde', emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
-        N: { label: 'Noche', emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
+        T: { label: 'Tarde' , emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
+        N: { label: 'Noche' , emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
     };
 
     const turnosNumericos = {
@@ -91,9 +91,6 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
         '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
     };
 
-    // const turnoAdministrativo = {
-    //     A: { label: 'Administrativo', emoji: '💼', employees: trabajando.filter((emp) => emp.shift === 'A') },
-    // };
 
     const [showAll, setShowAll] = useState(true);
 
@@ -128,24 +125,6 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                                     <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
                                 ),
                         )}
-
-                        {/* Turno Administrativo */}
-                        {/* {turnoAdministrativo.A.employees.length > 0 && (
-                            <TurnoSection
-                                title={`${turnoAdministrativo.A.emoji} ${turnoAdministrativo.A.label}`}
-                                employees={turnoAdministrativo.A.employees}
-                                showAll={showAll}
-                            />
-                        )} */}
-
-                        {/* {trabajando.length > 8 && (
-                            <button
-                                onClick={() => setShowAll(!showAll)}
-                                className="text-xs text-primary hover:underline mt-2"
-                            >
-                                {showAll ? 'Ver menos' : `Ver ${trabajando.length - 8} más...`}
-                            </button>
-                        )} */}
                     </div>
                 )}
             </CardContent>
