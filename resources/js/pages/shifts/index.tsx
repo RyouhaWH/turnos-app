@@ -181,7 +181,8 @@ export default function Dashboard() {
                                         const lowerRoleName = roleName.toLowerCase();
                                         return !lowerRoleName.includes('administrativo') &&
                                                !lowerRoleName.includes('servicio') &&
-                                               !lowerRoleName.includes('personal de servicio');
+                                               !lowerRoleName.includes('personal de servicio') &&
+                                               !lowerRoleName.includes('desvinculado');
                                     })
                                     .map(([roleId, roleName], index) => {
                                     // Mapeo de colores específicos por rol

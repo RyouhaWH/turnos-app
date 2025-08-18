@@ -315,10 +315,42 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // Vista principal
         Route::get('/platform-data', function () {
             $roles = \App\Models\Rol::all();
+            $empleados = \App\Models\Employees::with('rol')->get()->map(function($empleado) {
+                return [
+                    'id' => $empleado->id,
+                    'name' => $empleado->name,
+                    'rut' => $empleado->rut,
+                    'phone' => $empleado->phone,
+                    'rol_id' => $empleado->rol_id,
+                    'rol_nombre' => $empleado->rol->nombre ?? 'Sin rol',
+                    'created_at' => $empleado->created_at,
+                    'updated_at' => $empleado->updated_at,
+                ];
+            });
+
             return Inertia::render('settings/platform-data', [
-                'roles' => $roles
+                'roles' => $roles,
+                'empleados' => $empleados
             ]);
         })->name('platform-data');
+
+        // Rutas para empleados
+        Route::prefix('platform-data/employees')->group(function () {
+            // Actualizar rol de empleado
+            Route::put('/{id}', function (Request $request, $id) {
+                $empleado = \App\Models\Employees::findOrFail($id);
+
+                $request->validate([
+                    'rol_id' => 'required|integer|exists:rols,id'
+                ]);
+
+                $empleado->update([
+                    'rol_id' => $request->rol_id
+                ]);
+
+                return redirect()->back()->with('success', 'Empleado actualizado correctamente');
+            });
+        });
 
         // Rutas para roles
         Route::prefix('platform-data/roles')->group(function () {

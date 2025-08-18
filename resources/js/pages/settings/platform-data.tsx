@@ -8,16 +8,18 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { 
-    Settings, 
-    Users, 
-    Building2, 
+import {
+    Settings,
+    Users,
+    Building2,
     Calendar,
     Plus,
     Edit,
     Trash2,
     Save,
-    X
+    X,
+    UserCheck,
+    Search
 } from 'lucide-react';
 
 interface Rol {
@@ -27,25 +29,64 @@ interface Rol {
     updated_at: string;
 }
 
+interface Empleado {
+    id: number;
+    name: string;
+    rut: string;
+    phone: string;
+    rol_id: number;
+    rol_nombre: string;
+    created_at: string;
+    updated_at: string;
+}
+
 interface PlatformData {
     roles: Rol[];
+    empleados: Empleado[];
     // Aquí podemos agregar más tipos de datos según necesites
 }
 
-export default function PlatformData({ roles }: { roles: Rol[] }) {
-    const [data, setData] = useState<PlatformData>({ roles: roles || [] });
+export default function PlatformData({ roles, empleados }: { roles: Rol[], empleados?: Empleado[] }) {
+    const [data, setData] = useState<PlatformData>({
+        roles: roles || [],
+        empleados: empleados || []
+    });
     const [editingRole, setEditingRole] = useState<number | null>(null);
     const [newRole, setNewRole] = useState({ nombre: '' });
     const [isAddingRole, setIsAddingRole] = useState(false);
+
+    // Estados para empleados
+    const [editingEmployee, setEditingEmployee] = useState<number | null>(null);
+    const [searchEmployee, setSearchEmployee] = useState('');
+    const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
 
     // Guardar rol
     const saveRole = (roleId: number, roleData: { nombre: string }) => {
         router.put(`/platform-data/roles/${roleId}`, roleData, {
             onSuccess: () => {
-                toast.success('Rol actualizado correctamente');
+                // Actualizar el estado local inmediatamente
+                const updatedRoles = data.roles.map(role => {
+                    if (role.id === roleId) {
+                        return { ...role, nombre: roleData.nombre };
+                    }
+                    return role;
+                });
+
+                // También actualizar empleados que usen este rol
+                const updatedEmployees = data.empleados.map(emp => {
+                    if (emp.rol_id === roleId) {
+                        return { ...emp, rol_nombre: roleData.nombre };
+                    }
+                    return emp;
+                });
+
+                setData(prev => ({
+                    ...prev,
+                    roles: updatedRoles,
+                    empleados: updatedEmployees
+                }));
                 setEditingRole(null);
-                // Recargar la página para obtener los datos actualizados
-                router.reload();
+                toast.success('Rol actualizado correctamente');
             },
             onError: (errors) => {
                 toast.error('Error al actualizar rol');
@@ -82,11 +123,11 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
 
         router.post('/platform-data/roles', newRole, {
             onSuccess: () => {
-                toast.success('Rol creado correctamente');
+                // Recargar la página para obtener el nuevo rol con ID correcto
+                router.reload();
                 setNewRole({ nombre: '' });
                 setIsAddingRole(false);
-                // Recargar la página para obtener los datos actualizados
-                router.reload();
+                toast.success('Rol creado correctamente');
             },
             onError: (errors) => {
                 toast.error('Error al crear rol');
@@ -95,10 +136,47 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
         });
     };
 
+    // Guardar empleado
+    const saveEmployee = (employeeId: number, employeeData: { rol_id: number }) => {
+        router.put(`/platform-data/employees/${employeeId}`, employeeData, {
+            onSuccess: () => {
+                // Actualizar el estado local inmediatamente
+                const updatedEmployees = data.empleados.map(emp => {
+                    if (emp.id === employeeId) {
+                        const newRol = data.roles.find(role => role.id === employeeData.rol_id);
+                        return {
+                            ...emp,
+                            rol_id: employeeData.rol_id,
+                            rol_nombre: newRol?.nombre || 'Sin rol'
+                        };
+                    }
+                    return emp;
+                });
+
+                setData(prev => ({ ...prev, empleados: updatedEmployees }));
+                setEditingEmployee(null);
+                toast.success('Empleado actualizado correctamente');
+            },
+            onError: (errors) => {
+                toast.error('Error al actualizar empleado');
+                console.error('Errores:', errors);
+            }
+        });
+    };
+
+    // Filtrar empleados
+    useEffect(() => {
+        const filtered = data.empleados.filter(employee =>
+            employee.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+            (employee.rut && employee.rut.includes(searchEmployee))
+        );
+        setFilteredEmployees(filtered);
+    }, [searchEmployee, data.empleados]);
+
     return (
         <AppLayout>
             <Head title="Datos de Plataforma" />
-            
+
             <div className="container mx-auto py-6 space-y-6">
                 {/* Header */}
                 <div className="flex items-center justify-between">
@@ -117,10 +195,14 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
 
                 {/* Tabs */}
                 <Tabs defaultValue="roles" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="roles" className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             Roles
+                        </TabsTrigger>
+                        <TabsTrigger value="employees" className="flex items-center gap-2">
+                            <UserCheck className="h-4 w-4" />
+                            Empleados
                         </TabsTrigger>
                         <TabsTrigger value="departments" className="flex items-center gap-2">
                             <Building2 className="h-4 w-4" />
@@ -143,7 +225,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                             Gestiona los roles disponibles para asignar turnos
                                         </CardDescription>
                                     </div>
-                                    <Button 
+                                    <Button
                                         onClick={() => setIsAddingRole(true)}
                                         className="flex items-center gap-2"
                                     >
@@ -171,8 +253,8 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                     <Save className="h-4 w-4" />
                                                     Guardar
                                                 </Button>
-                                                <Button 
-                                                    variant="outline" 
+                                                <Button
+                                                    variant="outline"
                                                                                                          onClick={() => {
                                                          setIsAddingRole(false);
                                                          setNewRole({ nombre: '' });
@@ -200,7 +282,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                                  id={`role-name-${role.id}`}
                                                                  defaultValue={role.nombre}
                                                                  onChange={(e) => {
-                                                                     const updatedRoles = data.roles.map(r => 
+                                                                     const updatedRoles = data.roles.map(r =>
                                                                          r.id === role.id ? { ...r, nombre: e.target.value } : r
                                                                      );
                                                                      setData(prev => ({ ...prev, roles: updatedRoles }));
@@ -208,7 +290,7 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                              />
                                                          </div>
                                                          <div className="flex gap-2">
-                                                            <Button 
+                                                            <Button
                                                                 onClick={() => {
                                                                     const roleData = data.roles.find(r => r.id === role.id);
                                                                                                                                          if (roleData) {
@@ -222,8 +304,8 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                                                 <Save className="h-4 w-4" />
                                                                 Guardar
                                                             </Button>
-                                                            <Button 
-                                                                variant="outline" 
+                                                            <Button
+                                                                variant="outline"
                                                                 onClick={() => setEditingRole(null)}
                                                                 className="flex items-center gap-2"
                                                             >
@@ -267,6 +349,129 @@ export default function PlatformData({ roles }: { roles: Rol[] }) {
                                             </CardContent>
                                         </Card>
                                     ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Employees Tab */}
+                    <TabsContent value="employees" className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle>Gestión de Empleados</CardTitle>
+                                        <CardDescription>
+                                            Cambia el rol/facción de los funcionarios
+                                        </CardDescription>
+                                    </div>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {/* Buscador */}
+                                <div className="mb-6">
+                                    <div className="relative">
+                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                        <Input
+                                            placeholder="Buscar por nombre (RUT opcional)..."
+                                            value={searchEmployee}
+                                            onChange={(e) => setSearchEmployee(e.target.value)}
+                                            className="pl-10"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Lista de empleados */}
+                                <div className="space-y-4">
+                                    {filteredEmployees.map((employee) => (
+                                        <Card key={employee.id} className="border">
+                                            <CardContent className="pt-6">
+                                                {editingEmployee === employee.id ? (
+                                                    <div>
+                                                        <div className="mb-4">
+                                                            <Label htmlFor={`employee-role-${employee.id}`}>Rol/Facción</Label>
+                                                            <select
+                                                                id={`employee-role-${employee.id}`}
+                                                                className="w-full p-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                defaultValue={employee.rol_id}
+                                                                onChange={(e) => {
+                                                                    const updatedEmployees = data.empleados.map(emp =>
+                                                                        emp.id === employee.id ? { ...emp, rol_id: parseInt(e.target.value) } : emp
+                                                                    );
+                                                                    setData(prev => ({ ...prev, empleados: updatedEmployees }));
+                                                                }}
+                                                            >
+                                                                {data.roles.map((role) => (
+                                                                    <option key={role.id} value={role.id}>
+                                                                        {role.nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : role.nombre}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                onClick={() => {
+                                                                    const employeeData = data.empleados.find(emp => emp.id === employee.id);
+                                                                    if (employeeData) {
+                                                                        saveEmployee(employee.id, {
+                                                                            rol_id: employeeData.rol_id
+                                                                        });
+                                                                    }
+                                                                }}
+                                                                className="flex items-center gap-2"
+                                                            >
+                                                                <Save className="h-4 w-4" />
+                                                                Guardar
+                                                            </Button>
+                                                            <Button
+                                                                variant="outline"
+                                                                onClick={() => setEditingEmployee(null)}
+                                                                className="flex items-center gap-2"
+                                                            >
+                                                                <X className="h-4 w-4" />
+                                                                Cancelar
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex-1">
+                                                            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">{employee.name}</h3>
+                                                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                                <span>RUT: {employee.rut || 'Sin RUT'}</span>
+                                                                <span>•</span>
+                                                                <span>Tel: {employee.phone || 'Sin teléfono'}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2">
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    {employee.rol_nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : employee.rol_nombre}
+                                                                </Badge>
+                                                                <span className="text-xs text-gray-400">ID: {employee.id}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setEditingEmployee(employee.id)}
+                                                                className="flex items-center gap-2"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                                Cambiar Rol
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+
+                                    {filteredEmployees.length === 0 && (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                            <p>No se encontraron empleados</p>
+                                        </div>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
