@@ -116,7 +116,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
-            $numeroJulioSarmiento,
+            //$numeroJulioSarmiento,
             //$numeroCentralDespacho,
         ];
 
@@ -124,6 +124,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $mes        = $request->input('mes', now()->month);
         $año       = $request->input('año', now()->year);
         $actualUser = Auth::id();
+
+        // Array para agrupar cambios por funcionario
+        $cambiosPorFuncionario = [];
 
         // Verificamos si vienen cambios
         if (! is_array($cambios) || empty($cambios)) {
@@ -201,6 +204,40 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 'new_shift'         => '',
                                 'comment'           => 'Turno eliminado desde plataforma',
                             ]);
+
+                            // Almacenar eliminación para mensaje consolidado
+                            if (!isset($cambiosPorFuncionario[$empleado->id])) {
+                                $cambiosPorFuncionario[$empleado->id] = [
+                                    'nombre' => $empleado->name,
+                                    'telefono' => $empleado->phone,
+                                    'cambios' => []
+                                ];
+                            }
+
+                            $turnoAnterior = match ($turnoActual->shift) {
+                                'PE'    => 'Patrulla Escolar',
+                                'A'     => 'Administrativo',
+                                'LM'    => 'Licencia Médica',
+                                'S'     => 'Día Sindical',
+                                'M'     => 'Mañana',
+                                'T'     => 'Tarde',
+                                'N'     => 'Noche',
+                                'F'     => 'Franco',
+                                'L'     => 'Libre',
+                                '1'     => 'Primer Turno',
+                                '2'     => 'Segundo Turno',
+                                '3'     => 'Tercer Turno',
+                                null    => 'Sin Turno',
+                                ''      => 'Sin Turno',
+                                ' '     => 'Sin Turno',
+                                default => 'Desconocido',
+                            };
+
+                            $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
+                                'fecha' => $fecha,
+                                'turno_anterior' => $turnoAnterior,
+                                'turno_nuevo' => 'Sin Turno'
+                            ];
 
                             // Eliminar el turno
                             $turnoActual->delete();
@@ -284,25 +321,81 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             default => 'Desconocido',
                         };
 
-                        foreach ($numerosAReportarCambios as $numero) {
-
-                            $response = Http::post('http://localhost:3001/send-message', [
-                                'mensaje' => "Se ha actualizado el turno de *{$empleado->name}* del *$fecha* a *$shiftComplete*",
-
-                                'numero'  => "56" . $numero,
-                            ]);
+                        // Almacenar cambio para mensaje consolidado
+                        if (!isset($cambiosPorFuncionario[$empleado->id])) {
+                            $cambiosPorFuncionario[$empleado->id] = [
+                                'nombre' => $empleado->name,
+                                'telefono' => $empleado->phone,
+                                'cambios' => []
+                            ];
                         }
+
+                        $turnoAnterior = $turnoActual ? match ($turnoActual->shift) {
+                            'PE'    => 'Patrulla Escolar',
+                            'A'     => 'Administrativo',
+                            'LM'    => 'Licencia Médica',
+                            'S'     => 'Día Sindical',
+                            'M'     => 'Mañana',
+                            'T'     => 'Tarde',
+                            'N'     => 'Noche',
+                            'F'     => 'Franco',
+                            'L'     => 'Libre',
+                            '1'     => 'Primer Turno',
+                            '2'     => 'Segundo Turno',
+                            '3'     => 'Tercer Turno',
+                            null    => 'Sin Turno',
+                            ''      => 'Sin Turno',
+                            ' '     => 'Sin Turno',
+                            default => 'Desconocido',
+                        } : 'Sin Turno';
+
+                        $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
+                            'fecha' => $fecha,
+                            'turno_anterior' => $turnoAnterior,
+                            'turno_nuevo' => $shiftComplete
+                        ];
 
                     }
                 }
             }
 
-            // Enviar mensaje de separador
-            foreach ($numerosAReportarCambios as $numero) {
-                $response = Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => "-------------",
-                    'numero'  => "56" . $numero,
-                ]);
+            // Enviar mensajes consolidados por funcionario
+            foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
+                if (empty($datosFuncionario['cambios'])) {
+                    continue;
+                }
+
+                // Construir mensaje consolidado
+                $mensaje = "Se ha modificado el turno de: *{$datosFuncionario['nombre']}* los días:\n";
+
+                foreach ($datosFuncionario['cambios'] as $cambio) {
+                    $fechaFormateada = date('d/m/Y', strtotime($cambio['fecha']));
+                    $mensaje .= "• *{$fechaFormateada}* de \"*{$cambio['turno_anterior']}*\" a \"*{$cambio['turno_nuevo']}*\"\n";
+                }
+
+                // Enviar mensaje a los contactos de reporte
+                foreach ($numerosAReportarCambios as $numero) {
+                    $response = Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => $mensaje,
+                        'numero'  => "56" . $numero,
+                    ]);
+                }
+
+                // Enviar mensaje al funcionario si tiene teléfono
+                if ($datosFuncionario['telefono']) {
+                    $response = Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => $mensaje,
+                        'numero'  => "56" . $numeroJorgeWaltemath,
+                    ]);
+                }
+
+                // Enviar separador después de cada funcionario
+                foreach ($numerosAReportarCambios as $numero) {
+                    $response = Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => "-------------",
+                        'numero'  => "56" . $numero,
+                    ]);
+                }
             }
         }
 
