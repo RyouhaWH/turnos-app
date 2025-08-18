@@ -63,6 +63,7 @@ interface RoleColumnProps {
         id: number;
         name: string;
         rol_id: number;
+        amzoma?: boolean;
         shift?: string;
         shift_label?: string;
         reason?: string;
@@ -71,6 +72,10 @@ interface RoleColumnProps {
 }
 
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
+    // Si es Alerta Móvil, usar el componente especial
+    if (roleId === 1) {
+        return <AlertaMovilColumn roleId={roleId} roleName={roleName} employees={employees} roleColor={roleColor} />;
+    }
 
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
@@ -90,7 +95,6 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
         '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
         '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
     };
-
 
     const [showAll, setShowAll] = useState(true);
 
@@ -132,6 +136,143 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     );
 }
 
+// Componente especial para Alerta Móvil que separa por empresa
+function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
+    // Debug: Log para ver qué datos llegan
+    console.log('AlertaMovilColumn - roleId:', roleId);
+    console.log('AlertaMovilColumn - employees:', employees);
+
+    // Filtrar empleados por rol y solo mostrar los que están trabajando
+    const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
+    console.log('AlertaMovilColumn - roleEmployees:', roleEmployees);
+    console.log('AlertaMovilColumn - Total empleados recibidos:', employees.length);
+    console.log('AlertaMovilColumn - Empleados por rol_id:', employees.reduce((acc, emp) => {
+        acc[emp.rol_id] = (acc[emp.rol_id] || 0) + 1;
+        return acc;
+    }, {} as Record<number, number>));
+
+    // Solo empleados trabajando (excluir turno administrativo A)
+    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
+    console.log('AlertaMovilColumn - trabajando:', trabajando);
+
+    // Debug: Mostrar también todos los empleados del rol para verificar
+    console.log('AlertaMovilColumn - TODOS los empleados del rol:', roleEmployees);
+
+    // Debug: Ver valores de amzoma para cada empleado
+    console.log('AlertaMovilColumn - Valores de amzoma por empleado:');
+    trabajando.forEach(emp => {
+        console.log(`  ${emp.name}: amzoma = ${emp.amzoma} (tipo: ${typeof emp.amzoma})`);
+    });
+
+    // Separar por empresa - usar comparación más flexible para boolean
+    const amzomaEmployees = trabajando.filter((emp) => Boolean(emp.amzoma));
+    const noAmzomaEmployees = trabajando.filter((emp) => !Boolean(emp.amzoma));
+    console.log('AlertaMovilColumn - amzomaEmployees:', amzomaEmployees);
+    console.log('AlertaMovilColumn - noAmzomaEmployees:', noAmzomaEmployees);
+
+    // Agrupar por turnos para cada empresa
+    const agruparPorTurnos = (empleados: typeof trabajando) => {
+        const turnosMañanaTardeNoche = {
+            M: { label: 'Mañana', emoji: '🌅', employees: empleados.filter((emp) => emp.shift === 'M') },
+            T: { label: 'Tarde' , emoji: '🌇', employees: empleados.filter((emp) => emp.shift === 'T') },
+            N: { label: 'Noche' , emoji: '🌙', employees: empleados.filter((emp) => emp.shift === 'N') },
+        };
+
+        const turnosNumericos = {
+            '1': { label: '1er Turno', emoji: '1️⃣', employees: empleados.filter((emp) => emp.shift === '1') },
+            '2': { label: '2do Turno', emoji: '2️⃣', employees: empleados.filter((emp) => emp.shift === '2') },
+            '3': { label: '3er Turno', emoji: '3️⃣', employees: empleados.filter((emp) => emp.shift === '3') },
+        };
+
+        return { turnosMañanaTardeNoche, turnosNumericos };
+    };
+
+    const amzomaTurnos = agruparPorTurnos(amzomaEmployees);
+    const noAmzomaTurnos = agruparPorTurnos(noAmzomaEmployees);
+
+    const [showAll, setShowAll] = useState(true);
+
+    return (
+        <Card className="h-fit pb-6">
+            <CardHeader>
+                <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
+                    <UserCheck className="h-5 w-5" />
+                    Patrullaje y Proximidad
+                    <Badge variant="secondary" className="ml-auto text-xs font-light p-2 justify-between items-center">
+                        Total: {trabajando.length}
+                    </Badge>
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                {trabajando.length === 0 ? (
+                    <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Tabla con dos columnas */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Columna izquierda - No AMZOMA */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-300 border-b border-blue-200 pb-1">
+                                    Personal Municipal ({noAmzomaEmployees.length})
+                                </h4>
+                                {noAmzomaEmployees.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic">Sin personal municipal trabajando</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {/* Turnos Mañana, Tarde, Noche */}
+                                        {Object.entries(noAmzomaTurnos.turnosMañanaTardeNoche).map(
+                                            ([turno, data]) =>
+                                                data.employees.length > 0 && (
+                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                                ),
+                                        )}
+
+                                        {/* Turnos Numéricos */}
+                                        {Object.entries(noAmzomaTurnos.turnosNumericos).map(
+                                            ([turno, data]) =>
+                                                data.employees.length > 0 && (
+                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                                ),
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Columna derecha - AMZOMA */}
+                            <div className="space-y-3">
+                                <h4 className="text-sm font-semibold text-red-700 dark:text-red-300 border-b border-red-200 pb-1">
+                                    Personal AMZOMA ({amzomaEmployees.length})
+                                </h4>
+                                {amzomaEmployees.length === 0 ? (
+                                    <p className="text-xs text-muted-foreground italic">Sin personal AMZOMA trabajando</p>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {/* Turnos Mañana, Tarde, Noche */}
+                                        {Object.entries(amzomaTurnos.turnosMañanaTardeNoche).map(
+                                            ([turno, data]) =>
+                                                data.employees.length > 0 && (
+                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                                ),
+                                        )}
+
+                                        {/* Turnos Numéricos */}
+                                        {Object.entries(amzomaTurnos.turnosNumericos).map(
+                                            ([turno, data]) =>
+                                                data.employees.length > 0 && (
+                                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                                ),
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </CardContent>
+        </Card>
+    );
+}
+
 // Componente para mostrar empleados de un turno específico
 interface TurnoSectionProps {
     title: string;
@@ -139,6 +280,7 @@ interface TurnoSectionProps {
         id: number;
         name: string;
         rol_id: number;
+        amzoma?: boolean;
         shift?: string;
         shift_label?: string;
     }>;
@@ -173,6 +315,7 @@ interface BottomSectionProps {
         id: number;
         name: string;
         rol_id: number;
+        amzoma?: boolean;
         shift?: string;
         shift_label?: string;
         reason?: string;
@@ -405,15 +548,18 @@ export default function Dashboard() {
                                        !lowerRoleName.includes('servicio') &&
                                        !lowerRoleName.includes('personal de servicio');
                             })
-                            .map(([roleId, roleName]) => (
-                                <RoleColumn
-                                    key={roleId}
-                                    roleId={parseInt(roleId)}
-                                    roleName={roleName}
-                                    employees={employeeStatus.trabajando}
-                                    roleColor="text-red-700 dark:text-red-300"
-                                />
-                            ))}
+                            .map(([roleId, roleName]) => {
+                                console.log(`Renderizando rol ${roleId} (${roleName}) con ${employeeStatus.trabajando.length} empleados trabajando`);
+                                return (
+                                    <RoleColumn
+                                        key={roleId}
+                                        roleId={parseInt(roleId)}
+                                        roleName={roleName}
+                                        employees={employeeStatus.trabajando}
+                                        roleColor="text-red-700 dark:text-red-300"
+                                    />
+                                );
+                            })}
                     </div>
 
                     {/* Sección inferior: Ausentes y Sin Turno */}

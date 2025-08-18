@@ -4,6 +4,7 @@ interface Employee {
   id: number;
   name: string;
   rol_id: number;
+  amzoma?: boolean;
   shift?: string;
   shift_label?: string;
   reason?: string;
@@ -71,6 +72,8 @@ export const useEmployeeStatus = () => {
       const data: EmployeeStatusResponse = await response.json();
 
       if (data.success) {
+        console.log('useEmployeeStatus - Datos recibidos:', data.data);
+        console.log('useEmployeeStatus - Empleados trabajando:', data.data.status.trabajando);
         setEmployeeStatus(data.data.status);
         setCounts(data.data.counts);
         setTotalActivos(data.data.totalActivos);

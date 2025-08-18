@@ -6,6 +6,7 @@ use App\Models\EmployeeShifts;
 use App\Models\Rol;
 use App\Models\ShiftChangeLog;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -515,10 +516,11 @@ class TurnController extends Controller
     /**
      * Obtener detalles del estado de empleados por categorías
      */
-    public function getEmployeeStatus()
+    public function getEmployeeStatus(Request $request)
     {
         try {
-            $today = Carbon::today();
+            // Usar fecha de la request o hoy por defecto
+            $selectedDate = $request->get('date') ? Carbon::parse($request->get('date')) : Carbon::today();
 
             // Definir roles operativos (solo estos se contarán en el dashboard)
             $operationalRoles = [1, 2, 3, 5, 6, 8]; // Alerta Móvil, Fiscalización, Motorizado, Dron, Ciclopatrullaje, Despachadores
@@ -526,8 +528,8 @@ class TurnController extends Controller
             // Obtener solo empleados de roles operativos
             $employees = Employees::whereIn('rol_id', $operationalRoles)->get();
 
-            // Obtener los turnos de hoy
-            $todayShifts = EmployeeShifts::whereDate('date', $today)->get();
+            // Obtener los turnos de la fecha seleccionada
+            $todayShifts = EmployeeShifts::whereDate('date', $selectedDate)->get();
 
             $status = [
                 'trabajando' => [], // M, T, N, 1, 2, 3, A
@@ -571,6 +573,7 @@ class TurnController extends Controller
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
                         'reason' => 'Sin turno programado'
                     ];
                     $counts['sinTurno']['total']++;
@@ -582,6 +585,7 @@ class TurnController extends Controller
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
                         'shift_label' => $todayShift->shift === 'F' ? 'Franco' : 'Libre'
                     ];
@@ -600,6 +604,7 @@ class TurnController extends Controller
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
                         'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift
                     ];
@@ -612,6 +617,7 @@ class TurnController extends Controller
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
                         'shift_label' => 'Día Administrativo'
                     ];
@@ -628,6 +634,7 @@ class TurnController extends Controller
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
                         'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift
                     ];
@@ -652,9 +659,18 @@ class TurnController extends Controller
                 8 => 'Despachadores'
             ];
 
+            // Debug: Log para ver qué datos se están enviando
+            Log::info('getEmployeeStatus - Datos enviados:', [
+                'total_empleados' => $totalEmpleados,
+                'empleados_trabajando' => count($status['trabajando']),
+                'empleados_con_amzoma' => collect($status['trabajando'])->where('amzoma', true)->count(),
+                'empleados_sin_amzoma' => collect($status['trabajando'])->where('amzoma', false)->count(),
+                'sample_empleado' => $status['trabajando'][0] ?? 'No hay empleados trabajando'
+            ]);
+
             return response()->json([
                 'success' => true,
-                'date' => $today->format('Y-m-d'),
+                'date' => $selectedDate->format('Y-m-d'),
                 'data' => [
                     'status' => $status,
                     'counts' => $counts,
