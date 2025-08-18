@@ -3,7 +3,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { CardContent } from '@/components/ui/card';
-import { AlertCircle, ArrowRight, Calendar, CheckCircle2, Clock, UserIcon, Undo2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, Calendar, CheckCircle2, Clock, Undo2, UserIcon } from 'lucide-react';
 import React, { useState } from 'react';
 
 export type TurnoTipo = 'M' | 'T' | 'N';
@@ -35,7 +35,17 @@ interface Props {
     }>; // Historial de cambios
 }
 
-const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isCollapsed = false, selectedDate = new Date(), disabled = false, onUndoLastChange, onUndoSpecificChange, changeHistory = [] }) => {
+const ListaCambios: React.FC<Props> = ({
+    cambios,
+    onActualizar,
+    isProcesing,
+    isCollapsed = false,
+    selectedDate = new Date(),
+    disabled = false,
+    onUndoLastChange,
+    onUndoSpecificChange,
+    changeHistory = [],
+}) => {
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
@@ -214,8 +224,8 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
                 ) : (
                     <div className="space-y-4">
                         {/* Header con estadísticas y botón de deshacer */}
-                        <div className="flex items-center justify-between">
-                            <div className="grid grid-cols-2 gap-3">
+                        <div className="flex flex-col items-center justify-between gap-4">
+                            <div className="grid w-full grid-cols-2 gap-3">
                                 <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
                                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{totalCambios}</p>
                                     <p className="text-xs text-blue-600/70 dark:text-blue-400/70">Empleados</p>
@@ -225,14 +235,14 @@ const ListaCambios: React.FC<Props> = ({ cambios, onActualizar, isProcesing, isC
                                     <p className="text-xs text-green-600/70 dark:text-green-400/70">Turnos</p>
                                 </div>
                             </div>
-                            
+
                             {/* Botón de deshacer último cambio */}
                             {onUndoLastChange && changeHistory.length > 0 && (
                                 <Button
                                     onClick={onUndoLastChange}
                                     variant="outline"
                                     size="sm"
-                                    className="flex items-center gap-2 text-xs"
+                                    className="flex w-full items-center gap-2 py-4 text-xs"
                                     disabled={isProcesing}
                                 >
                                     <Undo2 className="h-3 w-3" />
