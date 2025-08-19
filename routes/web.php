@@ -100,7 +100,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
-
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
@@ -136,43 +135,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         foreach ($cambios as $employeeId => $fechas) {
-            foreach ($fechas as $dia => $turno) {
 
-                // El frontend envía el nombre normalizado como clave, no el ID
-                // Necesitamos buscar el empleado por nombre normalizado
-                $nombreNormalizado = $employeeId;
+            foreach ($fechas['turnos'] as $dia => $turno) {
 
-                // Buscar empleado con múltiples estrategias
-                $empleado = null;
-
-                // 1. Búsqueda exacta simple
-                $nombreBusqueda = strtolower(str_replace('_', ' ', $nombreNormalizado));
-                $empleado = Employees::whereRaw('LOWER(name) = ?', [$nombreBusqueda])->first();
-
-                // 2. Si no se encuentra, búsqueda por similitud
-                if (!$empleado) {
-                    $empleado = Employees::where('name', 'LIKE', '%' . str_replace('_', '%', $nombreNormalizado) . '%')->first();
-                }
-
-                // 3. Si aún no se encuentra, búsqueda por palabras individuales
-                if (!$empleado) {
-                    $palabras = explode('_', $nombreNormalizado);
-                    $empleado = Employees::where(function($query) use ($palabras) {
-                        foreach ($palabras as $palabra) {
-                            $query->where('name', 'LIKE', '%' . $palabra . '%');
-                        }
-                    })->first();
-                }
-
-                // 4. Si aún no se encuentra, búsqueda más flexible (cualquier palabra)
-                if (!$empleado) {
-                    $palabras = explode('_', $nombreNormalizado);
-                    $empleado = Employees::where(function($query) use ($palabras) {
-                        foreach ($palabras as $palabra) {
-                            $query->orWhere('name', 'LIKE', '%' . $palabra . '%');
-                        }
-                    })->first();
-                }
+                // El frontend ahora envía el ID real del empleado
+                $empleado = Employees::find($employeeId);
 
                 if (!$empleado) {
                     continue; // Saltar este empleado si no se encuentra
