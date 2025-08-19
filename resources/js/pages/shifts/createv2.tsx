@@ -112,7 +112,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
     };
 
-    const handleResumenUpdate = useCallback((ResumenCambios: Record<string, Record<string, string>>) => {
+    const handleResumenUpdate = useCallback((ResumenCambios: any) => {
         setResumen(ResumenCambios);
         setData((prev) => ({
             ...prev,
@@ -341,6 +341,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 // Resetear el flag después de un breve delay
                 setTimeout(() => setResetGrid(false), 100);
                 cargarTurnosPorMes(selectedDate);
+
+                // Refresh de la página después de un delay para asegurar que los datos se guarden
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             },
             onError: () => {
                 toast.error('Error al guardar cambios', {
