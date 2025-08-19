@@ -16,8 +16,15 @@ export interface CambiosPorFuncionario {
     [nombreCompleto: string]: CambiosPorFecha;
 }
 
+// Nueva interfaz para el nuevo formato de datos
+export interface CambioData {
+    rut: string;
+    nombre: string;
+    turnos: Record<string, string>;
+}
+
 interface Props {
-    cambios: CambiosPorFuncionario;
+    cambios: CambiosPorFuncionario | Record<string, CambioData>;
     onActualizar?: (comentario: string) => void;
     isProcesing: boolean;
     isCollapsed?: boolean;
@@ -46,6 +53,28 @@ const ListaCambios: React.FC<Props> = ({
     onUndoSpecificChange,
     changeHistory = [],
 }) => {
+    console.log(cambios);
+
+    // Función para normalizar los datos del nuevo formato al formato esperado
+    const normalizeCambios = (cambiosData: any): CambiosPorFuncionario => {
+        const normalized: CambiosPorFuncionario = {};
+
+        Object.entries(cambiosData).forEach(([key, value]) => {
+            if (typeof value === 'object' && value !== null && 'turnos' in value) {
+                // Nuevo formato: { rut, nombre, turnos }
+                const cambioData = value as CambioData;
+                normalized[cambioData.nombre] = cambioData.turnos;
+            } else if (typeof value === 'object' && value !== null) {
+                // Formato antiguo: { fecha: turno }
+                normalized[key] = value as CambiosPorFecha;
+            }
+        });
+
+        return normalized;
+    };
+
+    const cambiosNormalizados = normalizeCambios(cambios);
+
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
@@ -139,7 +168,7 @@ const ListaCambios: React.FC<Props> = ({
     };
 
     const renderCambios = () => {
-        return Object.entries(cambios).map(([nombre, turnosPorFecha]) => {
+        return Object.entries(cambiosNormalizados).map(([nombre, turnosPorFecha]) => {
             const fechasOrdenadas = Object.entries(turnosPorFecha).sort(
                 ([fechaA], [fechaB]) => new Date(fechaA).getTime() - new Date(fechaB).getTime(),
             );
@@ -205,8 +234,8 @@ const ListaCambios: React.FC<Props> = ({
         }
     };
 
-    const totalCambios = Object.keys(cambios).length;
-    const totalModificaciones = Object.values(cambios).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0);
+    const totalCambios = Object.keys(cambiosNormalizados).length;
+    const totalModificaciones = Object.values(cambiosNormalizados).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0);
 
     return (
         <div className="flex flex-col bg-white/90 dark:bg-slate-900/90">

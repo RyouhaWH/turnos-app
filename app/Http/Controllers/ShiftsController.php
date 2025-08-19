@@ -33,7 +33,6 @@ class ShiftsController extends Controller
     {
         $data = $this->getShiftsfromDB($id);
 
-
         //$data = empty($data) ? $this->getShiftsfromCSV() : $data;
 
         $formateado = array_values($data);
@@ -99,8 +98,9 @@ class ShiftsController extends Controller
         // Inicializar todos los empleados con días vacíos
         foreach ($employees as $employee) {
             $agrupados[$employee->name] = [
-                'id'     => Str::slug($employee->name, '_'),
+                'id'     => $employee->id,
                 'nombre' => $employee->name,
+                'rut'    => $employee->rut,
             ];
 
             // Inicializar todos los días del mes como vacíos

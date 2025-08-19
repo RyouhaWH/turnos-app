@@ -19,13 +19,19 @@ interface TurnoData {
     [key: string]: string
 }
 
+interface CambioData {
+    rut: string;
+    nombre: string;
+    turnos: Record<string, string>;
+}
+
 interface Props {
     rowData: TurnoData[];
-    onResumenChange: (cambios: Record<string, Record<string, string>>) => void;
+    onResumenChange: (cambios: Record<string, CambioData>) => void;
     onRowClicked?: (event: any) => void;
     editable?: boolean;
     resetGrid?: boolean; // Cambiar a resetGrid para reiniciar el grid
-    onRegisterChange?: (employee: string, day: string, oldValue: string, newValue: string) => void; // Nueva prop para registrar cambios
+    onRegisterChange?: (employee: string, rut: string, day: string, oldValue: string, newValue: string) => void; // Nueva prop para registrar cambios
     isUndoing?: boolean; // Prop para evitar registrar cambios durante deshacer
     month?: number; // 0-11 (JavaScript month format)
     year?: number;
@@ -146,7 +152,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             return daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
         }, [daysInData, activeMonth, activeYear]);
 
-        const [cambios, setCambios] = useState<Record<string, Record<string, string>>>({})
+        const [cambios, setCambios] = useState<Record<string, CambioData>>({})
         const gridRef = useRef<AgGridReact<TurnoData>>(null)
 
         // Debug logging mejorado
@@ -248,6 +254,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             if (!e || !e.data || !e.colDef?.field) return
 
             const funcionario = e.data.nombre;
+            const rut = e.data.rut;
             const employeeId = e.data.employee_id || e.data.id;
             const dayField = e.colDef.field;
 
@@ -259,7 +266,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
             // No registrar cambios si estamos deshaciendo
             if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
-                onRegisterChange(funcionario, dayField, valorAnterior, turno);
+                onRegisterChange(funcionario, rut, dayField, valorAnterior, turno);
             }
 
             // No actualizar el resumen si estamos deshaciendo
@@ -268,10 +275,15 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     const newCambios = { ...prev }
 
                     // Usar employee_id como clave en lugar del nombre normalizado
-                    const clave = employeeId.toString();
+                    const clave = employeeId;
+                    // const clave = rut;
 
                     if (!newCambios[clave]) {
-                        newCambios[clave] = {}
+                        newCambios[clave] = {
+                            rut: rut,
+                            nombre: funcionario,
+                            turnos: {}
+                        }
                     }
 
                     // Verificar si realmente hay un cambio
@@ -281,17 +293,17 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     // Solo agregar al resumen si hay un cambio real
                     if (valorAnterior !== valorNuevo) {
                         if (turno) {
-                            newCambios[clave][dayField] = turno
+                            newCambios[clave].turnos[dayField] = turno
                         } else {
                             // Enviar valor vacío explícitamente para indicar eliminación
-                            newCambios[clave][dayField] = ''
+                            newCambios[clave].turnos[dayField] = ''
                         }
                     } else {
                         // Si no hay cambio, remover del resumen
-                        delete newCambios[clave][dayField]
+                        delete newCambios[clave].turnos[dayField]
 
                         // Limpiar objetos vacíos
-                        if (Object.keys(newCambios[clave]).length === 0) {
+                        if (Object.keys(newCambios[clave].turnos).length === 0) {
                             delete newCambios[clave]
                         }
                     }

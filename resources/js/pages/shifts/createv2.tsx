@@ -37,9 +37,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Verificar si el usuario tiene permisos de supervisor o administrador
     const user = props.auth?.user;
-    const hasEditPermissions = user?.roles?.some((role: any) =>
-        role.name === 'Supervisor' || role.name === 'Administrador'
-    ) || false;
+    const hasEditPermissions = user?.roles?.some((role: any) => role.name === 'Supervisor' || role.name === 'Administrador') || false;
 
     const [rowData, setRowData] = useState<TurnoData[]>(props.turnos);
     const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
@@ -53,15 +51,17 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
     const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
     const [isUndoing, setIsUndoing] = useState(false); // Estado para evitar registrar cambios durante deshacer
-    const [changeHistory, setChangeHistory] = useState<Array<{
-        id: string;
-        employee: string;
-        employeeId?: string | number;
-        day: string;
-        oldValue: string;
-        newValue: string;
-        timestamp: number;
-    }>>([]); // Historial de cambios para poder deshacer
+    const [changeHistory, setChangeHistory] = useState<
+        Array<{
+            id: string;
+            employee: string;
+            employeeId?: string | number;
+            day: string;
+            oldValue: string;
+            newValue: string;
+            timestamp: number;
+        }>
+    >([]); // Historial de cambios para poder deshacer
     const gridRef = useRef<any>(null);
 
     const cargarHistorial = async (employeeId: number | string) => {
@@ -132,7 +132,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const newResumen = { ...resumen };
 
         // Buscar el empleado real en los datos del grid para obtener el ID correcto
-        const employeeData = rowData.find(row => row.nombre === lastChange.employee);
+        const employeeData = rowData.find((row) => row.nombre === lastChange.employee);
         const employeeId = employeeData?.employee_id || employeeData?.id;
 
         if (!employeeId) {
@@ -186,13 +186,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 targetNode.setDataValue(lastChange.day, lastChange.oldValue);
                 gridRef.current.api.refreshCells({
                     rowNodes: [targetNode],
-                    columns: [lastChange.day]
+                    columns: [lastChange.day],
                 });
             }
         }
 
         // Remover el cambio del historial
-        setChangeHistory(prev => prev.slice(0, -1));
+        setChangeHistory((prev) => prev.slice(0, -1));
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -202,7 +202,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para deshacer un cambio específico
     const undoSpecificChange = async (changeId: string) => {
-        const changeIndex = changeHistory.findIndex(change => change.id === changeId);
+        const changeIndex = changeHistory.findIndex((change) => change.id === changeId);
         if (changeIndex === -1) return;
 
         setIsUndoing(true); // Activar flag para evitar registrar cambios
@@ -213,7 +213,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const newResumen = { ...resumen };
 
         // Buscar el empleado real en los datos del grid para obtener el ID correcto
-        const employeeData = rowData.find(row => row.nombre === change.employee);
+        const employeeData = rowData.find((row) => row.nombre === change.employee);
         const employeeId = employeeData?.employee_id || employeeData?.id;
 
         if (!employeeId) {
@@ -267,13 +267,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 targetNode.setDataValue(change.day, change.oldValue);
                 gridRef.current.api.refreshCells({
                     rowNodes: [targetNode],
-                    columns: [change.day]
+                    columns: [change.day],
                 });
             }
         }
 
         // Remover el cambio del historial
-        setChangeHistory(prev => prev.filter((_, index) => index !== changeIndex));
+        setChangeHistory((prev) => prev.filter((_, index) => index !== changeIndex));
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -284,7 +284,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     // Función para registrar un cambio en el historial
     const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
         // Buscar el employee_id del empleado en los datos
-        const employeeData = rowData.find(row => row.nombre === employee);
+        const employeeData = rowData.find((row) => row.nombre === employee);
         const employeeId = employeeData?.employee_id || employeeData?.id;
 
         const change = {
@@ -297,7 +297,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             timestamp: Date.now(),
         };
 
-        setChangeHistory(prev => [...prev, change]);
+        setChangeHistory((prev) => [...prev, change]);
     };
 
     // Efecto para manejar Ctrl+Z
@@ -359,60 +359,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             <Head title="Gestión de Turnos" />
 
             <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-                {/* Header Section */}
-                {/* <div className="border-b border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md">
-                    <div className="px-6 pt-4 pb-2">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6"> */}
-                {/* Title Section */}
-                {/* <div className="flex items-start gap-4">
-                                <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl shadow-lg">
-                                    <Briefcase className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                                        Gestión de Turnos
-                                    </h1>
-                                    <p className="text-slate-600 dark:text-slate-400 mt-1">
-                                        Administra y actualiza los turnos del personal de manera eficiente
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
-                                        <Calendar className="h-4 w-4" />
-                                        <span>Período actual: {currentMonthTitle}</span>
-                                    </div>
-                                </div>
-                            </div> */}
-
-                {/* Quick Stats */}
-                {/* <div className="flex flex-wrap gap-4">
-                                <Card className="bg-gradient-to-r from-blue-500 to-blue-600 border-0 shadow-lg">
-                                    <CardContent className="flex items-center gap-3 p-4">
-                                        <div className="p-2 bg-white/20 rounded-lg">
-                                            <Users className="h-5 w-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold text-white">{getTotalEmployees()}</p>
-                                            <p className="text-blue-100 text-sm">Empleados activos</p>
-                                        </div>
-                                    </CardContent>
-                                </Card> */}
-
-                {/* Tarjeta de cambios realizados */}
-                {/* <Card className="bg-gradient-to-r from-amber-500 to-amber-600 border-0 shadow-lg">
-                                    <CardContent className="flex items-center gap-3 p-4">
-                                        <div className="p-2 bg-white/20 rounded-lg">
-                                            <Activity className="h-5 w-5 text-white" />
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold text-white">{getTotalChanges()}</p>
-                                            <p className="text-amber-100 text-sm">Cambios pendientes</p>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div> */}
-                {/* </div>
-                    </div>
-                </div> */}
-
                 {/* Main Content */}
                 <div className="p-6">
                     <div className="flex h-[calc(100vh-120px)] flex-col gap-6 xl:flex-row">
@@ -427,7 +373,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             </div>
                                             <div>
                                                 <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                                                    Turnos del Personal {employee_rol_id === 1 ? "- Patrullaje y Proximidad" : ""}
+                                                    Turnos del Personal {employee_rol_id === 1 ? '- Patrullaje y Proximidad' : ''}
                                                 </CardTitle>
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                                     {getTotalEmployees()} empleados registrados
@@ -449,22 +395,27 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
                                 <CardContent className="flex h-full flex-col px-2">
                                     {!hasEditPermissions && (
-                                        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+                                        <div className="mb-4 border-l-4 border-yellow-400 bg-yellow-50 p-4">
                                             <div className="flex">
                                                 <div className="flex-shrink-0">
                                                     <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                                        <path
+                                                            fillRule="evenodd"
+                                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                            clipRule="evenodd"
+                                                        />
                                                     </svg>
                                                 </div>
                                                 <div className="ml-3">
                                                     <p className="text-sm text-yellow-700">
-                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes visualizar la información.
+                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes
+                                                        visualizar la información.
                                                     </p>
                                                 </div>
                                             </div>
                                         </div>
                                     )}
-                                    <div className="ag-theme-alpine h-full flex-1 overflow-hidden rounded-b-lg border-0 min-h-[400px]">
+                                    <div className="ag-theme-alpine h-full min-h-[400px] flex-1 overflow-hidden rounded-b-lg border-0">
                                         <AgGridHorizontal
                                             ref={gridRef}
                                             rowData={rowData}
@@ -488,52 +439,52 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
                         {/* Right Panel - Controls & History */}
                         <div className="flex flex-col gap-4 xl:w-[280px]">
-                            {/* Resumen de cambios - colapsable */}
+                            {/* Resumen de cambios por aplicar - colapsable */}
                             {hasEditPermissions && (
                                 <Card className="border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                     <CardHeader
                                         className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
                                         onClick={() => setIsChangesExpanded(!isChangesExpanded)}
                                     >
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="rounded-md bg-orange-100 p-1 dark:bg-orange-900">
-                                                <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="rounded-md bg-orange-100 p-1 dark:bg-orange-900">
+                                                    <FileText className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                                                </div>
+                                                <CardTitle className="text-sm text-slate-900 dark:text-white">
+                                                    Resumen de Cambios
+                                                    {getTotalChanges() > 0 && (
+                                                        <Badge variant="secondary" className="border-orange-200 bg-orange-100 text-orange-700">
+                                                            {Object.values(resumen).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0)}{' '}
+                                                            modificaciones
+                                                        </Badge>
+                                                    )}
+                                                </CardTitle>
                                             </div>
-                                            <CardTitle className="text-sm text-slate-900 dark:text-white">
-                                                Resumen de Cambios
-                                                {getTotalChanges() > 0 && (
-                                                    <Badge variant="secondary" className="border-orange-200 bg-orange-100 text-orange-700">
-                                                        {Object.values(resumen).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0)}{' '}
-                                                        modificaciones
-                                                    </Badge>
-                                                )}
-                                            </CardTitle>
-                                        </div>
 
-                                        <div className="flex items-center gap-2">
-                                            <ChevronRight
-                                                className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isChangesExpanded ? 'rotate-90' : ''}`}
+                                            <div className="flex items-center gap-2">
+                                                <ChevronRight
+                                                    className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isChangesExpanded ? 'rotate-90' : ''}`}
+                                                />
+                                            </div>
+                                        </div>
+                                    </CardHeader>
+
+                                    {isChangesExpanded && hasEditPermissions && (
+                                        <div className="duration-200 animate-in slide-in-from-top-2">
+                                            <ListaCambios
+                                                cambios={resumen}
+                                                onActualizar={(comentario) => handleActualizarCambios(comentario)}
+                                                isProcesing={processing}
+                                                isCollapsed={false}
+                                                selectedDate={selectedDate}
+                                                disabled={!hasEditPermissions}
+                                                onUndoLastChange={undoLastChange}
+                                                onUndoSpecificChange={undoSpecificChange}
+                                                changeHistory={changeHistory}
                                             />
                                         </div>
-                                    </div>
-                                </CardHeader>
-
-                                {isChangesExpanded && hasEditPermissions && (
-                                    <div className="duration-200 animate-in slide-in-from-top-2">
-                                        <ListaCambios
-                                            cambios={resumen}
-                                            onActualizar={(comentario) => handleActualizarCambios(comentario)}
-                                            isProcesing={processing}
-                                            isCollapsed={false}
-                                            selectedDate={selectedDate}
-                                            disabled={!hasEditPermissions}
-                                            onUndoLastChange={undoLastChange}
-                                            onUndoSpecificChange={undoSpecificChange}
-                                            changeHistory={changeHistory}
-                                        />
-                                    </div>
-                                )}
+                                    )}
                                 </Card>
                             )}
 

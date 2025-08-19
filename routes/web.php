@@ -32,7 +32,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Rutas para gestión de usuarios
     Route::post('/admin/users', [App\Http\Controllers\UserManagementController::class, 'store'])->name('admin.users.store');
+
     Route::patch('/admin/users/{user}/role', [App\Http\Controllers\UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
+
     Route::delete('/admin/users/{user}', [App\Http\Controllers\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
 
     //para tener turnos
@@ -102,7 +104,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+        // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
         // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
         // $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
         // $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
@@ -116,13 +118,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
-            $numeroJulioSarmiento,
-            //$numeroCentralDespacho,
+            // $numeroJulioSarmiento,
+            // $numeroCentralDespacho,
         ];
 
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
-        $año       = $request->input('año', now()->year);
+        $año        = $request->input('año', now()->year);
         $actualUser = Auth::id();
 
         // Array para agrupar cambios por funcionario
@@ -318,6 +320,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             null    => 'Sin Turno',
                             ''      => 'Sin Turno',
                             ' '     => 'Sin Turno',
+                            'TE'    => 'Test',
                             default => 'Desconocido',
                         };
 
@@ -346,6 +349,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                             null    => 'Sin Turno',
                             ''      => 'Sin Turno',
                             ' '     => 'Sin Turno',
+                            'TE'    => 'Test',
                             default => 'Desconocido',
                         } : 'Sin Turno';
 
