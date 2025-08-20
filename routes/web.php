@@ -100,26 +100,41 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
+
         $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
-        // $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
-        // $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
-        // $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
-        // $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
-        // $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-        // $numeroCristianMontecinos  = "";
+        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
+        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
+        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
+        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
+        $numeroCristianMontecinos  = "";
         $numeroInformacionesAmzoma = "985639782";
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
-        //$numeroCentralDespacho    = "964949887";
 
-        // Agregar números a la lista para notificaciones
-        $numerosAReportarCambios = [
+        // Verificar si estamos en producción o local
+        if (app()->environment('production')) {
+            $numerosAReportarCambios = [
+                $numeroInformacionesAmzoma,
+                $numeroJorgeWaltemath,
+                $numeroJulioSarmiento,
+                // $numeroMarianelaHuequelef,
+                // $numeroPriscilaEscobar,
+                // $numeroJavierAlvarado,
+                // $numeroEduardoEsparza,
+                // $numeroCristianMontecinos,
+            ];
+
+        } else {
+            // Agregar números a la lista para notificaciones
+            $numerosAReportarCambios = [
             $numeroInformacionesAmzoma,
             $numeroJorgeWaltemath,
-            // $numeroJulioSarmiento,
-            // $numeroCentralDespacho,
-        ];
+
+            ];
+        }
+
 
         $cambios    = $request->input('cambios');
         $mes        = $request->input('mes', now()->month);
