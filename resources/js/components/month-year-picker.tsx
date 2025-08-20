@@ -58,13 +58,13 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
     return (
         <div className="flex w-full flex-col items-center gap-3 md:w-auto md:flex-row">
             {/* Month/Year Display and Navigation */}
-            <div className="flex items-center rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex items-center rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:shadow-lg">
                 {/* Previous Month Button */}
                 <Button
                     variant="ghost"
                     size="sm"
                     onClick={goToPreviousMonth}
-                    className="h-9 w-9 rounded-l-lg rounded-r-none border-r border-slate-200 p-0 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="h-9 w-9 rounded-l-lg rounded-r-none border-r border-slate-200 p-0 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700 dark:text-slate-300"
                     disabled={loading}
                 >
                     <ChevronLeft className="h-4 w-4" />
@@ -72,16 +72,16 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Month Selector */}
                 <Select value={String(month)} onValueChange={(val) => setMonth(parseInt(val))}>
-                    <SelectTrigger className="h-9 w-28 rounded-none border-0 bg-transparent focus:ring-0 focus:ring-offset-0">
+                    <SelectTrigger className="h-9 w-28 rounded-none border-0 bg-transparent focus:ring-0 focus:ring-offset-0 dark:text-slate-200">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                         {months.map((name, index) => (
-                            <SelectItem key={index} value={String(index + 1)}>
+                            <SelectItem key={index} value={String(index + 1)} className="dark:text-slate-200 dark:hover:bg-slate-700">
                                 <div className="flex items-center gap-2">
                                     <span>{name.slice(0, 3)}</span>
                                     {index + 1 === now.getMonth() + 1 && year === now.getFullYear() && (
-                                        <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                        <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>
                                     )}
                                 </div>
                             </SelectItem>
@@ -91,15 +91,15 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Year Selector */}
                 <Select value={String(year)} onValueChange={(val) => setYear(parseInt(val))}>
-                    <SelectTrigger className="h-9 w-20 rounded-none border-0 border-l border-slate-200 bg-transparent focus:ring-0 focus:ring-offset-0 dark:border-slate-700">
+                    <SelectTrigger className="h-9 w-20 rounded-none border-0 border-l border-slate-200 bg-transparent focus:ring-0 focus:ring-offset-0 dark:border-slate-600 dark:text-slate-200">
                         <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                         {years.map((y) => (
-                            <SelectItem key={y} value={String(y)}>
+                            <SelectItem key={y} value={String(y)} className="dark:text-slate-200 dark:hover:bg-slate-700">
                                 <div className="flex items-center gap-2">
                                     <span>{y}</span>
-                                    {y === now.getFullYear() && <div className="h-2 w-2 rounded-full bg-blue-500"></div>}
+                                    {y === now.getFullYear() && <div className="h-2 w-2 rounded-full bg-blue-500 dark:bg-blue-400"></div>}
                                 </div>
                             </SelectItem>
                         ))}
@@ -111,7 +111,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
                     variant="ghost"
                     size="sm"
                     onClick={goToNextMonth}
-                    className="h-9 w-9 rounded-l-none rounded-r-lg border-l border-slate-200 p-0 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    className="h-9 w-9 rounded-l-none rounded-r-lg border-l border-slate-200 p-0 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-700 dark:text-slate-300"
                     disabled={loading}
                 >
                     <ChevronRight className="h-4 w-4" />
@@ -121,7 +121,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
             <div className="flex w-full items-center gap-3 md:w-auto flex-row max-w-[16.5rem]">
                 {/* Loading Indicator */}
                 {loading && (
-                    <div className="flex items-center gap-2 rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                    <div className="flex items-center gap-2 rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800">
                         <RefreshCw className="h-3 w-3 animate-spin" />
                         Cargando...
                     </div>
@@ -129,8 +129,8 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Current Month Indicator */}
                 {isCurrentMonth && (
-                    <div className="hidden items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 sm:flex dark:bg-blue-900/30 dark:text-blue-300">
-                        <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500"></div>
+                    <div className="hidden items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 sm:flex dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800">
+                        <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500 dark:bg-blue-400"></div>
                         Actual
                     </div>
                 )}
