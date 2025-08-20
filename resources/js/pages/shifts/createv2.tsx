@@ -51,25 +51,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
     const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
     const [isUndoing, setIsUndoing] = useState(false); // Estado para evitar registrar cambios durante deshacer
-    const [changeHistory, setChangeHistory] = useState<
-        Array<{
-            id: string;
-            employee: string;
-            employeeId?: string | number;
-            day: string;
-            oldValue: string;
-            newValue: string;
-            timestamp: number;
-        }>
-    >([]); // Historial de cambios para poder deshacer
+
+    // Array simplificado de cambios
+    const [listaCambios, setListaCambios] = useState<Array<{
+        id: string;
+        employeeId: string | number;
+        employeeName: string;
+        employeeRut: string;
+        day: string;
+        oldValue: string;
+        newValue: string;
+        timestamp: number;
+    }>>([]);
     const gridRef = useRef<any>(null);
-
-    const cargarHistorial = async (employeeId: number | string) => {
-        const res = await fetch(`/api/shift-change-log/${employeeId}`);
-        const data = await res.json();
-        setHistorial(data);
-    };
-
     const cargarTurnosPorMes = async (fecha: Date) => {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
@@ -113,6 +107,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     };
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
+
+        console.log(ResumenCambios);
+
         setResumen(ResumenCambios);
         setData((prev) => ({
             ...prev,
@@ -122,21 +119,22 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Función para deshacer el último cambio
     const undoLastChange = async () => {
-        if (changeHistory.length === 0) return;
+        if (listaCambios.length === 0) return;
 
         setIsUndoing(true); // Activar flag para evitar registrar cambios
 
-        const lastChange = changeHistory[changeHistory.length - 1];
+        const lastChange = listaCambios[listaCambios.length - 1];
+        console.log('🔄 Último cambio a deshacer:', lastChange);
 
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
+        console.log('🔄 Estructura del resumen:', newResumen);
 
-        // Buscar el empleado real en los datos del grid para obtener el ID correcto
-        const employeeData = rowData.find((row) => row.nombre === lastChange.employee);
-        const employeeId = employeeData?.employee_id || employeeData?.id;
+        // Usar directamente el employeeId del cambio
+        const employeeId = lastChange.employeeId;
 
         if (!employeeId) {
-            console.error('🔄 No se pudo encontrar el ID del empleado:', lastChange.employee);
+            console.error('🔄 No se pudo encontrar el ID del empleado:', lastChange.employeeName);
             toast.error('Error al deshacer cambio', {
                 description: 'No se pudo identificar al empleado',
                 duration: 4000,
@@ -148,23 +146,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         // Usar el ID real del empleado
         const claveEmpleado = employeeId.toString();
 
-        // Restaurar el valor anterior
-        if (lastChange.oldValue === '') {
-            // Si el valor anterior estaba vacío, eliminar la entrada
-            if (newResumen[claveEmpleado]) {
-                delete newResumen[claveEmpleado][lastChange.day];
-                // Si no quedan cambios para este empleado, eliminar el empleado
-                if (Object.keys(newResumen[claveEmpleado]).length === 0) {
-                    delete newResumen[claveEmpleado];
-                }
+        // Eliminar completamente la entrada del resumen
+        console.log('🔄 Resumen antes de eliminar:', newResumen);
+        if (newResumen[claveEmpleado] && newResumen[claveEmpleado].turnos) {
+            console.log('🔄 Eliminando entrada:', claveEmpleado, lastChange.day);
+            delete (newResumen[claveEmpleado] as any).turnos[lastChange.day];
+            // Si no quedan cambios para este empleado, eliminar el empleado
+            if (Object.keys((newResumen[claveEmpleado] as any).turnos).length === 0) {
+                console.log('🔄 Eliminando empleado completo:', claveEmpleado);
+                delete newResumen[claveEmpleado];
             }
-        } else {
-            // Restaurar el valor anterior
-            if (!newResumen[claveEmpleado]) {
-                newResumen[claveEmpleado] = {};
-            }
-            newResumen[claveEmpleado][lastChange.day] = lastChange.oldValue;
         }
+        console.log('🔄 Resumen después de eliminar:', newResumen);
 
         // Actualizar el resumen
         setResumen(newResumen);
@@ -177,7 +170,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         if (gridRef.current?.api) {
             let targetNode: any = null;
             gridRef.current.api.forEachNode((node: any) => {
-                if (node.data && node.data.nombre === lastChange.employee) {
+                if (node.data && node.data.nombre === lastChange.employeeName) {
                     targetNode = node;
                 }
             });
@@ -192,7 +185,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
 
         // Remover el cambio del historial
-        setChangeHistory((prev) => prev.slice(0, -1));
+        setListaCambios((prev) => prev.slice(0, -1));
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -200,52 +193,42 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }, 100);
     };
 
-    // Función para deshacer un cambio específico
+        // Función para deshacer un cambio específico
     const undoSpecificChange = async (changeId: string) => {
-        const changeIndex = changeHistory.findIndex((change) => change.id === changeId);
-        if (changeIndex === -1) return;
+        console.log('🔄 undoSpecificChange llamado con ID:', changeId);
+        console.log('🔄 Lista de cambios actual:', listaCambios);
+
+        const changeIndex = listaCambios.findIndex((change) => change.id === changeId);
+        console.log('🔄 Índice encontrado:', changeIndex);
+
+        if (changeIndex === -1) {
+            console.log('🔄 No se encontró el cambio con ID:', changeId);
+            return;
+        }
 
         setIsUndoing(true); // Activar flag para evitar registrar cambios
 
-        const change = changeHistory[changeIndex];
+        const change = listaCambios[changeIndex];
 
         // Crear una copia del resumen actual
         const newResumen = { ...resumen };
 
-        // Buscar el empleado real en los datos del grid para obtener el ID correcto
-        const employeeData = rowData.find((row) => row.nombre === change.employee);
-        const employeeId = employeeData?.employee_id || employeeData?.id;
-
-        if (!employeeId) {
-            console.error('🔄 No se pudo encontrar el ID del empleado:', change.employee);
-            toast.error('Error al deshacer cambio', {
-                description: 'No se pudo identificar al empleado',
-                duration: 4000,
-            });
-            setIsUndoing(false);
-            return;
-        }
-
-        // Usar el ID real del empleado
+        // Usar directamente el employeeId del cambio
+        const employeeId = change.employeeId;
         const claveEmpleado = employeeId.toString();
 
-        // Restaurar el valor anterior
-        if (change.oldValue === '') {
-            // Si el valor anterior estaba vacío, eliminar la entrada
-            if (newResumen[claveEmpleado]) {
-                delete newResumen[claveEmpleado][change.day];
-                // Si no quedan cambios para este empleado, eliminar el empleado
-                if (Object.keys(newResumen[claveEmpleado]).length === 0) {
-                    delete newResumen[claveEmpleado];
-                }
+        // Eliminar completamente la entrada del resumen
+        console.log('🔄 Resumen antes de eliminar (específico):', newResumen);
+        if (newResumen[claveEmpleado] && newResumen[claveEmpleado].turnos) {
+            console.log('🔄 Eliminando entrada específica:', claveEmpleado, change.day);
+            delete (newResumen[claveEmpleado] as any).turnos[change.day];
+            // Si no quedan cambios para este empleado, eliminar el empleado
+            if (Object.keys((newResumen[claveEmpleado] as any).turnos).length === 0) {
+                console.log('🔄 Eliminando empleado completo (específico):', claveEmpleado);
+                delete newResumen[claveEmpleado];
             }
-        } else {
-            // Restaurar el valor anterior
-            if (!newResumen[claveEmpleado]) {
-                newResumen[claveEmpleado] = {};
-            }
-            newResumen[claveEmpleado][change.day] = change.oldValue;
         }
+        console.log('🔄 Resumen después de eliminar (específico):', newResumen);
 
         // Actualizar el resumen
         setResumen(newResumen);
@@ -258,7 +241,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         if (gridRef.current?.api) {
             let targetNode: any = null;
             gridRef.current.api.forEachNode((node: any) => {
-                if (node.data && node.data.nombre === change.employee) {
+                if (node.data && node.data.nombre === change.employeeName) {
                     targetNode = node;
                 }
             });
@@ -273,7 +256,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
 
         // Remover el cambio del historial
-        setChangeHistory((prev) => prev.filter((_, index) => index !== changeIndex));
+        setListaCambios((prev) => prev.filter((_, index) => index !== changeIndex));
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -281,23 +264,36 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }, 100);
     };
 
-    // Función para registrar un cambio en el historial
-    const registerChange = (employee: string, day: string, oldValue: string, newValue: string) => {
+        // Función para registrar un cambio en el historial
+    const registerChange = (employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
+        console.log('🔄 registerChange llamado:', { employee, rut, day, oldValue, newValue });
+
         // Buscar el employee_id del empleado en los datos
         const employeeData = rowData.find((row) => row.nombre === employee);
         const employeeId = employeeData?.employee_id || employeeData?.id;
 
+        if (!employeeId) {
+            console.error('🔄 No se pudo encontrar el ID del empleado:', employee);
+            return;
+        }
+
         const change = {
             id: `${employeeId}_${day}_${Date.now()}`,
-            employee,
             employeeId,
+            employeeName: employee,
+            employeeRut: rut,
             day,
             oldValue,
             newValue,
             timestamp: Date.now(),
         };
 
-        setChangeHistory((prev) => [...prev, change]);
+        console.log('🔄 Nuevo cambio creado:', change);
+        setListaCambios((prev) => {
+            const newList = [...prev, change];
+            console.log('🔄 Lista de cambios actualizada:', newList);
+            return newList;
+        });
     };
 
     // Efecto para manejar Ctrl+Z
@@ -311,7 +307,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [changeHistory, resumen]);
+    }, [listaCambios, resumen]);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
@@ -333,7 +329,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 setResumen({});
                 setComentario('');
                 setResetGrid(true); // Activar reinicio del grid
-                setChangeHistory([]); // Limpiar historial de cambios
+                setListaCambios([]); // Limpiar lista de cambios
                 toast.success('Cambios guardados exitosamente', {
                     description: 'Los turnos fueron actualizados correctamente.',
                     duration: 3000,
@@ -425,13 +421,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             ref={gridRef}
                                             rowData={rowData}
                                             onResumenChange={handleResumenUpdate}
-                                            onRowClicked={(event) => {
-                                                const empleadoId = event.data?.id || event.data?.employee_id;
-                                                setEmpleadoSeleccionado(event.data);
-                                                if (empleadoId) {
-                                                    cargarHistorial(empleadoId);
-                                                }
-                                            }}
+                                            // onRowClicked={(event) => {
+                                            //     const empleadoId = event.data?.id || event.data?.employee_id;
+                                            //     setEmpleadoSeleccionado(event.data);
+                                            //     if (empleadoId) {
+                                            //         cargarHistorial(empleadoId);
+                                            //     }
+                                            // }}
                                             editable={hasEditPermissions}
                                             resetGrid={resetGrid}
                                             onRegisterChange={registerChange}
@@ -486,7 +482,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                                 disabled={!hasEditPermissions}
                                                 onUndoLastChange={undoLastChange}
                                                 onUndoSpecificChange={undoSpecificChange}
-                                                changeHistory={changeHistory}
+                                                changeHistory={listaCambios}
                                             />
                                         </div>
                                     )}

@@ -34,12 +34,14 @@ interface Props {
     onUndoSpecificChange?: (changeId: string) => void; // Nueva prop para deshacer cambio específico
     changeHistory?: Array<{
         id: string;
-        employee: string;
+        employeeId: string | number;
+        employeeName: string;
+        employeeRut: string;
         day: string;
         oldValue: string;
         newValue: string;
         timestamp: number;
-    }>; // Historial de cambios
+    }>; // Lista de cambios
 }
 
 const ListaCambios: React.FC<Props> = ({
@@ -53,20 +55,29 @@ const ListaCambios: React.FC<Props> = ({
     onUndoSpecificChange,
     changeHistory = [],
 }) => {
-    console.log(cambios);
+
+    console.log('ListaCambios - cambios:', cambios);
+    console.log('ListaCambios - changeHistory:', changeHistory);
 
     // Función para normalizar los datos del nuevo formato al formato esperado
     const normalizeCambios = (cambiosData: any): CambiosPorFuncionario => {
+
         const normalized: CambiosPorFuncionario = {};
 
         Object.entries(cambiosData).forEach(([key, value]) => {
             if (typeof value === 'object' && value !== null && 'turnos' in value) {
                 // Nuevo formato: { rut, nombre, turnos }
                 const cambioData = value as CambioData;
-                normalized[cambioData.nombre] = cambioData.turnos;
+                // Solo incluir si hay turnos (cambios reales)
+                if (Object.keys(cambioData.turnos).length > 0) {
+                    normalized[cambioData.nombre] = cambioData.turnos;
+                }
             } else if (typeof value === 'object' && value !== null) {
                 // Formato antiguo: { fecha: turno }
-                normalized[key] = value as CambiosPorFecha;
+                // Solo incluir si hay cambios
+                if (Object.keys(value).length > 0) {
+                    normalized[key] = value as CambiosPorFecha;
+                }
             }
         });
 
@@ -74,6 +85,7 @@ const ListaCambios: React.FC<Props> = ({
     };
 
     const cambiosNormalizados = normalizeCambios(cambios);
+    console.log('ListaCambios - cambios normalizados:', cambiosNormalizados);
 
     const [comentario, setComentario] = useState('');
 
@@ -153,7 +165,10 @@ const ListaCambios: React.FC<Props> = ({
             },
 
             // Situaciones especiales
-            S: { label: 'Sindical', color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800' },
+            S: {
+                label: 'Sindical',
+                color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800'
+            },
             LM: {
                 label: 'Licencia Médica',
                 color: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
@@ -196,6 +211,12 @@ const ListaCambios: React.FC<Props> = ({
                     <div className="space-y-2">
                         {fechasOrdenadas.map(([fecha, turno]) => {
                             const turnoInfo = getTurnoLabel(turno);
+
+                            // Buscar el cambio correspondiente en el historial
+                            const cambioEnHistorial = changeHistory.find(change =>
+                                change.employeeName === nombre && change.day === fecha
+                            );
+
                             return (
                                 <div
                                     key={fecha}
@@ -216,6 +237,20 @@ const ListaCambios: React.FC<Props> = ({
                                         <Badge variant="outline" className={`text-xs ${turnoInfo.color} border`}>
                                             {turnoInfo.label}
                                         </Badge>
+
+                                        {/* Botón de deshacer cambio individual */}
+                                        {cambioEnHistorial && onUndoSpecificChange && (
+                                            <Button
+                                                onClick={() => onUndoSpecificChange(cambioEnHistorial.id)}
+                                                variant="ghost"
+                                                size="sm"
+                                                className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                disabled={isProcesing}
+                                                title="Deshacer este cambio"
+                                            >
+                                                <Undo2 className="h-3 w-3" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             );
@@ -227,7 +262,6 @@ const ListaCambios: React.FC<Props> = ({
     };
 
     const handleClickActualizar = () => {
-        console.log(comentario);
         if (onActualizar) {
             onActualizar(comentario);
             setComentario('');
