@@ -47,6 +47,7 @@ interface Props {
     }>; // Cambios pendientes para mostrar visualmente
     originalChangeDate?: Date | null; // Fecha original de los cambios
     showPendingChanges?: boolean; // Controla si mostrar cambios pendientes visualmente
+    clearChanges?: boolean; // Nueva prop para limpiar cambios internos
 
 }
 
@@ -151,7 +152,7 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
-const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false }, ref) => {
+        const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false, clearChanges = false }, ref) => {
 
     // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
@@ -195,6 +196,14 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 }
             }
         }, [resetGrid]);
+
+        // Efecto para limpiar cambios internos cuando se solicita
+        useEffect(() => {
+            if (clearChanges) {
+                console.log('🧹 Limpiando cambios internos de AgGrid');
+                setCambios({});
+            }
+        }, [clearChanges]);
 
 
 
@@ -272,15 +281,6 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                                 const changeDateString = changeDate.toISOString().split('T')[0];
 
                                 const matches = changeDateString === cellDateString && (change.employeeId === employeeId);
-                                if (matches) {
-                                    console.log('🎯 Coincidencia encontrada:', {
-                                        changeDate: changeDateString,
-                                        cellDate: cellDateString,
-                                        employeeId,
-                                        changeEmployeeId: change.employeeId,
-                                        day: change.day
-                                    });
-                                }
                                 return matches;
                             });
 
@@ -344,6 +344,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             const turno = e.value || '';
             const valorAnterior = e.oldValue || '';
 
+            console.log('🔄 handleCellChange - isUndoing:', isUndoing, 'valorAnterior:', valorAnterior, 'turno:', turno);
+
 
 
             // No registrar cambios si estamos deshaciendo
@@ -389,7 +391,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                             delete newCambios[clave]
                         }
                     }
-
+                    console.log('🔄 Enviando resumen desde AgGrid:', newCambios);
                     onResumenChange(newCambios)
                     return newCambios
                 })
