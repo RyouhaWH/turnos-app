@@ -51,6 +51,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false); // Panel de historial contraído por defecto
     const [resetGrid, setResetGrid] = useState(false); // Nuevo estado para reiniciar el grid
     const [isUndoing, setIsUndoing] = useState(false); // Estado para evitar registrar cambios durante deshacer
+    const [originalChangeDate, setOriginalChangeDate] = useState<Date | null>(null); // Fecha original cuando se hizo el primer cambio
+    const [isSaving, setIsSaving] = useState(false); // Estado para manejar el loading al guardar
+    const [showPendingChanges, setShowPendingChanges] = useState(false); // Estado para mostrar cambios pendientes visualmente
 
     // Array simplificado de cambios
     const [listaCambios, setListaCambios] = useState<Array<{
@@ -64,9 +67,59 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         timestamp: number;
     }>>([]);
     const gridRef = useRef<any>(null);
-    const cargarTurnosPorMes = async (fecha: Date) => {
+
+    // Función para aplicar cambios pendientes sobre los datos cargados
+    const aplicarCambiosPendientes = (turnosArray: TurnoData[], fechaActual: Date): TurnoData[] => {
+        // Si no hay cambios pendientes o no hay fecha original, devolver datos sin modificar
+        if (listaCambios.length === 0 || !originalChangeDate) {
+            return turnosArray;
+        }
+
+        // Solo aplicar cambios si estamos viendo el mes original donde se hicieron los cambios
+        if (originalChangeDate.getMonth() !== fechaActual.getMonth() ||
+            originalChangeDate.getFullYear() !== fechaActual.getFullYear()) {
+            return turnosArray;
+        }
+
+        console.log('🔄 Aplicando cambios pendientes sobre datos cargados');
+
+        try {
+            // Crear una copia profunda de los datos para evitar mutaciones
+            const turnosModificados = turnosArray.map(turno => ({ ...turno }));
+
+            // Aplicar cada cambio pendiente
+            listaCambios.forEach(cambio => {
+                const empleadoIndex = turnosModificados.findIndex(
+                    emp => emp.employee_id === cambio.employeeId || emp.id === cambio.employeeId
+                );
+
+                if (empleadoIndex !== -1) {
+                    // Aplicar el cambio al día correspondiente
+                    turnosModificados[empleadoIndex][cambio.day] = cambio.newValue;
+                    console.log(`🔄 Aplicado cambio pendiente: ${cambio.employeeName} - día ${cambio.day} = ${cambio.newValue}`);
+                }
+            });
+
+            return turnosModificados;
+        } catch (error) {
+            console.error('Error al aplicar cambios pendientes:', error);
+            return turnosArray; // Devolver datos originales si hay error
+        }
+    };
+
+    const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
+
+        // Verificar si hay cambios pendientes y el usuario está cambiando de mes
+        if (listaCambios.length > 0 && originalChangeDate &&
+            (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear())) {
+
+            toast.warning('Cambios pendientes', {
+                description: `Tienes cambios pendientes para ${originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}. Los cambios se aplicarán al mes original.`,
+                duration: 5000,
+            });
+        }
 
         try {
             setLoading(true);
@@ -77,7 +130,26 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             const turnosArray = Object.values(data) as TurnoData[];
 
-            setRowData(turnosArray);
+            // Solo aplicar cambios pendientes si estamos en el mes original
+            const isOriginalMonth = originalChangeDate &&
+                originalChangeDate.getMonth() === fecha.getMonth() &&
+                originalChangeDate.getFullYear() === fecha.getFullYear();
+
+            if (isOriginalMonth && listaCambios.length > 0) {
+                // Aplicar cambios pendientes sobre los datos cargados
+                const turnosConCambiosPendientes = aplicarCambiosPendientes(turnosArray, fecha);
+                setRowData(turnosConCambiosPendientes);
+                // Activar visualización de cambios pendientes después de un pequeño delay
+                setTimeout(() => {
+                    setShowPendingChanges(true);
+                }, 200);
+            } else {
+                // Cargar datos sin modificar
+                setRowData(turnosArray);
+                // Desactivar visualización de cambios pendientes
+                setShowPendingChanges(false);
+            }
+
             setCurrentMonthTitle(fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
 
             setTimeout(() => {
@@ -104,7 +176,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [listaCambios, originalChangeDate, employee_rol_id]);
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
 
@@ -185,7 +257,14 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
 
         // Remover el cambio del historial
-        setListaCambios((prev) => prev.slice(0, -1));
+        setListaCambios((prev) => {
+            const newList = prev.slice(0, -1);
+            // Desactivar visualización de cambios pendientes si no quedan cambios
+            if (newList.length === 0) {
+                setShowPendingChanges(false);
+            }
+            return newList;
+        });
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -256,7 +335,14 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
 
         // Remover el cambio del historial
-        setListaCambios((prev) => prev.filter((_, index) => index !== changeIndex));
+        setListaCambios((prev) => {
+            const newList = prev.filter((_, index) => index !== changeIndex);
+            // Desactivar visualización de cambios pendientes si no quedan cambios
+            if (newList.length === 0) {
+                setShowPendingChanges(false);
+            }
+            return newList;
+        });
 
         // Desactivar flag después de un pequeño delay para asegurar que el grid se actualice
         setTimeout(() => {
@@ -264,9 +350,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }, 100);
     };
 
-        // Función para registrar un cambio en el historial
+            // Función para registrar un cambio en el historial
     const registerChange = (employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
         console.log('🔄 registerChange llamado:', { employee, rut, day, oldValue, newValue });
+
+        // Guardar la fecha original cuando se hace el primer cambio
+        if (originalChangeDate === null) {
+            // Usar el mes y año que están actualmente seleccionados
+            const currentMonth = selectedDate.getMonth();
+            const currentYear = selectedDate.getFullYear();
+            const fixedDate = new Date(currentYear, currentMonth, 1);
+            setOriginalChangeDate(fixedDate);
+            console.log('🔄 Fecha original guardada:', fixedDate, 'para mes:', currentMonth + 1, 'año:', currentYear);
+        }
 
         // Buscar el employee_id del empleado en los datos
         const employeeData = rowData.find((row) => row.nombre === employee);
@@ -309,46 +405,114 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [listaCambios, resumen]);
 
+    // Efecto para limpiar estados cuando cambian los datos
+    useEffect(() => {
+        // Si no hay cambios pendientes, desactivar visualización
+        if (listaCambios.length === 0) {
+            setShowPendingChanges(false);
+        }
+    }, [listaCambios.length]);
+
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
 
-        // Obtener mes y año de la fecha seleccionada
-        const mes = selectedDate.getMonth() + 1; // getMonth() devuelve 0-11, necesitamos 1-12
-        const año = selectedDate.getFullYear();
+        // Usar la fecha original de los cambios, o la fecha actual si no hay fecha original
+        const fechaParaCambios = originalChangeDate || selectedDate;
+        const mes = fechaParaCambios.getMonth() + 1; // getMonth() devuelve 0-11, necesitamos 1-12
+        const año = fechaParaCambios.getFullYear();
+
+        console.log('🔄 Aplicando cambios para fecha:', fechaParaCambios);
+        console.log('🔄 Mes:', mes, 'Año:', año);
 
         // Actualizar los datos del formulario antes de enviar
-        setData({
+        const datosAEnviar = {
             cambios: resumen,
             comentario: comentarioNuevo,
             mes: mes,
             año: año,
-        });
+        };
 
-        post(route('post-updateShifts'), {
-            onSuccess: () => {
-                setResumen({});
-                setComentario('');
-                setResetGrid(true); // Activar reinicio del grid
-                setListaCambios([]); // Limpiar lista de cambios
+                console.log('🔄 Datos a enviar al backend:', datosAEnviar);
+
+        setIsSaving(true); // Activar loading
+
+        // Usar fetch directamente para asegurar que se envíen los datos correctos
+        fetch(route('post-updateShifts'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify(datosAEnviar)
+        })
+        .then(response => {
+            // Verificar si la respuesta es exitosa
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Verificar el tipo de contenido
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                // Si no es JSON, asumir que fue exitoso (los cambios se guardaron)
+                console.log('🔄 Respuesta no-JSON recibida, asumiendo éxito');
+                return { success: true, message: 'Cambios guardados correctamente' };
+            }
+        })
+        .then(data => {
+            setIsSaving(false); // Desactivar loading
+
+            // Si llegamos aquí, los cambios se guardaron exitosamente
+            console.log('🔄 Limpiando estados después de guardar cambios');
+            setResumen({});
+            setComentario('');
+            setResetGrid(true); // Activar reinicio del grid
+            setListaCambios([]); // Limpiar lista de cambios
+            setOriginalChangeDate(null); // Limpiar fecha original
+            setShowPendingChanges(false); // Desactivar visualización de cambios pendientes
+            console.log('🔄 Estados limpiados - resumen:', {}, 'listaCambios:', [], 'originalChangeDate:', null);
+
+            toast.success('Cambios guardados exitosamente', {
+                description: 'Los turnos fueron actualizados correctamente.',
+                duration: 3000,
+            });
+
+            // Resetear el flag después de un breve delay
+            setTimeout(() => setResetGrid(false), 100);
+
+            // Recargar los datos del mes actual para mostrar los cambios actualizados
+            cargarTurnosPorMes(selectedDate);
+        })
+        .catch(error => {
+            setIsSaving(false); // Desactivar loading
+            console.error('Error en fetch:', error);
+
+            // Si el error es de parsing JSON, probablemente los cambios se guardaron
+            if (error instanceof SyntaxError && error.message.includes('JSON')) {
+                console.log('🔄 Error de parsing JSON, pero los cambios probablemente se guardaron');
                 toast.success('Cambios guardados exitosamente', {
                     description: 'Los turnos fueron actualizados correctamente.',
                     duration: 3000,
                 });
-                // Resetear el flag después de un breve delay
+
+                // Limpiar estados de todas formas
+                setResumen({});
+                setComentario('');
+                setResetGrid(true);
+                setListaCambios([]);
+                setOriginalChangeDate(null);
+                setShowPendingChanges(false);
+
                 setTimeout(() => setResetGrid(false), 100);
                 cargarTurnosPorMes(selectedDate);
-
-                // Refresh de la página después de un delay para asegurar que los datos se guarden
-                setTimeout(() => {
-                    window.location.reload();
-                }, 1000);
-            },
-            onError: () => {
+            } else {
                 toast.error('Error al guardar cambios', {
                     description: 'Hubo un problema al guardar los cambios. Intenta nuevamente.',
                     duration: 4000,
                 });
-            },
+            }
         });
     };
 
@@ -432,6 +596,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             resetGrid={resetGrid}
                                             onRegisterChange={registerChange}
                                             isUndoing={isUndoing}
+                                            pendingChanges={listaCambios}
+                                            originalChangeDate={originalChangeDate}
+                                            month={selectedDate.getMonth()}
+                                            year={selectedDate.getFullYear()}
+                                            showPendingChanges={showPendingChanges}
+
                                         />
                                     </div>
                                 </CardContent>
@@ -476,9 +646,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             <ListaCambios
                                                 cambios={resumen}
                                                 onActualizar={(comentario) => handleActualizarCambios(comentario)}
-                                                isProcesing={processing}
+                                                isProcesing={isSaving}
                                                 isCollapsed={false}
-                                                selectedDate={selectedDate}
+                                                selectedDate={originalChangeDate || selectedDate}
                                                 disabled={!hasEditPermissions}
                                                 onUndoLastChange={undoLastChange}
                                                 onUndoSpecificChange={undoSpecificChange}

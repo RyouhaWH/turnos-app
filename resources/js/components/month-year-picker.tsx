@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ChevronLeft, ChevronRight, Download, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 
 interface MonthYearPickerProps {
     onChange: (date: Date) => void;
@@ -14,14 +14,24 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
     const now = new Date();
     const [year, setYear] = useState(now.getFullYear());
     const [month, setMonth] = useState(now.getMonth() + 1); // 1-12
+    const lastLoadedDate = useRef<string>(`${now.getFullYear()}-${now.getMonth() + 1}`); // Para evitar cargas duplicadas
 
     const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
     const years = Array.from({ length: 10 }, (_, i) => now.getFullYear() - 5 + i);
 
     useEffect(() => {
-        onChange(new Date(year, month - 1));
-    }, [year, month, onChange]);
+        const newDate = new Date(year, month - 1);
+        const dateKey = `${year}-${month}`;
+
+        onChange(newDate);
+
+        // Solo cargar si es una fecha diferente a la última cargada
+        if (lastLoadedDate.current !== dateKey) {
+            lastLoadedDate.current = dateKey;
+            onLoadData(newDate);
+        }
+    }, [year, month, onChange, onLoadData]);
 
     const goToPreviousMonth = () => {
         if (month === 1) {
@@ -41,9 +51,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
         }
     };
 
-    const handleLoadData = () => {
-        onLoadData(new Date(year, month - 1));
-    };
+
 
     const isCurrentMonth = year === now.getFullYear() && month === now.getMonth() + 1;
 
@@ -111,25 +119,13 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
             </div>
 
             <div className="flex w-full items-center gap-3 md:w-auto flex-row max-w-[16.5rem]">
-                {/* Load Data Button */}
-                <Button
-                    onClick={handleLoadData}
-                    disabled={loading}
-                    size="sm"
-                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md transition-all duration-200 hover:from-blue-700 hover:to-blue-800 hover:shadow-lg"
-                >
-                    {loading ? (
-                        <>
-                            <RefreshCw className="mr-2 h-3 w-3 animate-spin" />
-                            Cargando...
-                        </>
-                    ) : (
-                        <>
-                            <Download className="mr-2 h-3 w-3" />
-                            Cargar
-                        </>
-                    )}
-                </Button>
+                {/* Loading Indicator */}
+                {loading && (
+                    <div className="flex items-center gap-2 rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                        <RefreshCw className="h-3 w-3 animate-spin" />
+                        Cargando...
+                    </div>
+                )}
 
                 {/* Current Month Indicator */}
                 {isCurrentMonth && (

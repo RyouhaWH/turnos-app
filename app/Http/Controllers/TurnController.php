@@ -160,10 +160,11 @@ class TurnController extends Controller
 
                 if (! isset($agrupados[$nombre])) {
 
-                    $agrupados[$nombre] = array_merge([
-                        'id'     => Str::slug($nombre, '_'),
-                        'nombre' => $nombre,
-                    ], $days);
+                                    $agrupados[$nombre] = array_merge([
+                    'id'     => $employee->id,
+                    'employee_id' => $employee->id,
+                    'nombre' => $nombre,
+                ], $days);
                 }
             }
 
@@ -181,10 +182,11 @@ class TurnController extends Controller
 
                 if (! isset($agrupados[$nombre])) {
 
-                    $agrupados[$nombre] = [
-                        'id'     => Str::slug($nombre, '_'),
-                        'nombre' => $nombre,
-                    ];
+                                    $agrupados[$nombre] = [
+                    'id'     => $shift['employee']['id'],
+                    'employee_id' => $shift['employee']['id'],
+                    'nombre' => $nombre,
+                ];
                 }
                 $agrupados[$nombre][strval($dia)] = $turno;
             }

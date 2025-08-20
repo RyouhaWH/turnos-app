@@ -35,11 +35,25 @@ interface Props {
     isUndoing?: boolean; // Prop para evitar registrar cambios durante deshacer
     month?: number; // 0-11 (JavaScript month format)
     year?: number;
+    pendingChanges?: Array<{
+        id: string;
+        employeeId: string | number;
+        employeeName: string;
+        employeeRut: string;
+        day: string;
+        oldValue: string;
+        newValue: string;
+        timestamp: number;
+    }>; // Cambios pendientes para mostrar visualmente
+    originalChangeDate?: Date | null; // Fecha original de los cambios
+    showPendingChanges?: boolean; // Controla si mostrar cambios pendientes visualmente
+
 }
 
 export interface AgGridHorizontalRef {
     autoSizeColumns: (columns?: string[]) => void
     sizeColumnsToFit: () => void
+
     api?: GridApi<TurnoData>
 }
 
@@ -137,9 +151,9 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
-const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year }, ref) => {
+const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false }, ref) => {
 
-        // Usar fecha actual si no se proporcionan month/year
+    // Usar fecha actual si no se proporcionan month/year
         const currentDate = new Date();
         const activeMonth = month !== undefined ? month : currentDate.getMonth();
         const activeYear = year !== undefined ? year : currentDate.getFullYear();
@@ -173,6 +187,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
         useEffect(() => {
             if (resetGrid) {
                 setCambios({});
+
                 // Forzar refresco del grid
                 if (gridRef.current?.api) {
                     gridRef.current.api.refreshCells();
@@ -180,6 +195,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 }
             }
         }, [resetGrid]);
+
+
 
         // Expose grid methods to parent component
         useImperativeHandle(ref, () => ({
@@ -196,6 +213,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
             sizeColumnsToFit: () => {
                 gridRef.current?.api?.sizeColumnsToFit()
             },
+
             api: gridRef.current?.api
         }))
 
@@ -236,13 +254,75 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                         const classes = [];
                         if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
                         if (params.value) classes.push(`shift-${params.value.toLowerCase()}`);
+
+                        // Verificar si esta celda tiene un cambio pendiente
+                        if (showPendingChanges && pendingChanges && pendingChanges.length > 0 && originalChangeDate) {
+                            const employeeId = params.data?.employee_id || params.data?.id;
+                            const currentMonth = month !== undefined ? month : new Date().getMonth();
+                            const currentYear = year !== undefined ? year : new Date().getFullYear();
+
+                            // Crear fecha específica para esta celda
+                            const cellDate = new Date(currentYear, currentMonth, parseInt(fieldName));
+                            const cellDateString = cellDate.toISOString().split('T')[0];
+
+                            // Buscar cambios pendientes que coincidan con esta fecha específica
+                            const hasPendingChange = pendingChanges.some(change => {
+                                // Convertir el día del cambio a fecha completa
+                                const changeDate = new Date(originalChangeDate.getFullYear(), originalChangeDate.getMonth(), parseInt(change.day));
+                                const changeDateString = changeDate.toISOString().split('T')[0];
+
+                                const matches = changeDateString === cellDateString && (change.employeeId === employeeId);
+                                if (matches) {
+                                    console.log('🎯 Coincidencia encontrada:', {
+                                        changeDate: changeDateString,
+                                        cellDate: cellDateString,
+                                        employeeId,
+                                        changeEmployeeId: change.employeeId,
+                                        day: change.day
+                                    });
+                                }
+                                return matches;
+                            });
+
+                            if (hasPendingChange) {
+                                classes.push('pending-change');
+                            }
+                        }
+
                         return classes.join(' ');
                     },
                     valueParser: (params: any) =>
                         (params.newValue || '').toUpperCase().slice(0, 2),
                     tooltipValueGetter: (params) => {
                         const turno = params.value || 'Sin turno';
-                        return `${params.data.nombre} - ${dayInfo.nombreCompleto} ${dayInfo.day}: ${turno}`;
+                        let tooltip = `${params.data.nombre} - ${dayInfo.nombreCompleto} ${dayInfo.day}: ${turno}`;
+
+                        // Verificar si esta celda tiene un cambio pendiente
+                        if (showPendingChanges && pendingChanges && pendingChanges.length > 0 && originalChangeDate) {
+                            const employeeId = params.data?.employee_id || params.data?.id;
+                            const currentMonth = month !== undefined ? month : new Date().getMonth();
+                            const currentYear = year !== undefined ? year : new Date().getFullYear();
+
+                            // Crear fecha específica para esta celda
+                            const cellDate = new Date(currentYear, currentMonth, parseInt(fieldName));
+                            const cellDateString = cellDate.toISOString().split('T')[0];
+
+                            // Buscar cambios pendientes que coincidan con esta fecha específica
+                            const pendingChange = pendingChanges.find(change => {
+                                // Convertir el día del cambio a fecha completa
+                                const changeDate = new Date(originalChangeDate.getFullYear(), originalChangeDate.getMonth(), parseInt(change.day));
+                                const changeDateString = changeDate.toISOString().split('T')[0];
+
+                                return changeDateString === cellDateString &&
+                                       (change.employeeId === employeeId);
+                            });
+
+                            if (pendingChange) {
+                                tooltip += `\n⏳ Cambio pendiente: ${pendingChange.oldValue || 'Sin turno'} → ${pendingChange.newValue || 'Sin turno'}`;
+                            }
+                        }
+
+                        return tooltip;
                     }
                 });
             });
@@ -263,6 +343,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
             const turno = e.value || '';
             const valorAnterior = e.oldValue || '';
+
+
 
             // No registrar cambios si estamos deshaciendo
             if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
@@ -431,6 +513,30 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                         background-color: #f5f5f5 !important;
                         font-weight: 600 !important;
                     }
+
+
+
+                    /* Estilos para cambios pendientes */
+                    .ag-theme-alpine .pending-change {
+                        background-color: #fef3c7 !important;
+                        border: 2px solid #f59e0b !important;
+                        position: relative !important;
+                    }
+
+                    .ag-theme-alpine .pending-change::after {
+                        content: "⏳" !important;
+                        position: absolute !important;
+                        top: -2px !important;
+                        right: -2px !important;
+                        background-color: #f59e0b !important;
+                        color: white !important;
+                        font-size: 8px !important;
+                        padding: 1px 2px !important;
+                        border-radius: 2px !important;
+                        line-height: 1 !important;
+                    }
+
+
                 `}</style>
 
                 <AgGridReact

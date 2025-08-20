@@ -58,6 +58,7 @@ const ListaCambios: React.FC<Props> = ({
 
     console.log('ListaCambios - cambios:', cambios);
     console.log('ListaCambios - changeHistory:', changeHistory);
+    console.log('ListaCambios - selectedDate:', selectedDate);
 
     // Función para normalizar los datos del nuevo formato al formato esperado
     const normalizeCambios = (cambiosData: any): CambiosPorFuncionario => {

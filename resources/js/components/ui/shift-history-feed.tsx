@@ -156,17 +156,18 @@ export default function ShiftHistoryFeed() {
                                                     {log.changed_by}
                                                 </span>
                                                 <span className="text-slate-600 dark:text-slate-400">
-                                                    cambió el turno del día
-                                                </span>
-                                                <span className="font-medium text-slate-700 dark:text-slate-300">
-                                                    {log.shift_date || 'N/A'}
-                                                </span>
-                                                <span className="text-slate-600 dark:text-slate-400">
-                                                    de
+                                                    cambió el turno de:
                                                 </span>
                                                 <span className="font-medium text-slate-700 dark:text-slate-300">
                                                     {log.empleado}
                                                 </span>
+                                                <span className="text-slate-600 dark:text-slate-400">
+                                                    el día:
+                                                </span>
+                                                <span className="font-medium text-slate-700 dark:text-slate-300">
+                                                    {log.shift_date || 'N/A'}
+                                                </span>
+
                                             </div>
 
                                             {/* Shift Change Visual */}

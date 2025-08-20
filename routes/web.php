@@ -8,7 +8,9 @@ use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -101,7 +103,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     //importar turnos desde agGrid
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
 
-        $numerosAReportarCambios = [];
+        try {
+            // Iniciar transacción para asegurar consistencia de datos
+            DB::beginTransaction();
+
+            $numerosAReportarCambios = [];
 
         //! Números base para notificaciones
         $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
@@ -140,6 +146,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $mes        = $request->input('mes', now()->month);
         $año        = $request->input('año', now()->year);
         $actualUser = Auth::id();
+
+        // Debug: Verificar qué valores se están recibiendo
+        Log::info('🔄 Valores recibidos en actualización:', [
+            'mes' => $mes,
+            'año' => $año,
+            'cambios' => $cambios
+        ]);
 
         // Array para agrupar cambios por funcionario
         $cambiosPorFuncionario = [];
@@ -385,7 +398,28 @@ Route::middleware(['auth', 'verified'])->group(function () {
             }
         }
 
-        return back()->with('success', 'Cambios guardados correctamente.');
+            // Commit de la transacción si todo salió bien
+            DB::commit();
+
+            return back()->with(
+                'success',
+                'Cambios guardados correctamente.'
+            );
+
+        } catch (\Exception $e) {
+            // Rollback en caso de error
+            DB::rollBack();
+
+            Log::error('Error al actualizar turnos: ' . $e->getMessage(), [
+                'user_id' => Auth::id(),
+                'request_data' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return back()->with('success',
+                'Error al guardar los cambios: ' . $e->getMessage(),
+            );
+        }
     })
         ->name('post-updateShifts');
 
