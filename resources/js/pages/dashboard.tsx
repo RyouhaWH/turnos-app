@@ -548,12 +548,13 @@ export default function DashboardV2() {
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
                 {/* header v2 */}
-                <div className="border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-700/50 dark:bg-slate-900/80">
+                <div className="border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-700/50 dark:bg-slate-900/80 relative py-10">
                     <div className="px-6 py-8">
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                             {/* Title Section */}
-                            <div className="flex w-full items-start justify-between gap-4">
-                                <div className="flex-1 text-center">
+                            <div className="flex w-full items-center justify-center gap-4 flex-col md:flex-row">
+
+                                <div className="flex-1 text-center md:absolute left-0 right-0">
                                     <h1 className="text-2xl font-bold">Dotación diaria de fuerza operativa</h1>
                                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
@@ -568,17 +569,17 @@ export default function DashboardV2() {
                                 </div>
 
                                 {/* Caja de Total de Dotación */}
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-4 md:absolute right-6">
                                     <div className="flex gap-3">
                                         {/* Caja de Dotación Activa */}
                                         <Card className="border-green-200 bg-green-50 shadow-lg dark:border-green-700/30 dark:bg-green-900/20">
-                                            <CardContent className="p-4">
+                                            <CardContent className="pt-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="rounded-full bg-green-100 p-2 dark:bg-green-800/30">
                                                         <UserCheck className="h-5 w-5 text-green-600 dark:text-green-300" />
                                                     </div>
                                                     <div className="text-center">
-                                                        <p className="text-sm font-medium text-green-700 dark:text-green-200">Dotación Activa</p>
+                                                        <p className="text-sm font-medium text-green-700 dark:text-green-200">Dotación Activa Hoy</p>
                                                         <div className="flex items-baseline gap-1">
                                                             <p className="text-2xl font-bold text-green-700 dark:text-green-200">
                                                                 {
@@ -589,7 +590,7 @@ export default function DashboardV2() {
                                                             </p>
                                                             <p className="text-sm text-green-600 dark:text-green-300">/ {totalEmpleados}</p>
                                                         </div>
-                                                        <p className="text-xs text-green-600 dark:text-green-300">Trabajando hoy</p>
+                                                        <p className="text-xs text-green-600 dark:text-green-300">Total por plantilla hoy</p>
                                                     </div>
                                                 </div>
                                             </CardContent>
@@ -632,7 +633,7 @@ export default function DashboardV2() {
                 <div className="mx-6 my-8">
                     {/* Desglose de personal por rol */}
                     <div className="mb-6">
-                        <div className="mb-4 flex items-center justify-between px-4">
+                        <div className="mb-4 flex items-center justify-between px-4 flex-col md:flex-row">
                             <h2 className="mb-4 text-xl font-semibold text-gray-700 dark:text-slate-200">
                                 Desglose de Personal - {selectedDateFormatted}
                             </h2>
