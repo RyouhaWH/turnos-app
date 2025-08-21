@@ -9,7 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Plus, Users, Shield } from 'lucide-react';
 
-type Role = { id: number; name: string };
+type Role = { id: number; nombre: string; color?: string; is_operational: boolean };
 type User = { id: number; name: string; email: string; created_at: string; roles: string[] };
 
 type PageProps = {
@@ -26,10 +26,37 @@ export default function UsersIndex() {
     name: '',
     email: '',
     password: '',
-    role: roles[0]?.name ?? '',
+    role: roles[0]?.id ?? '',
   });
 
-  const [assigning, setAssigning] = useState<Record<number, string>>({});
+  const [assigning, setAssigning] = useState<Record<number, number>>({});
+
+  // Función para obtener el color del rol
+  const getRoleColor = (roleName: string) => {
+    const role = roles.find(r => r.nombre === roleName);
+    return role?.color || '#3B82F6'; // Color por defecto azul
+  };
+
+  // Función para obtener las clases CSS del badge según el color
+  const getRoleBadgeClasses = (roleName: string) => {
+    const color = getRoleColor(roleName);
+
+    // Mapeo de colores hex a clases de Tailwind
+    const colorMap: Record<string, string> = {
+      '#3B82F6': 'bg-blue-100 text-blue-800 border-blue-200',
+      '#EF4444': 'bg-red-100 text-red-800 border-red-200',
+      '#10B981': 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      '#F59E0B': 'bg-amber-100 text-amber-800 border-amber-200',
+      '#8B5CF6': 'bg-purple-100 text-purple-800 border-purple-200',
+      '#06B6D4': 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      '#EC4899': 'bg-pink-100 text-pink-800 border-pink-200',
+      '#F97316': 'bg-orange-100 text-orange-800 border-orange-200',
+      '#6366F1': 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      '#84CC16': 'bg-lime-100 text-lime-800 border-lime-200'
+    };
+
+    return colorMap[color] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,10 +68,10 @@ export default function UsersIndex() {
   };
 
   const handleAssign = (userId: number) => {
-    const role = assigning[userId];
-    if (!role) return;
+    const roleId = assigning[userId];
+    if (!roleId) return;
 
-    createForm.transform(() => ({ role })).patch(route('user-management.update-role', userId), {
+    createForm.transform(() => ({ role: roleId })).patch(route('user-management.update-role', userId), {
       onSuccess: () => {
         setAssigning(prev => {
           const newState = { ...prev };
@@ -129,7 +156,15 @@ export default function UsersIndex() {
                 </SelectTrigger>
                 <SelectContent>
                   {roles.map((r) => (
-                    <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                    <SelectItem key={r.id} value={r.id}>
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: r.color || '#3B82F6' }}
+                        ></div>
+                        {r.nombre}
+                      </div>
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -178,7 +213,15 @@ export default function UsersIndex() {
                   <div className="flex gap-1">
                     {user.roles.length > 0 ? (
                       user.roles.map((role) => (
-                        <Badge key={role} variant="secondary" className="text-xs">
+                        <Badge
+                          key={role}
+                          variant="outline"
+                          className={`text-xs border ${getRoleBadgeClasses(role)}`}
+                          style={{
+                            backgroundColor: getRoleColor(role) + '20',
+                            borderColor: getRoleColor(role) + '40'
+                          }}
+                        >
                           {role}
                         </Badge>
                       ))
@@ -198,7 +241,15 @@ export default function UsersIndex() {
                       </SelectTrigger>
                       <SelectContent>
                         {roles.map((r) => (
-                          <SelectItem key={r.id} value={r.name}>{r.name}</SelectItem>
+                          <SelectItem key={r.id} value={r.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: r.color || '#3B82F6' }}
+                              ></div>
+                              {r.nombre}
+                            </div>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

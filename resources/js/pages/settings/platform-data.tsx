@@ -63,6 +63,56 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [searchEmployee, setSearchEmployee] = useState('');
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
 
+    // Función para obtener el color del rol
+    const getRoleColor = (roleName: string) => {
+        const role = data.roles.find(r => r.nombre === roleName);
+        return role?.color || '#3B82F6'; // Color por defecto azul
+    };
+
+    // Función para obtener estilos de badge con mejor contraste en modo oscuro
+    const getRoleBadgeStyles = (roleName: string) => {
+        const color = getRoleColor(roleName);
+
+        // Detectar si estamos en modo oscuro
+        const isDarkMode = document.documentElement.classList.contains('dark');
+
+        if (isDarkMode) {
+            // En modo oscuro, usar colores más claros para mejor contraste
+            return {
+                backgroundColor: color + '30', // Más opaco para mejor contraste
+                borderColor: color + '60',     // Borde más visible
+                color: '#ffffff'               // Texto blanco para mejor legibilidad
+            };
+        } else {
+            // En modo claro, usar colores originales
+            return {
+                backgroundColor: color + '20',
+                borderColor: color + '40'
+            };
+        }
+    };
+
+    // Función para obtener las clases CSS del badge según el color
+    const getRoleBadgeClasses = (roleName: string) => {
+        const color = getRoleColor(roleName);
+
+        // Mapeo de colores hex a clases de Tailwind con soporte para modo oscuro
+        const colorMap: Record<string, string> = {
+            '#3B82F6': 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-700/50',
+            '#EF4444': 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-700/50',
+            '#10B981': 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-700/50',
+            '#F59E0B': 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-700/50',
+            '#8B5CF6': 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-700/50',
+            '#06B6D4': 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-700/50',
+            '#EC4899': 'bg-pink-100 text-pink-800 border-pink-200 dark:bg-pink-900/30 dark:text-pink-300 dark:border-pink-700/50',
+            '#F97316': 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50',
+            '#6366F1': 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-700/50',
+            '#84CC16': 'bg-lime-100 text-lime-800 border-lime-200 dark:bg-lime-900/30 dark:text-lime-300 dark:border-lime-700/50'
+        };
+
+        return colorMap[color] || 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-600';
+    };
+
     // Estados para configuración de roles operativos
 
 
@@ -192,9 +242,12 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         <AppLayout>
             <Head title="Datos de Plataforma" />
 
-            <div className="container mx-auto py-6 space-y-6">
-                {/* Header */}
-                <div className="flex items-center justify-between">
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/20 to-indigo-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-indigo-950/50">
+                <div className="container mx-auto py-6 space-y-6">
+                {/* Header con fondo similar al dashboard */}
+                <div className="border-b border-slate-200 bg-white/80 backdrop-blur-md dark:border-slate-700/50 dark:bg-slate-900/80 relative py-6 mb-8">
+                    <div className="px-6">
+                        <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
                             Datos de Plataforma
@@ -203,23 +256,25 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             Gestiona la configuración y datos del sistema
                         </p>
                     </div>
-                    <Badge variant="secondary" className="text-sm">
+                    <Badge variant="secondary" className="text-sm bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30 text-slate-700 dark:text-slate-300">
                         Solo Administradores
                     </Badge>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Tabs */}
                 <Tabs defaultValue="roles" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3">
-                        <TabsTrigger value="roles" className="flex items-center gap-2">
+                    <TabsList className="grid w-full grid-cols-3 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
+                        <TabsTrigger value="roles" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <Users className="h-4 w-4" />
                             Roles
                         </TabsTrigger>
-                        <TabsTrigger value="employees" className="flex items-center gap-2">
+                        <TabsTrigger value="employees" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <UserCheck className="h-4 w-4" />
                             Empleados
                         </TabsTrigger>
-                        <TabsTrigger value="departments" className="flex items-center gap-2">
+                        <TabsTrigger value="departments" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <Building2 className="h-4 w-4" />
                             Departamentos
                         </TabsTrigger>
@@ -227,7 +282,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                     {/* Roles Tab */}
                     <TabsContent value="roles" className="space-y-6">
-                        <Card>
+                        <Card className="bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -251,7 +306,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <CardContent>
                                                                 {/* Agregar nuevo rol */}
                                 {isAddingRole && (
-                                    <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
+                                    <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm">
                                         <CardContent className="pt-6">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
@@ -319,8 +374,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                                                                 {/* Lista de roles */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {data.roles.map((role) => (
-                                        <Card key={role.id} className="group hover:shadow-lg transition-all duration-300 border-l-4" style={{ borderLeftColor: role.color || '#3B82F6' }}>
+                                                                    {data.roles.map((role) => (
+                                    <Card key={role.id} className="group hover:shadow-lg transition-all duration-300 border-l-4 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30" style={{ borderLeftColor: role.color || '#3B82F6' }}>
                                             <CardContent className="p-4">
                                                 {editingRole === role.id ? (
                                                     <div className="space-y-4">
@@ -477,7 +532,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                     {/* Employees Tab */}
                     <TabsContent value="employees" className="space-y-6">
-                        <Card>
+                        <Card className="bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
@@ -505,29 +560,49 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                 {/* Lista de empleados */}
                                 <div className="space-y-4">
                                     {filteredEmployees.map((employee) => (
-                                        <Card key={employee.id} className="border">
+                                        <Card key={employee.id} className="border bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                                             <CardContent className="pt-6">
                                                 {editingEmployee === employee.id ? (
                                                     <div>
                                                         <div className="mb-4">
                                                             <Label htmlFor={`employee-role-${employee.id}`}>Rol/Facción</Label>
-                                                            <select
-                                                                id={`employee-role-${employee.id}`}
-                                                                className="w-full p-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                                                                defaultValue={employee.rol_id}
-                                                                onChange={(e) => {
-                                                                    const updatedEmployees = data.empleados.map(emp =>
-                                                                        emp.id === employee.id ? { ...emp, rol_id: parseInt(e.target.value) } : emp
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                                                                {data.roles.map((role) => {
+                                                                    const isSelected = employee.rol_id === role.id;
+                                                                    return (
+                                                                        <div
+                                                                            key={role.id}
+                                                                            className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
+                                                                                isSelected
+                                                                                    ? 'ring-2 ring-blue-500 border-blue-500 dark:ring-blue-400 dark:border-blue-400'
+                                                                                    : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+                                                                            }`}
+                                                                            style={{
+                                                                                backgroundColor: isSelected ? role.color + '10' : 'transparent',
+                                                                                borderColor: isSelected ? role.color : undefined
+                                                                            }}
+                                                                            onClick={() => {
+                                                                                const updatedEmployees = data.empleados.map(emp =>
+                                                                                    emp.id === employee.id ? { ...emp, rol_id: role.id, rol_nombre: role.nombre } : emp
+                                                                                );
+                                                                                setData(prev => ({ ...prev, empleados: updatedEmployees }));
+                                                                            }}
+                                                                        >
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div
+                                                                                    className="w-4 h-4 rounded-full"
+                                                                                    style={{ backgroundColor: role.color || '#3B82F6' }}
+                                                                                ></div>
+                                                                                <span className={`text-sm font-medium ${
+                                                                                    isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                                                                                }`}>
+                                                                                    {role.nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : role.nombre}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
                                                                     );
-                                                                    setData(prev => ({ ...prev, empleados: updatedEmployees }));
-                                                                }}
-                                                            >
-                                                                {data.roles.map((role) => (
-                                                                    <option key={role.id} value={role.id}>
-                                                                        {role.nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : role.nombre}
-                                                                    </option>
-                                                                ))}
-                                                            </select>
+                                                                })}
+                                                            </div>
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <Button
@@ -564,10 +639,14 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 <span>Tel: {employee.phone || 'Sin teléfono'}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <Badge variant="outline" className="text-xs">
+                                                                <Badge
+                                                                    variant="outline"
+                                                                    className={`text-xs border ${getRoleBadgeClasses(employee.rol_nombre)}`}
+                                                                    style={getRoleBadgeStyles(employee.rol_nombre)}
+                                                                >
                                                                     {employee.rol_nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : employee.rol_nombre}
                                                                 </Badge>
-                                                                <span className="text-xs text-gray-400">ID: {employee.id}</span>
+                                                                <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
@@ -588,7 +667,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                     ))}
 
                                     {filteredEmployees.length === 0 && (
-                                        <div className="text-center py-8 text-gray-500">
+                                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                                             <UserCheck className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                             <p>No se encontraron empleados</p>
                                         </div>
@@ -600,7 +679,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                     {/* Departments Tab */}
                     <TabsContent value="departments" className="space-y-6">
-                        <Card>
+                        <Card className="bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                             <CardHeader>
                                 <CardTitle>Departamentos</CardTitle>
                                 <CardDescription>
@@ -608,7 +687,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                 </CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-center py-8 text-gray-500">
+                                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                                     <Building2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
                                     <p>Funcionalidad de departamentos en desarrollo</p>
                                 </div>
@@ -618,6 +697,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
 
                 </Tabs>
+                </div>
             </div>
         </AppLayout>
     );

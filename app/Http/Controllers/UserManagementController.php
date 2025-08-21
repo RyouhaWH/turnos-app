@@ -19,9 +19,12 @@ class UserManagementController extends Controller
         $users = User::with('roles')->get();
         $roles = Role::all();
 
+        // Obtener roles operativos con colores
+        $operationalRoles = \App\Models\Rol::where('is_operational', true)->get();
+
         return Inertia::render('Users/Index', [
             'users' => $users,
-            'roles' => $roles
+            'roles' => $operationalRoles // Usar roles operativos con colores
         ]);
     }
 
@@ -34,7 +37,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|exists:roles,id'
+            'role' => 'required|exists:rols,id'
         ]);
 
         $user = User::create([
@@ -43,9 +46,13 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Asignar el rol
-        $role = Role::find($request->role);
-        $user->assignRole($role);
+        // Asignar el rol operativo
+        $role = \App\Models\Rol::find($request->role);
+        if ($role) {
+            // Crear o encontrar el rol de Spatie Permission correspondiente
+            $spatieRole = Role::firstOrCreate(['name' => $role->nombre]);
+            $user->assignRole($spatieRole);
+        }
 
         return back()->with('success', 'Usuario creado exitosamente');
     }
@@ -56,18 +63,21 @@ class UserManagementController extends Controller
     public function updateRole(Request $request, User $user)
     {
         $request->validate([
-            'roles' => 'required|array',
-            'roles.*' => 'exists:roles,id'
+            'role' => 'required|exists:rols,id'
         ]);
 
-        // Obtener los roles seleccionados
-        $roleIds = $request->roles;
-        $roles = Role::whereIn('id', $roleIds)->get();
+        // Obtener el rol operativo seleccionado
+        $operationalRole = \App\Models\Rol::find($request->role);
 
-        // Sincronizar roles (reemplaza todos los roles existentes)
-        $user->syncRoles($roles);
+        if ($operationalRole) {
+            // Crear o encontrar el rol de Spatie Permission correspondiente
+            $spatieRole = Role::firstOrCreate(['name' => $operationalRole->nombre]);
 
-        return back()->with('success', 'Roles actualizados exitosamente');
+            // Sincronizar roles (reemplaza todos los roles existentes)
+            $user->syncRoles([$spatieRole]);
+        }
+
+        return back()->with('success', 'Rol actualizado exitosamente');
     }
 
     /**
