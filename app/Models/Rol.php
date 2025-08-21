@@ -6,7 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 class Rol extends Model
 {
     protected $fillable = [
-        'nombre'
+        'nombre',
+        'is_operational',
+        'color'
+    ];
+
+    protected $casts = [
+        'is_operational' => 'boolean'
     ];
 
     public function usuarios()

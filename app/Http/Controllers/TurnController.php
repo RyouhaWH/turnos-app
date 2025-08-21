@@ -659,17 +659,15 @@ class TurnController extends Controller
             $totalActivos = $counts['trabajando']['total'] + $counts['descanso']['total'] + $counts['ausente']['total'];
             $totalEmpleados = $employees->count();
 
-            // Definir nombres de roles
-            $roles = [
-                1 => 'Alerta Móvil',
-                2 => 'Fiscalización',
-                3 => 'Motorizado',
-                4 => 'Administrativo',
-                5 => 'Dron',
-                6 => 'Ciclopatrullaje',
-                7 => 'Personal de Servicio',
-                8 => 'Despachadores'
-            ];
+            // Obtener roles con colores desde la base de datos
+            $rolesData = Rol::whereIn('id', $operationalRoles)->get()->keyBy('id');
+            $roles = [];
+            $roleColors = [];
+
+            foreach ($rolesData as $role) {
+                $roles[$role->id] = $role->nombre;
+                $roleColors[$role->id] = $role->color ?? '#3B82F6'; // Color por defecto azul
+            }
 
             // Debug: Log para ver qué datos se están enviando
             Log::info('getEmployeeStatus - Datos enviados:', [
@@ -688,7 +686,8 @@ class TurnController extends Controller
                     'counts' => $counts,
                     'totalActivos' => $totalActivos,
                     'totalEmpleados' => $totalEmpleados,
-                    'roles' => $roles
+                    'roles' => $roles,
+                    'roleColors' => $roleColors
                 ],
                 'definitions' => [
                     'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3',

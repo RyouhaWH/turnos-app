@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { AVAILABLE_COLORS } from '@/lib/role-colors';
 import {
     Settings,
     Users,
@@ -25,6 +26,8 @@ import {
 interface Rol {
     id: number;
     nombre: string;
+    is_operational: boolean;
+    color?: string;
     created_at: string;
     updated_at: string;
 }
@@ -52,7 +55,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         empleados: empleados || []
     });
     const [editingRole, setEditingRole] = useState<number | null>(null);
-    const [newRole, setNewRole] = useState({ nombre: '' });
+    const [newRole, setNewRole] = useState({ nombre: '', is_operational: true, color: '#3B82F6' });
     const [isAddingRole, setIsAddingRole] = useState(false);
 
     // Estados para empleados
@@ -60,8 +63,11 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [searchEmployee, setSearchEmployee] = useState('');
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
 
+    // Estados para configuración de roles operativos
+
+
     // Guardar rol
-    const saveRole = (roleId: number, roleData: { nombre: string }) => {
+    const saveRole = (roleId: number, roleData: { nombre: string; is_operational?: boolean; color?: string }) => {
         router.put(`/platform-data/roles/${roleId}`, roleData, {
             onSuccess: () => {
                 // Actualizar el estado local inmediatamente
@@ -121,11 +127,15 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             return;
         }
 
-        router.post('/platform-data/roles', newRole, {
+        router.post('/platform-data/roles', {
+            nombre: newRole.nombre,
+            is_operational: newRole.is_operational,
+            color: newRole.color
+        }, {
             onSuccess: () => {
                 // Recargar la página para obtener el nuevo rol con ID correcto
                 router.reload();
-                setNewRole({ nombre: '' });
+                setNewRole({ nombre: '', is_operational: true, color: '#3B82F6' });
                 setIsAddingRole(false);
                 toast.success('Rol creado correctamente');
             },
@@ -173,6 +183,11 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         setFilteredEmployees(filtered);
     }, [searchEmployee, data.empleados]);
 
+    // Inicializar configuración de roles operativos
+
+
+    const colorPalette = AVAILABLE_COLORS;
+
     return (
         <AppLayout>
             <Head title="Datos de Plataforma" />
@@ -195,7 +210,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                 {/* Tabs */}
                 <Tabs defaultValue="roles" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-4">
+                    <TabsList className="grid w-full grid-cols-3">
                         <TabsTrigger value="roles" className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             Roles
@@ -208,10 +223,6 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <Building2 className="h-4 w-4" />
                             Departamentos
                         </TabsTrigger>
-                        <TabsTrigger value="settings" className="flex items-center gap-2">
-                            <Settings className="h-4 w-4" />
-                            Configuración
-                        </TabsTrigger>
                     </TabsList>
 
                     {/* Roles Tab */}
@@ -220,14 +231,17 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <CardTitle>Roles de Turnos</CardTitle>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Users className="h-5 w-5" />
+                                            Gestión de Roles
+                                        </CardTitle>
                                         <CardDescription>
-                                            Gestiona los roles disponibles para asignar turnos
+                                            Crea, edita y configura roles operativos con colores personalizados
                                         </CardDescription>
                                     </div>
                                     <Button
                                         onClick={() => setIsAddingRole(true)}
-                                        className="flex items-center gap-2"
+                                        className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                                     >
                                         <Plus className="h-4 w-4" />
                                         Nuevo Rol
@@ -235,30 +249,64 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                 </div>
                             </CardHeader>
                             <CardContent>
-                                {/* Agregar nuevo rol */}
+                                                                {/* Agregar nuevo rol */}
                                 {isAddingRole && (
-                                    <Card className="mb-6 border-dashed">
+                                    <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20">
                                         <CardContent className="pt-6">
-                                                                                         <div>
-                                                 <Label htmlFor="new-role-name">Nombre del Rol</Label>
-                                                 <Input
-                                                     id="new-role-name"
-                                                     value={newRole.nombre}
-                                                     onChange={(e) => setNewRole(prev => ({ ...prev, nombre: e.target.value }))}
-                                                     placeholder="Ej: Alerta Móvil"
-                                                 />
-                                             </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <Label htmlFor="new-role-name" className="text-sm font-medium">Nombre del Rol</Label>
+                                                    <Input
+                                                        id="new-role-name"
+                                                        value={newRole.nombre}
+                                                        onChange={(e) => setNewRole(prev => ({ ...prev, nombre: e.target.value }))}
+                                                        placeholder="Ej: Alerta Móvil"
+                                                        className="mt-1"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <Label className="text-sm font-medium">Color del Rol</Label>
+                                                    <div className="flex flex-wrap gap-2 mt-1">
+                                                        {colorPalette.map((color) => (
+                                                            <button
+                                                                key={color.hex}
+                                                                type="button"
+                                                                onClick={() => setNewRole(prev => ({ ...prev, color: color.hex }))}
+                                                                className={`w-8 h-8 rounded-full border-2 transition-all ${
+                                                                    newRole.color === color.hex
+                                                                        ? 'border-gray-800 scale-110'
+                                                                        : 'border-gray-300 hover:scale-105'
+                                                                }`}
+                                                                style={{ backgroundColor: color.hex }}
+                                                                title={color.name}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center space-x-2 mt-4">
+                                                <input
+                                                    type="checkbox"
+                                                    id="new-role-operational"
+                                                    checked={newRole.is_operational}
+                                                    onChange={(e) => setNewRole(prev => ({ ...prev, is_operational: e.target.checked }))}
+                                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                />
+                                                <Label htmlFor="new-role-operational" className="text-sm">
+                                                    Rol operativo (desempeña funciones de prevención de delito)
+                                                </Label>
+                                            </div>
                                             <div className="flex gap-2 mt-4">
-                                                <Button onClick={addRole} className="flex items-center gap-2">
+                                                <Button onClick={addRole} className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800">
                                                     <Save className="h-4 w-4" />
-                                                    Guardar
+                                                    Crear Rol
                                                 </Button>
                                                 <Button
                                                     variant="outline"
-                                                                                                         onClick={() => {
-                                                         setIsAddingRole(false);
-                                                         setNewRole({ nombre: '' });
-                                                     }}
+                                                    onClick={() => {
+                                                        setIsAddingRole(false);
+                                                        setNewRole({ nombre: '', is_operational: true, color: '#3B82F6' });
+                                                    }}
                                                     className="flex items-center gap-2"
                                                 >
                                                     <X className="h-4 w-4" />
@@ -269,37 +317,81 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                     </Card>
                                 )}
 
-                                {/* Lista de roles */}
-                                <div className="space-y-4">
+                                                                {/* Lista de roles */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     {data.roles.map((role) => (
-                                        <Card key={role.id} className="border">
-                                            <CardContent className="pt-6">
-                                                                                                 {editingRole === role.id ? (
-                                                     <div>
-                                                         <div className="mb-4">
-                                                             <Label htmlFor={`role-name-${role.id}`}>Nombre</Label>
-                                                             <Input
-                                                                 id={`role-name-${role.id}`}
-                                                                 defaultValue={role.nombre}
-                                                                 onChange={(e) => {
-                                                                     const updatedRoles = data.roles.map(r =>
-                                                                         r.id === role.id ? { ...r, nombre: e.target.value } : r
-                                                                     );
-                                                                     setData(prev => ({ ...prev, roles: updatedRoles }));
-                                                                 }}
-                                                             />
-                                                         </div>
-                                                         <div className="flex gap-2">
+                                        <Card key={role.id} className="group hover:shadow-lg transition-all duration-300 border-l-4" style={{ borderLeftColor: role.color || '#3B82F6' }}>
+                                            <CardContent className="p-4">
+                                                {editingRole === role.id ? (
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <Label htmlFor={`role-name-${role.id}`} className="text-sm font-medium">Nombre</Label>
+                                                            <Input
+                                                                id={`role-name-${role.id}`}
+                                                                defaultValue={role.nombre}
+                                                                onChange={(e) => {
+                                                                    const updatedRoles = data.roles.map(r =>
+                                                                        r.id === role.id ? { ...r, nombre: e.target.value } : r
+                                                                    );
+                                                                    setData(prev => ({ ...prev, roles: updatedRoles }));
+                                                                }}
+                                                                className="mt-1"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-sm font-medium">Color</Label>
+                                                            <div className="flex flex-wrap gap-2 mt-1">
+                                                                                                                        {colorPalette.map((color) => (
+                                                            <button
+                                                                key={color.hex}
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    const updatedRoles = data.roles.map(r =>
+                                                                        r.id === role.id ? { ...r, color: color.hex } : r
+                                                                    );
+                                                                    setData(prev => ({ ...prev, roles: updatedRoles }));
+                                                                }}
+                                                                className={`w-6 h-6 rounded-full border-2 transition-all ${
+                                                                    role.color === color.hex
+                                                                        ? 'border-gray-800 scale-110'
+                                                                        : 'border-gray-300 hover:scale-105'
+                                                                }`}
+                                                                style={{ backgroundColor: color.hex }}
+                                                                title={color.name}
+                                                            />
+                                                        ))}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <input
+                                                                type="checkbox"
+                                                                id={`role-operational-${role.id}`}
+                                                                checked={role.is_operational}
+                                                                onChange={(e) => {
+                                                                    const updatedRoles = data.roles.map(r =>
+                                                                        r.id === role.id ? { ...r, is_operational: e.target.checked } : r
+                                                                    );
+                                                                    setData(prev => ({ ...prev, roles: updatedRoles }));
+                                                                }}
+                                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                            />
+                                                            <Label htmlFor={`role-operational-${role.id}`} className="text-sm">
+                                                                Operativo
+                                                            </Label>
+                                                        </div>
+                                                        <div className="flex gap-2">
                                                             <Button
                                                                 onClick={() => {
                                                                     const roleData = data.roles.find(r => r.id === role.id);
-                                                                                                                                         if (roleData) {
-                                                                         saveRole(role.id, {
-                                                                             nombre: roleData.nombre
-                                                                         });
-                                                                     }
+                                                                    if (roleData) {
+                                                                        saveRole(role.id, {
+                                                                            nombre: roleData.nombre,
+                                                                            is_operational: roleData.is_operational,
+                                                                            color: roleData.color
+                                                                        });
+                                                                    }
                                                                 }}
-                                                                className="flex items-center gap-2"
+                                                                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
                                                             >
                                                                 <Save className="h-4 w-4" />
                                                                 Guardar
@@ -315,34 +407,48 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex-1">
-                                                                                                                                                                                      <h3 className="font-bold text-2xl text-gray-900 dark:text-white mb-2">{role.nombre}</h3>
-                                                            <div className="flex items-center gap-4 text-xs text-gray-400">
-                                                                <span>ID: {role.id}</span>
-                                                                <span>•</span>
-                                                                <span>Creado: {new Date(role.created_at).toLocaleDateString()}</span>
+                                                    <div className="space-y-3">
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center gap-3">
+                                                                <div
+                                                                    className="w-4 h-4 rounded-full shadow-sm"
+                                                                    style={{ backgroundColor: role.color || '#3B82F6' }}
+                                                                />
+                                                                <h3 className="font-semibold text-lg">
+                                                                    {role.nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : role.nombre}
+                                                                </h3>
+                                                            </div>
+                                                            <div className="flex gap-1">
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => setEditingRole(role.id)}
+                                                                    className="flex items-center gap-1 h-8 px-2"
+                                                                >
+                                                                    <Edit className="h-3 w-3" />
+                                                                </Button>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    onClick={() => deleteRole(role.id)}
+                                                                    className="flex items-center gap-1 h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                >
+                                                                    <Trash2 className="h-3 w-3" />
+                                                                </Button>
                                                             </div>
                                                         </div>
-                                                        <div className="flex gap-2">
-                                                            <Button
+                                                        <div className="flex items-center gap-2">
+                                                            <Badge
                                                                 variant="outline"
-                                                                size="sm"
-                                                                onClick={() => setEditingRole(role.id)}
-                                                                className="flex items-center gap-2"
+                                                                className={`text-xs ${
+                                                                    role.is_operational
+                                                                        ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-700/30'
+                                                                        : 'bg-gray-50 text-gray-700 border-gray-200 dark:bg-gray-800/30 dark:text-gray-300 dark:border-gray-600/30'
+                                                                }`}
                                                             >
-                                                                <Edit className="h-4 w-4" />
-                                                                Editar
-                                                            </Button>
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => deleteRole(role.id)}
-                                                                className="flex items-center gap-2 text-red-600 hover:text-red-700"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                                Eliminar
-                                                            </Button>
+                                                                {role.is_operational ? 'Operativo' : 'No Operativo'}
+                                                            </Badge>
+                                                            <span className="text-xs text-gray-500">ID: {role.id}</span>
                                                         </div>
                                                     </div>
                                                 )}
@@ -350,6 +456,21 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                         </Card>
                                     ))}
                                 </div>
+
+                                {data.roles.length === 0 && (
+                                    <div className="text-center py-12">
+                                        <Users className="h-16 w-16 mx-auto mb-4 text-gray-400" />
+                                        <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No hay roles configurados</h3>
+                                        <p className="text-gray-500 dark:text-gray-400 mb-4">Crea tu primer rol para comenzar</p>
+                                        <Button
+                                            onClick={() => setIsAddingRole(true)}
+                                            className="flex items-center gap-2 mx-auto"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Crear Primer Rol
+                                        </Button>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>
@@ -495,23 +616,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                         </Card>
                     </TabsContent>
 
-                    {/* Settings Tab */}
-                    <TabsContent value="settings" className="space-y-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Configuración General</CardTitle>
-                                <CardDescription>
-                                    Configuración general de la plataforma
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-center py-8 text-gray-500">
-                                    <Settings className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                    <p>Configuración general en desarrollo</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+
                 </Tabs>
             </div>
         </AppLayout>

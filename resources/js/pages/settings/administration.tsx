@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import HeadingSmall from '@/components/heading-small';
 import CreateUser from '@/components/CreateUser';
 import UserRoleManagement from '@/components/UserRoleManagement';
+
 import PermissionDenied from '@/components/PermissionDenied';
 import AppLayout from '@/layouts/app-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -37,6 +38,8 @@ interface AdministrationProps {
 }
 
 export default function Administration({ users = [], roles = [], error, auth }: AdministrationProps) {
+
+
     // Si hay un error de permisos, mostrar el componente PermissionDenied
     if (error) {
         return (
@@ -82,6 +85,7 @@ export default function Administration({ users = [], roles = [], error, auth }: 
                     <div className="space-y-6">
                         <UserRoleManagement users={users} roles={roles} />
                     </div>
+
                 </div>
             </SettingsLayout>
         </AppLayout>

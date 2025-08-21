@@ -7,6 +7,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { getDashboardRoleColors } from '@/lib/role-colors';
 
 // Hook personalizado para obtener datos de una fecha específica
 const useEmployeeStatusWithDate = (selectedDate: string) => {
@@ -67,6 +68,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
     const [totalActivos, setTotalActivos] = useState(0);
     const [totalEmpleados, setTotalEmpleados] = useState(0);
     const [roles, setRoles] = useState<Record<number, string>>({});
+    const [roleColors, setRoleColors] = useState<Record<number, string>>({});
 
     const fetchEmployeeStatus = async () => {
         try {
@@ -87,6 +89,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
                 setTotalActivos(data.data.totalActivos);
                 setTotalEmpleados(data.data.totalEmpleados);
                 setRoles(data.data.roles);
+                setRoleColors(data.data.roleColors || {});
             } else {
                 setError('Error al cargar estado de empleados del servidor');
             }
@@ -132,6 +135,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
         totalActivos,
         totalEmpleados,
         roles,
+        roleColors,
         loading,
         error,
         refetch: fetchEmployeeStatus,
@@ -184,6 +188,8 @@ const getAbsenceColor = (shiftLabel: string): string => {
     return 'bg-gray-100 dark:bg-slate-700/30 text-gray-700 dark:text-slate-300 border-gray-300 dark:border-slate-600/50';
 };
 
+
+
 // Componente para mostrar empleados por rol
 interface RoleColumnProps {
     roleId: number;
@@ -228,11 +234,13 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     const [showAll, setShowAll] = useState(true);
 
     return (
-        <Card className="h-fit pb-6">
+        <Card className={`h-fit pb-6 border-l-4 ${getDashboardRoleColors(roleColor)}`}>
             <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
-                    <UserCheck className="h-5 w-5" />
-                    {roleName === 'Alerta Móvil' ? 'Patrullaje y Proximidad' : roleName}
+                <CardTitle className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
+                    <span className="font-semibold">
+                        {roleName === 'Alerta Móvil' ? 'Patrullaje y Proximidad' : roleName}
+                    </span>
                     <Badge variant="secondary" className="ml-auto items-center justify-between p-2 text-xs font-light">
                         Total: {trabajando.length}
                     </Badge>
@@ -289,11 +297,13 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
     const [showAll, setShowAll] = useState(true);
 
     return (
-        <Card className="h-fit pb-6">
+        <Card className={`h-fit pb-6 border-l-4 ${getDashboardRoleColors(roleColor)}`}>
             <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${roleColor}`}>
-                    <UserCheck className="h-5 w-5" />
-                    Patrullaje y Proximidad
+                <CardTitle className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
+                    <span className="font-semibold">
+                        Patrullaje y Proximidad
+                    </span>
                     <Badge variant="secondary" className="ml-auto items-center justify-between p-2 text-xs font-light">
                         Total: {trabajando.length}
                     </Badge>
@@ -517,7 +527,7 @@ export default function DashboardV2() {
     }); // Formato YYYY-MM-DD
 
     // Hook personalizado para obtener datos de una fecha específica
-    const { employeeStatus, counts, totalActivos, totalEmpleados, roles, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
+    const { employeeStatus, counts, totalActivos, totalEmpleados, roles, roleColors, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
 
     const selectedDateFormatted = (() => {
         const [year, month, day] = selectedDate.split('-').map(Number);
@@ -931,8 +941,8 @@ export default function DashboardV2() {
                                         key={roleId}
                                         roleId={roleIdNum}
                                         roleName={roleNameStr}
+                                        roleColor={roleColors[roleIdNum] || '#3B82F6'}
                                         employees={employeeStatus.trabajando}
-                                        roleColor="text-red-700 dark:text-red-300"
                                     />
                                 );
                             })}

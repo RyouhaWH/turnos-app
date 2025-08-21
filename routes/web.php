@@ -79,6 +79,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     });
 
+    // Rutas para gestión de roles
+    Route::prefix('api/roles')->group(function () {
+        Route::get('/', [App\Http\Controllers\RolController::class, 'index'])->name('roles.index');
+        Route::patch('/{id}/operational-status', [App\Http\Controllers\RolController::class, 'updateOperationalStatus'])->name('roles.update-operational-status');
+        Route::patch('/update-multiple', [App\Http\Controllers\RolController::class, 'updateMultiple'])->name('roles.update-multiple');
+    });
+
     //ruta de turnos filtrados
     Route::get('api/turnos-alerta_movil', [TurnController::class, 'index'])->name('turnos-alerta_movil');
 
@@ -428,7 +435,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Vista principal
         Route::get('/platform-data', function () {
-            $roles = \App\Models\Rol::all();
+            $roles = \App\Models\Rol::all()->map(function($role) {
+                return [
+                    'id' => $role->id,
+                    'nombre' => $role->nombre,
+                    'is_operational' => $role->is_operational,
+                    'color' => $role->color,
+                    'created_at' => $role->created_at,
+                    'updated_at' => $role->updated_at,
+                ];
+            });
             $empleados = \App\Models\Employees::with('rol')->get()->map(function($empleado) {
                 return [
                     'id' => $empleado->id,
@@ -475,7 +491,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ]);
 
                 \App\Models\Rol::create([
-                    'nombre' => $request->nombre
+                    'nombre' => $request->nombre,
+                    'is_operational' => $request->input('is_operational', true), // Por defecto operativo
+                    'color' => $request->input('color', '#3B82F6') // Por defecto azul
                 ]);
 
                 return redirect()->back()->with('success', 'Rol creado correctamente');
@@ -490,7 +508,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ]);
 
                 $role->update([
-                    'nombre' => $request->nombre
+                    'nombre' => $request->nombre,
+                    'is_operational' => $request->input('is_operational', $role->is_operational),
+                    'color' => $request->input('color', $role->color)
                 ]);
 
                 return redirect()->back()->with('success', 'Rol actualizado correctamente');

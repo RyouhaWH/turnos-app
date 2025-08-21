@@ -5,6 +5,8 @@ import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/react';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { useOperationalRoles } from '@/hooks/useOperationalRoles';
+import { getRoleColors } from '@/lib/role-colors';
 import {
     Plane,
     Car,
@@ -40,8 +42,10 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function Dashboard() {
     const { stats, roles, loading, error, message, refetch } = useDashboardStats();
+    const { operationalRoles, loading: rolesLoading, error: rolesError, refetch: refetchRoles } = useOperationalRoles();
 
-    console.log(roles);
+    console.log('Todos los roles:', roles);
+    console.log('Roles operativos:', operationalRoles);
 
     if (error) {
         return (
@@ -158,7 +162,7 @@ export default function Dashboard() {
                                             Departamentos Operativos
                                         </h2>
                                         <p className="text-slate-600 dark:text-slate-300">
-                                            {message || "Selecciona un departamento para gestionar sus turnos"}
+                                            {message || "Selecciona un departamento operativo para gestionar sus turnos"}
                                         </p>
                                     </div>
                                 </div>
@@ -166,86 +170,45 @@ export default function Dashboard() {
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    onClick={refetch}
-                                    disabled={loading}
+                                    onClick={() => {
+                                        refetch();
+                                        refetchRoles();
+                                    }}
+                                    disabled={loading || rolesLoading}
                                     className="shrink-0"
                                 >
-                                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                                    <RefreshCw className={`h-4 w-4 mr-2 ${loading || rolesLoading ? 'animate-spin' : ''}`} />
                                     Actualizar
                                 </Button>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {Object.entries(roles)
-                                    .filter(([roleId, roleName]) => {
-                                        const lowerRoleName = roleName.toLowerCase();
-                                        return !lowerRoleName.includes('administrativo') &&
-                                               !lowerRoleName.includes('servicio') &&
-                                               !lowerRoleName.includes('personal de servicio') &&
-                                               !lowerRoleName.includes('desvinculado');
-                                    })
-                                    .map(([roleId, roleName], index) => {
-                                    // Mapeo de colores específicos por rol
-                                    const getRoleColors = (roleName: string) => {
-                                        const lowerRoleName = roleName.toLowerCase();
+                                {rolesLoading ? (
+                                    <div className="col-span-full flex items-center justify-center py-8">
+                                        <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+                                        <span className="ml-2 text-muted-foreground">Cargando roles operativos...</span>
+                                    </div>
+                                ) : rolesError ? (
+                                    <div className="col-span-full text-center py-8">
+                                        <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                                        <p className="text-red-600">{rolesError}</p>
+                                        <Button onClick={refetchRoles} className="mt-2">
+                                            <RefreshCw className="mr-2 h-4 w-4" />
+                                            Reintentar
+                                        </Button>
+                                    </div>
+                                ) : operationalRoles.length === 0 ? (
+                                    <div className="col-span-full text-center py-8">
+                                        <Users className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                                        <p className="text-muted-foreground">No hay roles operativos configurados</p>
+                                    </div>
+                                ) : (
+                                    operationalRoles.map((role, index) => {
+                                        const roleId = role.id.toString();
+                                        const roleName = role.nombre;
 
-                                        if (lowerRoleName.includes('proximidad') ) {
-                                            return {
-                                                from: 'from-red-500', to: 'to-red-600',
-                                                darkFrom: 'dark:from-red-700/40', darkTo: 'dark:to-red-600/40',
-                                                bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200',
-                                                buttonFrom: 'from-red-600', buttonTo: 'to-red-700',
-                                                statsBg: 'bg-red-50', statsText: 'text-red-600',
-                                                icon: 'Car'
-                                            };
-                                        } else if (lowerRoleName.includes('fiscalización') || lowerRoleName.includes('fiscalizacion')) {
-                                            return {
-                                                from: 'from-amber-500', to: 'to-amber-600',
-                                                darkFrom: 'dark:from-amber-700/40', darkTo: 'dark:to-amber-600/40',
-                                                bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200',
-                                                buttonFrom: 'from-amber-600', buttonTo: 'to-amber-700',
-                                                statsBg: 'bg-amber-50', statsText: 'text-amber-600',
-                                                icon: 'UserCheck2'
-                                            };
-                                        } else if (lowerRoleName.includes('ciclo') || lowerRoleName.includes('bicicleta') || lowerRoleName.includes('Ciclopatrullaje')) {
-                                            return {
-                                                from: 'from-purple-500', to: 'to-purple-600',
-                                                darkFrom: 'dark:from-purple-700/40', darkTo: 'dark:to-purple-600/40',
-                                                bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200',
-                                                buttonFrom: 'from-purple-600', buttonTo: 'to-purple-700',
-                                                statsBg: 'bg-purple-50', statsText: 'text-purple-600',
-                                                icon: 'Bike'
-                                            };
-                                        } else if (lowerRoleName.includes('motorizado')) {
-                                            return {
-                                                from: 'from-emerald-500', to: 'to-emerald-600',
-                                                darkFrom: 'dark:from-emerald-700/40', darkTo: 'dark:to-emerald-600/40',
-                                                bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200',
-                                                buttonFrom: 'from-emerald-600', buttonTo: 'to-emerald-700',
-                                                statsBg: 'bg-emerald-50', statsText: 'text-emerald-600',
-                                                icon: 'Bike'
-                                            };
-                                        } else if (lowerRoleName.includes('dron') || lowerRoleName.includes('drone')) {
-                                            return {
-                                                from: 'from-sky-500', to: 'to-sky-600',
-                                                darkFrom: 'dark:from-sky-700/40', darkTo: 'dark:to-sky-600/40',
-                                                bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200',
-                                                buttonFrom: 'from-sky-600', buttonTo: 'to-sky-700',
-                                                statsBg: 'bg-sky-50', statsText: 'text-sky-600',
-                                                icon: 'Plane'
-                                            };
-                                        }  else {
-                                            // Color por defecto para roles no especificados
-                                            const defaultColors = [
-                                                { from: 'from-indigo-500', to: 'to-indigo-600', darkFrom: 'dark:from-indigo-700/40', darkTo: 'dark:to-indigo-600/40', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200', buttonFrom: 'from-indigo-600', buttonTo: 'to-indigo-700', statsBg: 'bg-indigo-50', statsText: 'text-indigo-600', icon: 'Users' },
-                                                { from: 'from-cyan-500', to: 'to-cyan-600', darkFrom: 'dark:from-cyan-700/40', darkTo: 'dark:to-cyan-600/40', bg: 'bg-cyan-100', text: 'text-cyan-700', border: 'border-cyan-200', buttonFrom: 'from-cyan-600', buttonTo: 'to-cyan-700', statsBg: 'bg-cyan-50', statsText: 'text-cyan-600', icon: 'Shield' },
-                                                { from: 'from-orange-500', to: 'to-orange-600', darkFrom: 'dark:from-orange-700/40', darkTo: 'dark:to-orange-600/40', bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200', buttonFrom: 'from-orange-600', buttonTo: 'to-orange-700', statsBg: 'bg-orange-50', statsText: 'text-orange-600', icon: 'Zap' }
-                                            ];
-                                            return defaultColors[index % defaultColors.length];
-                                        }
-                                    };
 
-                                    const colors = getRoleColors(roleName);
+                                    const colors = getRoleColors(role);
                                     const roleKey = roleName.toLowerCase().replace(/\s+/g, '');
                                     const roleStats = stats[roleKey] || { total: 0, activos: 0, trabajandoHoy: 0 };
 
@@ -306,7 +269,8 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
                                     );
-                                })}
+                                })
+                                )}
                             </div>
                         </section>
 
