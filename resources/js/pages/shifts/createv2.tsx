@@ -55,6 +55,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [isSaving, setIsSaving] = useState(false); // Estado para manejar el loading al guardar
     const [showPendingChanges, setShowPendingChanges] = useState(false); // Estado para mostrar cambios pendientes visualmente
     const [clearChanges, setClearChanges] = useState(false); // Estado para limpiar cambios internos de AgGrid
+    const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null); // Estado para manejar cambios de fecha pendientes
 
     // Array simplificado de cambios
     const [listaCambios, setListaCambios] = useState<Array<{
@@ -110,14 +111,33 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
+        console.log('🔄 cargarTurnosPorMes llamado con fecha:', fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+        console.log('🔄 selectedDate actual:', selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+        console.log('🔄 originalChangeDate:', originalChangeDate?.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+
         // Verificar si hay cambios pendientes y el usuario está cambiando de mes
         if (listaCambios.length > 0 && originalChangeDate &&
             (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear())) {
 
-            toast.warning('Cambios pendientes', {
-                description: `Tienes cambios pendientes para ${originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}. Los cambios se aplicarán al mes original.`,
-                duration: 5000,
-            });
+            // Preguntar al usuario si quiere guardar los cambios antes de cambiar de mes
+            const confirmarCambio = window.confirm(
+                `Tienes cambios pendientes para ${originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}. ` +
+                `¿Deseas guardar estos cambios antes de cambiar a ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}?`
+            );
+
+            if (confirmarCambio) {
+                // Guardar cambios antes de cambiar de mes
+                // Guardar la fecha objetivo para cargarla después de guardar
+                setPendingDateChange(fecha);
+                handleActualizarCambios(comentario || 'Cambios guardados automáticamente al cambiar de mes');
+                return; // Salir de la función, se recargará después de guardar
+            } else {
+                // Descartar cambios y continuar
+                setListaCambios([]);
+                setOriginalChangeDate(null);
+                setResumen({});
+                setShowPendingChanges(false);
+            }
         }
 
         try {
@@ -143,11 +163,11 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     setShowPendingChanges(true);
                 }, 200);
             } else {
-                // Cargar datos sin modificar y limpiar resumen
+                // Cargar datos sin modificar y limpiar resumen solo si no hay cambios pendientes
                 setRowData(turnosArray);
-                setResumen({}); // Limpiar resumen al cargar nuevos datos
-                setListaCambios([]); // Limpiar lista de cambios
-                setOriginalChangeDate(null); // Limpiar fecha original
+                if (listaCambios.length === 0) {
+                    setResumen({}); // Solo limpiar resumen si no hay cambios pendientes
+                }
                 // Desactivar visualización de cambios pendientes
                 setShowPendingChanges(false);
             }
@@ -178,7 +198,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         } finally {
             setLoading(false);
         }
-    }, [listaCambios, originalChangeDate, employee_rol_id]);
+    }, [listaCambios, originalChangeDate, employee_rol_id, comentario]);
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
         setResumen(ResumenCambios);
@@ -255,7 +275,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             // Desactivar visualización de cambios pendientes si no quedan cambios
             if (newList.length === 0) {
                 setShowPendingChanges(false);
+                setOriginalChangeDate(null); // Limpiar fecha original si no quedan cambios
             }
+            console.log('↩️ Cambio deshecho, cambios restantes:', newList.length);
             return newList;
         });
 
@@ -331,7 +353,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             // Desactivar visualización de cambios pendientes si no quedan cambios
             if (newList.length === 0) {
                 setShowPendingChanges(false);
+                setOriginalChangeDate(null); // Limpiar fecha original si no quedan cambios
             }
+            console.log('↩️ Cambio específico deshecho, cambios restantes:', newList.length);
             return newList;
         });
 
@@ -350,6 +374,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             const currentYear = selectedDate.getFullYear();
             const fixedDate = new Date(currentYear, currentMonth, 1);
             setOriginalChangeDate(fixedDate);
+            console.log('📅 Fecha original establecida:', fixedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
         }
 
         // Buscar el employee_id del empleado en los datos
@@ -374,6 +399,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         setListaCambios((prev) => {
             const newList = [...prev, change];
+            console.log('📝 Cambio registrado:', change);
+            console.log('📋 Total de cambios pendientes:', newList.length);
             return newList;
         });
     };
@@ -391,6 +418,35 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [listaCambios, resumen]);
 
+    // Función para limpiar completamente todos los cambios
+    const limpiarTodosLosCambios = () => {
+        // Preguntar confirmación antes de limpiar
+        const confirmar = window.confirm('¿Estás seguro de que quieres descartar todos los cambios pendientes? Esta acción no se puede deshacer.');
+
+        if (!confirmar) {
+            return;
+        }
+
+        setResumen({});
+        setListaCambios([]);
+        setOriginalChangeDate(null);
+        setShowPendingChanges(false);
+        setComentario('');
+
+        // Limpiar visualmente el grid
+        if (gridRef.current?.api) {
+            gridRef.current.api.refreshCells();
+            gridRef.current.api.redrawRows();
+        }
+
+        console.log('🧹 Todos los cambios han sido limpiados');
+
+        toast.success('Cambios descartados', {
+            description: 'Todos los cambios pendientes han sido descartados.',
+            duration: 3000,
+        });
+    };
+
     // Efecto para limpiar estados cuando cambian los datos
     useEffect(() => {
         // Si no hay cambios pendientes, desactivar visualización
@@ -402,11 +458,17 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     // Efecto para limpiar resumen al montar el componente
     useEffect(() => {
         // Limpiar resumen al iniciar
-        setResumen({});
-        setListaCambios([]);
-        setOriginalChangeDate(null);
-        setShowPendingChanges(false);
+        limpiarTodosLosCambios();
     }, []);
+
+    // Efecto para manejar cambios de fecha pendientes después de guardar
+    useEffect(() => {
+        if (pendingDateChange && listaCambios.length === 0 && !isSaving) {
+            console.log('🔄 Ejecutando cambio de fecha pendiente a:', pendingDateChange.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+            cargarTurnosPorMes(pendingDateChange);
+            setPendingDateChange(null);
+        }
+    }, [pendingDateChange, listaCambios.length, isSaving, cargarTurnosPorMes]);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
@@ -470,8 +532,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             // Resetear el flag después de un breve delay
             setTimeout(() => setResetGrid(false), 100);
 
-            // Recargar los datos del mes actual para mostrar los cambios actualizados
-            cargarTurnosPorMes(selectedDate);
+            // El efecto se encargará de recargar los datos si hay una fecha pendiente
+            // Si no hay fecha pendiente, recargar el mes actual
+            if (!pendingDateChange) {
+                const fechaParaRecargar = originalChangeDate || selectedDate;
+                console.log('🔄 Recargando datos después de guardar para fecha:', fechaParaRecargar.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+                cargarTurnosPorMes(fechaParaRecargar);
+            }
         })
         .catch(error => {
             setIsSaving(false); // Desactivar loading
@@ -493,7 +560,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 setShowPendingChanges(false);
 
                 setTimeout(() => setResetGrid(false), 100);
-                cargarTurnosPorMes(selectedDate);
+                // El efecto se encargará de recargar los datos si hay una fecha pendiente
+                // Si no hay fecha pendiente, recargar el mes actual
+                if (!pendingDateChange) {
+                    const fechaParaRecargar = originalChangeDate || selectedDate;
+                    console.log('🔄 Recargando datos después de guardar (error case) para fecha:', fechaParaRecargar.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+                    cargarTurnosPorMes(fechaParaRecargar);
+                }
             } else {
                 toast.error('Error al guardar cambios', {
                     description: 'Hubo un problema al guardar los cambios. Intenta nuevamente.',
@@ -525,9 +598,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                             <div>
                                                 <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
                                                     Turnos del Personal {employee_rol_id === 1 ? '- Patrullaje y Proximidad' : ''}
+                                                    {listaCambios.length > 0 && (
+                                                        <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                                            {listaCambios.length} cambio{listaCambios.length !== 1 ? 's' : ''} pendiente{listaCambios.length !== 1 ? 's' : ''}
+                                                        </Badge>
+                                                    )}
                                                 </CardTitle>
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                                     {getTotalEmployees()} empleados registrados
+                                                    {originalChangeDate && (
+                                                        <span className="ml-2 text-orange-600 dark:text-orange-400">
+                                                            • Cambios para {originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}
+                                                        </span>
+                                                    )}
                                                 </p>
                                             </div>
                                         </div>
@@ -625,6 +708,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                                 disabled={!hasEditPermissions}
                                                 onUndoLastChange={undoLastChange}
                                                 onUndoSpecificChange={undoSpecificChange}
+                                                onClearAllChanges={limpiarTodosLosCambios}
                                                 changeHistory={listaCambios}
                                             />
                                         </div>

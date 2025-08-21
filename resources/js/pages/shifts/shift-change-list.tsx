@@ -32,6 +32,7 @@ interface Props {
     disabled?: boolean; // Nueva propiedad para deshabilitar el componente
     onUndoLastChange?: () => void; // Nueva prop para deshacer último cambio
     onUndoSpecificChange?: (changeId: string) => void; // Nueva prop para deshacer cambio específico
+    onClearAllChanges?: () => void; // Nueva prop para limpiar todos los cambios
     changeHistory?: Array<{
         id: string;
         employeeId: string | number;
@@ -53,6 +54,7 @@ const ListaCambios: React.FC<Props> = ({
     disabled = false,
     onUndoLastChange,
     onUndoSpecificChange,
+    onClearAllChanges,
     changeHistory = [],
 }) => {
 
@@ -300,19 +302,34 @@ const ListaCambios: React.FC<Props> = ({
                                 </div>
                             </div>
 
-                            {/* Botón de deshacer último cambio */}
-                            {onUndoLastChange && changeHistory.length > 0 && (
-                                <Button
-                                    onClick={onUndoLastChange}
-                                    variant="outline"
-                                    size="sm"
-                                    className="flex w-full items-center gap-2 py-4 text-xs"
-                                    disabled={isProcesing}
-                                >
-                                    <Undo2 className="h-3 w-3" />
-                                    Deshacer último
-                                </Button>
-                            )}
+                            {/* Botones de control de cambios */}
+                            <div className="flex w-full gap-2">
+                                {onUndoLastChange && changeHistory.length > 0 && (
+                                    <Button
+                                        onClick={onUndoLastChange}
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex flex-1 items-center gap-2 py-4 text-xs"
+                                        disabled={isProcesing}
+                                    >
+                                        <Undo2 className="h-3 w-3" />
+                                        Deshacer último
+                                    </Button>
+                                )}
+
+                                {onClearAllChanges && changeHistory.length > 0 && (
+                                    <Button
+                                        onClick={onClearAllChanges}
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex flex-1 items-center gap-2 py-4 text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        disabled={isProcesing}
+                                    >
+                                        <AlertCircle className="h-3 w-3" />
+                                        Limpiar todo
+                                    </Button>
+                                )}
+                            </div>
                         </div>
 
                         {/* Changes List */}
