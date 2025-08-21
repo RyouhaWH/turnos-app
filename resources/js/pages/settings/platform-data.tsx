@@ -37,6 +37,12 @@ interface Empleado {
     name: string;
     rut: string;
     phone: string;
+    email?: string;
+    address?: string;
+    position?: string;
+    department?: string;
+    start_date?: string;
+    status?: string;
     rol_id: number;
     rol_nombre: string;
     created_at: string;
@@ -60,6 +66,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
     // Estados para empleados
     const [editingEmployee, setEditingEmployee] = useState<number | null>(null);
+    const [editingEmployeeData, setEditingEmployeeData] = useState<Partial<Empleado>>({});
     const [searchEmployee, setSearchEmployee] = useState('');
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
 
@@ -197,7 +204,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     };
 
     // Guardar empleado
-    const saveEmployee = (employeeId: number, employeeData: { rol_id: number }) => {
+    const saveEmployee = (employeeId: number, employeeData: Partial<Empleado>) => {
         router.put(`/platform-data/employees/${employeeId}`, employeeData, {
             onSuccess: () => {
                 // Actualizar el estado local inmediatamente
@@ -206,8 +213,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                         const newRol = data.roles.find(role => role.id === employeeData.rol_id);
                         return {
                             ...emp,
-                            rol_id: employeeData.rol_id,
-                            rol_nombre: newRol?.nombre || 'Sin rol'
+                            ...employeeData,
+                            rol_nombre: newRol?.nombre || emp.rol_nombre
                         };
                     }
                     return emp;
@@ -222,6 +229,29 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 console.error('Errores:', errors);
             }
         });
+    };
+
+    // Función para iniciar edición de empleado
+    const startEditingEmployee = (employee: Empleado) => {
+        setEditingEmployee(employee.id);
+        setEditingEmployeeData({
+            name: employee.name,
+            rut: employee.rut,
+            phone: employee.phone,
+            email: employee.email,
+            address: employee.address,
+            position: employee.position,
+            department: employee.department,
+            start_date: employee.start_date,
+            status: employee.status,
+            rol_id: employee.rol_id
+        });
+    };
+
+    // Función para cancelar edición
+    const cancelEditingEmployee = () => {
+        setEditingEmployee(null);
+        setEditingEmployeeData({});
     };
 
     // Filtrar empleados
@@ -563,12 +593,127 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                         <Card key={employee.id} className="border bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                                             <CardContent className="pt-6">
                                                 {editingEmployee === employee.id ? (
-                                                    <div>
-                                                        <div className="mb-4">
-                                                            <Label htmlFor={`employee-role-${employee.id}`}>Rol/Facción</Label>
-                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mt-2">
+                                                    <div className="space-y-6">
+                                                        {/* Información Personal */}
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información Personal</h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <Label htmlFor={`employee-name-${employee.id}`}>Nombre Completo</Label>
+                                                                    <Input
+                                                                        id={`employee-name-${employee.id}`}
+                                                                        value={editingEmployeeData.name || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, name: e.target.value }))}
+                                                                        placeholder="Nombre completo"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-rut-${employee.id}`}>RUT</Label>
+                                                                    <Input
+                                                                        id={`employee-rut-${employee.id}`}
+                                                                        value={editingEmployeeData.rut || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, rut: e.target.value }))}
+                                                                        placeholder="12.345.678-9"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-phone-${employee.id}`}>Teléfono</Label>
+                                                                    <Input
+                                                                        id={`employee-phone-${employee.id}`}
+                                                                        value={editingEmployeeData.phone || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, phone: e.target.value }))}
+                                                                        placeholder="+56 9 1234 5678"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-email-${employee.id}`}>Email</Label>
+                                                                    <Input
+                                                                        id={`employee-email-${employee.id}`}
+                                                                        type="email"
+                                                                        value={editingEmployeeData.email || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, email: e.target.value }))}
+                                                                        placeholder="empleado@empresa.com"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Información Laboral */}
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información Laboral</h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                <div>
+                                                                    <Label htmlFor={`employee-position-${employee.id}`}>Cargo</Label>
+                                                                    <Input
+                                                                        id={`employee-position-${employee.id}`}
+                                                                        value={editingEmployeeData.position || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, position: e.target.value }))}
+                                                                        placeholder="Ej: Patrullero, Supervisor"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-department-${employee.id}`}>Departamento</Label>
+                                                                    <Input
+                                                                        id={`employee-department-${employee.id}`}
+                                                                        value={editingEmployeeData.department || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, department: e.target.value }))}
+                                                                        placeholder="Ej: Operaciones"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-start-date-${employee.id}`}>Fecha de Inicio</Label>
+                                                                    <Input
+                                                                        id={`employee-start-date-${employee.id}`}
+                                                                        type="date"
+                                                                        value={editingEmployeeData.start_date || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, start_date: e.target.value }))}
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-status-${employee.id}`}>Estado</Label>
+                                                                    <select
+                                                                        id={`employee-status-${employee.id}`}
+                                                                        value={editingEmployeeData.status || 'activo'}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, status: e.target.value }))}
+                                                                        className="w-full p-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white mt-1"
+                                                                    >
+                                                                        <option value="activo">Activo</option>
+                                                                        <option value="inactivo">Inactivo</option>
+                                                                        <option value="vacaciones">Vacaciones</option>
+                                                                        <option value="licencia">Licencia</option>
+                                                                    </select>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Dirección */}
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dirección</h4>
+                                                            <div>
+                                                                <Label htmlFor={`employee-address-${employee.id}`}>Dirección</Label>
+                                                                <Input
+                                                                    id={`employee-address-${employee.id}`}
+                                                                    value={editingEmployeeData.address || ''}
+                                                                    onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, address: e.target.value }))}
+                                                                    placeholder="Dirección completa"
+                                                                    className="mt-1"
+                                                                />
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Rol/Facción */}
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rol/Facción</h4>
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                                                                 {data.roles.map((role) => {
-                                                                    const isSelected = employee.rol_id === role.id;
+                                                                    const isSelected = editingEmployeeData.rol_id === role.id;
                                                                     return (
                                                                         <div
                                                                             key={role.id}
@@ -581,12 +726,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                                 backgroundColor: isSelected ? role.color + '10' : 'transparent',
                                                                                 borderColor: isSelected ? role.color : undefined
                                                                             }}
-                                                                            onClick={() => {
-                                                                                const updatedEmployees = data.empleados.map(emp =>
-                                                                                    emp.id === employee.id ? { ...emp, rol_id: role.id, rol_nombre: role.nombre } : emp
-                                                                                );
-                                                                                setData(prev => ({ ...prev, empleados: updatedEmployees }));
-                                                                            }}
+                                                                            onClick={() => setEditingEmployeeData(prev => ({ ...prev, rol_id: role.id }))}
                                                                         >
                                                                             <div className="flex items-center gap-2">
                                                                                 <div
@@ -604,24 +744,19 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 })}
                                                             </div>
                                                         </div>
-                                                        <div className="flex gap-2">
+
+                                                        {/* Botones de acción */}
+                                                        <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-600">
                                                             <Button
-                                                                onClick={() => {
-                                                                    const employeeData = data.empleados.find(emp => emp.id === employee.id);
-                                                                    if (employeeData) {
-                                                                        saveEmployee(employee.id, {
-                                                                            rol_id: employeeData.rol_id
-                                                                        });
-                                                                    }
-                                                                }}
+                                                                onClick={() => saveEmployee(employee.id, editingEmployeeData)}
                                                                 className="flex items-center gap-2"
                                                             >
                                                                 <Save className="h-4 w-4" />
-                                                                Guardar
+                                                                Guardar Cambios
                                                             </Button>
                                                             <Button
                                                                 variant="outline"
-                                                                onClick={() => setEditingEmployee(null)}
+                                                                onClick={cancelEditingEmployee}
                                                                 className="flex items-center gap-2"
                                                             >
                                                                 <X className="h-4 w-4" />
@@ -637,8 +772,14 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 <span>RUT: {employee.rut || 'Sin RUT'}</span>
                                                                 <span>•</span>
                                                                 <span>Tel: {employee.phone || 'Sin teléfono'}</span>
+                                                                {employee.email && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>Email: {employee.email}</span>
+                                                                    </>
+                                                                )}
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex flex-wrap items-center gap-2 mb-2">
                                                                 <Badge
                                                                     variant="outline"
                                                                     className={`text-xs border ${getRoleBadgeClasses(employee.rol_nombre)}`}
@@ -646,18 +787,35 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 >
                                                                     {employee.rol_nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : employee.rol_nombre}
                                                                 </Badge>
+                                                                {employee.position && (
+                                                                    <Badge variant="secondary" className="text-xs">
+                                                                        {employee.position}
+                                                                    </Badge>
+                                                                )}
+                                                                {employee.status && employee.status !== 'activo' && (
+                                                                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                                                        {employee.status}
+                                                                    </Badge>
+                                                                )}
                                                                 <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
                                                             </div>
+                                                            {(employee.department || employee.start_date) && (
+                                                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                    {employee.department && <span>Depto: {employee.department}</span>}
+                                                                    {employee.department && employee.start_date && <span> • </span>}
+                                                                    {employee.start_date && <span>Inicio: {new Date(employee.start_date).toLocaleDateString('es-CL')}</span>}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                         <div className="flex gap-2">
                                                             <Button
                                                                 variant="outline"
                                                                 size="sm"
-                                                                onClick={() => setEditingEmployee(employee.id)}
+                                                                onClick={() => startEditingEmployee(employee)}
                                                                 className="flex items-center gap-2"
                                                             >
                                                                 <Edit className="h-4 w-4" />
-                                                                Cambiar Rol
+                                                                Editar Empleado
                                                             </Button>
                                                         </div>
                                                     </div>
