@@ -658,7 +658,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     <div className="px-2 duration-200 animate-in slide-in-from-top-2">
                                         <CardContent className="p-0">
                                             <div className="p-t-[-10rem] h-[400px] overflow-hidden">
-                                                <ShiftHistoryFeed />
+                                                <ShiftHistoryFeed employee_rol_id={employee_rol_id} />
                                             </div>
                                         </CardContent>
                                     </div>

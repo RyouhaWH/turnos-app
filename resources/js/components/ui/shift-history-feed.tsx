@@ -23,7 +23,11 @@ interface LogItem {
     shift_date?: string;
 }
 
-export default function ShiftHistoryFeed() {
+interface ShiftHistoryFeedProps {
+    employee_rol_id?: number;
+}
+
+export default function ShiftHistoryFeed({ employee_rol_id }: ShiftHistoryFeedProps) {
     const [logs, setLogs] = useState<LogItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
@@ -32,7 +36,12 @@ export default function ShiftHistoryFeed() {
         const fetchLogs = async () => {
             try {
                 setError(false);
-                const res = await fetch('/api/shift-change-log');
+                // Construir la URL con el filtro de rol si está disponible
+                const url = employee_rol_id
+                    ? `/api/shift-change-log?rol_id=${employee_rol_id}`
+                    : '/api/shift-change-log';
+
+                const res = await fetch(url);
                 if (!res.ok) throw new Error('Error al cargar');
                 const data = await res.json();
                 setLogs(data);
@@ -49,7 +58,7 @@ export default function ShiftHistoryFeed() {
         // Auto-refresh every 30 seconds
         const interval = setInterval(fetchLogs, 30000);
         return () => clearInterval(interval);
-    }, []);
+    }, [employee_rol_id]); // Agregar employee_rol_id como dependencia
 
     const getTurnoInfo = (turno: string) => {
         const turnos = {

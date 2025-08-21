@@ -88,11 +88,18 @@ class TurnController extends Controller
 
     }
 
-    public function getShiftsChangeLog()
+    public function getShiftsChangeLog(Request $request)
     {
+        $query = ShiftChangeLog::with(['changedBy', 'employee', 'employeeShift']);
 
-                $logs = ShiftChangeLog::with(['changedBy', 'employee', 'employeeShift'])
-            ->orderBy('created_at', 'desc')
+        // Filtrar por rol si se proporciona el parámetro
+        if ($request->has('rol_id') && $request->rol_id) {
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('rol_id', $request->rol_id);
+            });
+        }
+
+        $logs = $query->orderBy('created_at', 'desc')
             ->take(50)
             ->get()
             ->map(function ($log) {
