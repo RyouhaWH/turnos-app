@@ -103,10 +103,18 @@ class TurnController extends Controller
             ->take(50)
             ->get()
             ->map(function ($log) {
-                // Obtener fecha del turno desde employeeShift si está disponible
+                // Obtener fecha del turno con prioridad: shift_date > employeeShift > fallback
                 $shiftDate = 'N/A';
-                if ($log->employeeShift && $log->employeeShift->date) {
+
+                if ($log->shift_date) {
+                    // Si tenemos la fecha almacenada directamente, usarla
+                    $shiftDate = date('d/m/Y', strtotime($log->shift_date));
+                } elseif ($log->employeeShift && $log->employeeShift->date) {
+                    // Si tenemos la relación employeeShift, usar esa fecha
                     $shiftDate = date('d/m/Y', strtotime($log->employeeShift->date));
+                } else {
+                    // Usar la fecha del log como último recurso
+                    $shiftDate = $log->created_at->format('d/m/Y');
                 }
 
                 return [

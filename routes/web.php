@@ -207,6 +207,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 'old_shift'         => $turnoActual->shift,
                                 'new_shift'         => '',
                                 'comment'           => 'Turno eliminado desde plataforma',
+                                'shift_date'        => $fecha, // Guardar la fecha del turno eliminado
                             ]);
 
                             // Almacenar eliminación para mensaje consolidado
@@ -274,9 +275,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                     'changed_by'        => $actualUser,
                                     'old_shift'         => optional($turnoActual)->shift,
                                     'new_shift'         => $nuevoTurno,
-                                                                    'comment'           => $turnoActual
-                                ? "modificado el turno desde plataforma"
-                                : "Turno creado desde plataforma",
+                                    'comment'           => $turnoActual
+                                        ? "modificado el turno desde plataforma"
+                                        : "Turno creado desde plataforma",
+                                    'shift_date'        => $fecha, // Guardar la fecha del turno
                                 ]);
 
                             }
@@ -303,6 +305,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 'old_shift'         => '',
                                 'new_shift'         => $nuevoTurno,
                                 'comment'           => "Turno creado desde plataforma",
+                                'shift_date'        => $fecha, // Guardar la fecha del turno
                             ]);
                         }
 

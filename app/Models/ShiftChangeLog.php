@@ -17,6 +17,7 @@ class ShiftChangeLog extends Model
         'old_shift',
         'new_shift',
         'comment',
+        'shift_date',
         'changed_at',
     ];
 
