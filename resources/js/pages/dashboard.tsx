@@ -674,239 +674,73 @@ export default function DashboardV2() {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-                            {/* Patrullaje y Proximidad - Todos los turnos */}
-                            <Card className="border-red-200 bg-red-50 dark:border-red-700/30 dark:bg-red-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-red-600 dark:text-red-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-red-700 dark:text-red-200">Patrullaje y Proximidad</p>
-                                            <p className="text-xs text-red-600 dark:text-red-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 1 && emp.shift === 'M').length}
-                                            </p>
-                                            <p className="text-xs text-red-600 dark:text-red-300">Mañana</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 1 && emp.shift === 'T').length}
-                                            </p>
-                                            <p className="text-xs text-red-600 dark:text-red-300">Tarde</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-red-700 dark:text-red-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 1 && emp.shift === 'N').length}
-                                            </p>
-                                            <p className="text-xs text-red-600 dark:text-red-300">Noche</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-red-200 pt-3 text-center dark:border-red-700/30">
-                                        <p className="text-3xl font-bold text-red-700 dark:text-red-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 1).length}
-                                        </p>
-                                        <p className="text-sm text-red-600 dark:text-red-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                            {Object.entries(roles)
+                                .filter(([roleId, roleName]) => {
+                                    const lowerRoleName = roleName.toLowerCase();
+                                    return (
+                                        !lowerRoleName.includes('administrativo') &&
+                                        !lowerRoleName.includes('servicio') &&
+                                        !lowerRoleName.includes('personal de servicio')
+                                    );
+                                })
+                                .map(([roleId, roleName]) => {
+                                    const roleIdNum = parseInt(roleId);
+                                    const roleColor = roleColors[roleIdNum] || '#3B82F6';
+                                    const colorClasses = getDashboardRoleColors(roleColor);
 
-                            {/* Fiscalización - Todos los turnos */}
-                            <Card className="border-amber-200 bg-amber-50 dark:border-amber-700/30 dark:bg-amber-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-amber-600 dark:text-amber-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-amber-700 dark:text-amber-200">Fiscalización</p>
-                                            <p className="text-xs text-amber-600 dark:text-amber-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 2 && emp.shift === '1').length}
-                                            </p>
-                                            <p className="text-xs text-amber-600 dark:text-amber-300">1er Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 2 && emp.shift === '2').length}
-                                            </p>
-                                            <p className="text-xs text-amber-600 dark:text-amber-300">2do Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-amber-700 dark:text-amber-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 2 && emp.shift === '3').length}
-                                            </p>
-                                            <p className="text-xs text-amber-600 dark:text-amber-300">3er Turno</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-amber-200 pt-3 text-center dark:border-amber-700/30">
-                                        <p className="text-3xl font-bold text-amber-700 dark:text-amber-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 2).length}
-                                        </p>
-                                        <p className="text-sm text-amber-600 dark:text-amber-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    // Determinar los turnos según el rol
+                                    const getShiftsForRole = (roleId: number) => {
+                                        if (roleId === 1) { // Alerta Móvil/Patrullaje usa M, T, N
+                                            return [
+                                                { shift: 'M', label: 'Mañana' },
+                                                { shift: 'T', label: 'Tarde' },
+                                                { shift: 'N', label: 'Noche' }
+                                            ];
+                                        } else { // Otros roles usan 1, 2, 3
+                                            return [
+                                                { shift: '1', label: '1er Turno' },
+                                                { shift: '2', label: '2do Turno' },
+                                                { shift: '3', label: '3er Turno' }
+                                            ];
+                                        }
+                                    };
 
-                            {/* Motorizado - Todos los turnos */}
-                            <Card className="border-emerald-200 bg-emerald-50 dark:border-emerald-700/30 dark:bg-emerald-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-200">Motorizado</p>
-                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 3 && emp.shift === '1').length}
-                                            </p>
-                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">1er Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 3 && emp.shift === '2').length}
-                                            </p>
-                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">2do Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-emerald-700 dark:text-emerald-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 3 && emp.shift === '3').length}
-                                            </p>
-                                            <p className="text-xs text-emerald-600 dark:text-emerald-300">3er Turno</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-emerald-200 pt-3 text-center dark:border-emerald-700/30">
-                                        <p className="text-3xl font-bold text-emerald-700 dark:text-emerald-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 3).length}
-                                        </p>
-                                        <p className="text-sm text-emerald-600 dark:text-emerald-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    const shifts = getShiftsForRole(roleIdNum);
+                                    const displayName = roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName;
 
-                            {/* Ciclopatrullaje - Todos los turnos */}
-                            <Card className="border-blue-200 bg-blue-50 dark:border-blue-700/30 dark:bg-blue-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-blue-700 dark:text-blue-200">Ciclopatrullaje</p>
-                                            <p className="text-xs text-blue-600 dark:text-blue-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 6 && emp.shift === '1').length}
-                                            </p>
-                                            <p className="text-xs text-blue-600 dark:text-blue-300">1er Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 6 && emp.shift === '2').length}
-                                            </p>
-                                            <p className="text-xs text-blue-600 dark:text-blue-300">2do Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-blue-700 dark:text-blue-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 6 && emp.shift === '3').length}
-                                            </p>
-                                            <p className="text-xs text-blue-600 dark:text-blue-300">3er Turno</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-blue-200 pt-3 text-center dark:border-blue-700/30">
-                                        <p className="text-3xl font-bold text-blue-700 dark:text-blue-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 6).length}
-                                        </p>
-                                        <p className="text-sm text-blue-600 dark:text-blue-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    return (
+                                        <Card key={roleId} className={colorClasses}>
+                                            <CardContent className="p-4">
+                                                <div className="mb-3 flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: roleColor }}></div>
+                                                    <div>
+                                                        <p className="text-sm font-semibold">{displayName}</p>
+                                                        <p className="text-xs opacity-75">Todos los turnos</p>
+                                                    </div>
+                                                </div>
+                                                <div className="mb-3 grid grid-cols-3 gap-2">
+                                                    {shifts.map((shiftInfo) => (
+                                                        <div key={shiftInfo.shift} className="text-center">
+                                                            <p className="text-lg font-bold">
+                                                                {employeeStatus.trabajando.filter((emp) =>
+                                                                    emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift
+                                                                ).length}
+                                                            </p>
+                                                            <p className="text-xs opacity-75">{shiftInfo.label}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                                <div className="border-t pt-3 text-center" style={{ borderColor: roleColor + '40' }}>
+                                                    <p className="text-3xl font-bold">
+                                                        {employeeStatus.trabajando.filter((emp) => emp.rol_id === roleIdNum).length}
+                                                    </p>
+                                                    <p className="text-sm opacity-75">Total</p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
 
-                            {/* Dron - Todos los turnos */}
-                            <Card className="border-purple-200 bg-purple-50 dark:border-purple-700/30 dark:bg-purple-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-purple-600 dark:text-purple-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-purple-700 dark:text-purple-200">Dron</p>
-                                            <p className="text-xs text-purple-600 dark:text-purple-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 5 && emp.shift === '1').length}
-                                            </p>
-                                            <p className="text-xs text-purple-600 dark:text-purple-300">1er Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 5 && emp.shift === '2').length}
-                                            </p>
-                                            <p className="text-xs text-purple-600 dark:text-purple-300">2do Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-purple-700 dark:text-purple-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 5 && emp.shift === '3').length}
-                                            </p>
-                                            <p className="text-xs text-purple-600 dark:text-purple-300">3er Turno</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-purple-200 pt-3 text-center dark:border-purple-700/30">
-                                        <p className="text-3xl font-bold text-purple-700 dark:text-purple-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 5).length}
-                                        </p>
-                                        <p className="text-sm text-purple-600 dark:text-purple-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            {/* Coordinador Despacho - Todos los turnos */}
-                            <Card className="border-indigo-200 bg-indigo-50 dark:border-indigo-700/30 dark:bg-indigo-900/20">
-                                <CardContent className="p-4">
-                                    <div className="mb-3 flex items-center gap-2">
-                                        <UserCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
-                                        <div>
-                                            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Coordinador Despacho</p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">Todos los turnos</p>
-                                        </div>
-                                    </div>
-                                    <div className="mb-3 grid grid-cols-3 gap-2">
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 8 && emp.shift === '1').length}
-                                            </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">1er Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 8 && emp.shift === '2').length}
-                                            </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">2do Turno</p>
-                                        </div>
-                                        <div className="text-center">
-                                            <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter((emp) => emp.rol_id === 8 && emp.shift === '3').length}
-                                            </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">3er Turno</p>
-                                        </div>
-                                    </div>
-                                    <div className="border-t border-indigo-200 pt-3 text-center dark:border-indigo-700/30">
-                                        <p className="text-3xl font-bold text-indigo-700 dark:text-indigo-200">
-                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === 8).length}
-                                        </p>
-                                        <p className="text-sm text-indigo-600 dark:text-indigo-300">Total</p>
-                                    </div>
-                                </CardContent>
-                            </Card>
                         </div>
                     </div>
                 </div>
