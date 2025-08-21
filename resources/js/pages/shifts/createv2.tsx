@@ -56,6 +56,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [showPendingChanges, setShowPendingChanges] = useState(false); // Estado para mostrar cambios pendientes visualmente
     const [clearChanges, setClearChanges] = useState(false); // Estado para limpiar cambios internos de AgGrid
     const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null); // Estado para manejar cambios de fecha pendientes
+    const [isInitialLoad, setIsInitialLoad] = useState(true); // Estado para evitar popup en carga inicial
 
     // Array simplificado de cambios
     const [listaCambios, setListaCambios] = useState<Array<{
@@ -114,10 +115,21 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         console.log('🔄 cargarTurnosPorMes llamado con fecha:', fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
         console.log('🔄 selectedDate actual:', selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
         console.log('🔄 originalChangeDate:', originalChangeDate?.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+        console.log('🔄 listaCambios.length:', listaCambios.length);
+        console.log('🔄 resumen keys:', Object.keys(resumen));
 
         // Verificar si hay cambios pendientes y el usuario está cambiando de mes
-        if (listaCambios.length > 0 && originalChangeDate &&
-            (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear())) {
+        // Solo mostrar popup si hay cambios reales (no solo cambios vacíos)
+        const hayCambiosReales = listaCambios.length > 0 && Object.keys(resumen).length > 0;
+        const esCambioDeMes = originalChangeDate &&
+            (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear());
+
+        console.log('🔄 hayCambiosReales:', hayCambiosReales);
+        console.log('🔄 esCambioDeMes:', esCambioDeMes);
+        console.log('🔄 isInitialLoad:', isInitialLoad);
+
+        // Solo mostrar popup si no es la carga inicial y hay cambios reales
+        if (hayCambiosReales && esCambioDeMes && !isInitialLoad) {
 
             // Preguntar al usuario si quiere guardar los cambios antes de cambiar de mes
             const confirmarCambio = window.confirm(
@@ -455,10 +467,20 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         }
     }, [listaCambios.length]);
 
+    // Función para limpiar cambios sin confirmación (para inicialización)
+    const limpiarCambiosSinConfirmacion = () => {
+        setResumen({});
+        setListaCambios([]);
+        setOriginalChangeDate(null);
+        setShowPendingChanges(false);
+        setComentario('');
+        console.log('🧹 Cambios limpiados sin confirmación (inicialización)');
+    };
+
     // Efecto para limpiar resumen al montar el componente
     useEffect(() => {
-        // Limpiar resumen al iniciar
-        limpiarTodosLosCambios();
+        // Limpiar resumen al iniciar sin confirmación
+        limpiarCambiosSinConfirmacion();
     }, []);
 
     // Efecto para manejar cambios de fecha pendientes después de guardar
@@ -469,6 +491,15 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             setPendingDateChange(null);
         }
     }, [pendingDateChange, listaCambios.length, isSaving, cargarTurnosPorMes]);
+
+    // Efecto para marcar cuando ya no es la carga inicial
+    useEffect(() => {
+        // Después de la primera carga exitosa, marcar que ya no es la carga inicial
+        if (rowData.length > 0 && isInitialLoad) {
+            console.log('🔄 Marcando que ya no es la carga inicial');
+            setIsInitialLoad(false);
+        }
+    }, [rowData.length, isInitialLoad]);
 
     const handleActualizarCambios = (comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
