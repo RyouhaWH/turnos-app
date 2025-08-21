@@ -7,7 +7,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { getDashboardRoleColors } from '@/lib/role-colors';
+import { getDashboardRoleColors, getTurnoTitleColors } from '@/lib/role-colors';
 
 // Hook personalizado para obtener datos de una fecha específica
 const useEmployeeStatusWithDate = (selectedDate: string) => {
@@ -234,7 +234,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     const [showAll, setShowAll] = useState(true);
 
     return (
-        <Card className={`h-fit pb-6 border-l-4 ${getDashboardRoleColors(roleColor)}`}>
+        <Card className={`border-l-4 ${getDashboardRoleColors(roleColor)}`}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
@@ -255,7 +255,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                         {Object.entries(turnosMañanaTardeNoche).map(
                             ([turno, data]) =>
                                 data.employees.length > 0 && (
-                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} roleColor={roleColor} />
                                 ),
                         )}
 
@@ -263,7 +263,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                         {Object.entries(turnosNumericos).map(
                             ([turno, data]) =>
                                 data.employees.length > 0 && (
-                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
+                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} roleColor={roleColor} />
                                 ),
                         )}
                     </div>
@@ -297,7 +297,7 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
     const [showAll, setShowAll] = useState(true);
 
     return (
-        <Card className={`h-fit pb-6 border-l-4 ${getDashboardRoleColors(roleColor)}`}>
+        <Card className={`border-l-4 ${getDashboardRoleColors(roleColor)}`}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
@@ -323,6 +323,7 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                                         title={`${data.emoji} ${data.label}`}
                                         employees={data.employees}
                                         showAll={showAll}
+                                        roleColor={roleColor}
                                     />
                                 ),
                         )}
@@ -336,6 +337,7 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                                         title={`${data.emoji} ${data.label}`}
                                         employees={data.employees}
                                         showAll={showAll}
+                                        roleColor={roleColor}
                                     />
                                 ),
                         )}
@@ -358,23 +360,25 @@ interface TurnoSectionWithIndicatorProps {
         shift_label?: string;
     }>;
     showAll: boolean;
+    roleColor?: string;
 }
 
-function TurnoSectionWithIndicator({ title, employees, showAll }: TurnoSectionWithIndicatorProps) {
+function TurnoSectionWithIndicator({ title, employees, showAll, roleColor = '#3B82F6' }: TurnoSectionWithIndicatorProps) {
     const displayEmployees = showAll ? employees : employees.slice(0, 4);
+    const colorClasses = getTurnoTitleColors(roleColor);
 
     return (
         <div className="space-y-2">
-            <h5 className="flex flex-row items-center justify-center gap-2 rounded-lg border bg-green-100 px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
+            <h5 className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${colorClasses}`}>
                 {title} <p className="text-xs font-light">({employees.length})</p>
             </h5>
-            <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {displayEmployees.map((employee) => (
-                    <div key={employee.id} className="flex items-center justify-center gap-2 rounded-md p-2">
-                        <span className="text-center text-xs font-medium text-green-900 dark:text-slate-200">{employee.name}</span>
+                    <div key={employee.id} className="flex items-center justify-between gap-2 rounded-md p-1.5 bg-white/50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium truncate">{employee.name}</span>
                         <Badge
                             variant="outline"
-                            className={`px-1 py-0 text-xs ${
+                            className={`px-1 py-0 text-xs flex-shrink-0 ${
                                 Boolean(employee.amzoma)
                                     ? 'border-red-300 bg-red-100 text-red-700 dark:border-red-700/50 dark:bg-red-900/30 dark:text-red-300'
                                     : 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700/50 dark:bg-blue-900/30 dark:text-blue-300'
@@ -385,7 +389,7 @@ function TurnoSectionWithIndicator({ title, employees, showAll }: TurnoSectionWi
                     </div>
                 ))}
                 {!showAll && employees.length > 4 && (
-                    <p className="text-center text-xs text-green-600 italic dark:text-slate-400">+{employees.length - 4} más...</p>
+                    <p className="text-center text-xs italic opacity-75 col-span-full">+{employees.length - 4} más...</p>
                 )}
             </div>
         </div>
@@ -404,24 +408,26 @@ interface TurnoSectionProps {
         shift_label?: string;
     }>;
     showAll: boolean;
+    roleColor?: string;
 }
 
-function TurnoSection({ title, employees, showAll }: TurnoSectionProps) {
+function TurnoSection({ title, employees, showAll, roleColor = '#3B82F6' }: TurnoSectionProps) {
     const displayEmployees = showAll ? employees : employees.slice(0, 4);
+    const colorClasses = getTurnoTitleColors(roleColor);
 
     return (
         <div className="space-y-2">
-            <h5 className="flex flex-row items-center justify-center gap-2 rounded-lg border bg-green-100 px-3 py-2 text-center text-sm font-semibold dark:bg-slate-800/40 dark:text-slate-200">
+            <h5 className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${colorClasses}`}>
                 {title} <p className="text-xs font-light">({employees.length})</p>
             </h5>
-            <div className="space-y-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {displayEmployees.map((employee) => (
-                    <div key={employee.id} className="flex items-center justify-center rounded-md p-2">
-                        <span className="text-center text-xs font-medium text-green-900 dark:text-slate-200">{employee.name}</span>
+                    <div key={employee.id} className="flex items-center justify-center rounded-md p-1.5 bg-white/50 dark:bg-slate-800/50">
+                        <span className="text-xs font-medium truncate">{employee.name}</span>
                     </div>
                 ))}
                 {!showAll && employees.length > 4 && (
-                    <p className="text-center text-xs text-green-600 italic dark:text-slate-400">+{employees.length - 4} más...</p>
+                    <p className="text-center text-xs italic opacity-75 col-span-full">+{employees.length - 4} más...</p>
                 )}
             </div>
         </div>
@@ -754,7 +760,7 @@ export default function DashboardV2() {
                     )}
 
                     {/* Columnas principales por roles - Solo trabajando */}
-                    <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 auto-rows-fr">
                         {Object.entries(roles)
                             .filter(([roleId, roleName]) => {
                                 const lowerRoleName = roleName.toLowerCase();

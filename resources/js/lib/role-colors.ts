@@ -131,6 +131,12 @@ export const getDashboardRoleColors = (hexColor: string): string => {
     return `${palette.dashboardBg} ${palette.dashboardText} ${palette.dashboardBorder} ${palette.dashboardDarkBg} ${palette.dashboardDarkText} ${palette.dashboardDarkBorder}`;
 };
 
+// Función para obtener clases CSS para títulos de turnos (fondo más visible)
+export const getTurnoTitleColors = (hexColor: string): string => {
+    const palette = ROLE_COLOR_PALETTES[hexColor] || ROLE_COLOR_PALETTES['#3B82F6'];
+    return `${palette.bg} ${palette.text} ${palette.border} ${palette.dashboardDarkBg} ${palette.dashboardDarkText} ${palette.dashboardDarkBorder}`;
+};
+
 // Lista de colores disponibles para el selector
 export const AVAILABLE_COLORS = Object.entries(ROLE_COLOR_PALETTES).map(([hex, palette]) => ({
     hex,
