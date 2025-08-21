@@ -469,17 +469,51 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Rutas para empleados
         Route::prefix('platform-data/employees')->group(function () {
-            // Actualizar rol de empleado
+            // Obtener datos de un empleado específico
+            Route::get('/{id}', function ($id) {
+                $empleado = \App\Models\Employees::with('rol')->findOrFail($id);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => $empleado
+                ]);
+            });
+
+            // Actualizar empleado
             Route::put('/{id}', function (Request $request, $id) {
                 $empleado = \App\Models\Employees::findOrFail($id);
 
                 $request->validate([
-                    'rol_id' => 'required|integer|exists:rols,id'
+                    'name' => 'nullable|string|max:255',
+                    'first_name' => 'nullable|string|max:255',
+                    'paternal_lastname' => 'nullable|string|max:255',
+                    'maternal_lastname' => 'nullable|string|max:255',
+                    'rut' => 'nullable|string|max:20',
+                    'phone' => 'nullable|string|max:20',
+                    'email' => 'nullable|email|max:255',
+                    'address' => 'nullable|string',
+                    'position' => 'nullable|string|max:255',
+                    'department' => 'nullable|string|max:255',
+                    'start_date' => 'nullable|date',
+                    'status' => 'nullable|in:activo,inactivo,vacaciones,licencia',
+                    'rol_id' => 'nullable|integer|exists:rols,id'
                 ]);
 
-                $empleado->update([
-                    'rol_id' => $request->rol_id
-                ]);
+                $empleado->update($request->only([
+                    'name',
+                    'first_name',
+                    'paternal_lastname',
+                    'maternal_lastname',
+                    'rut',
+                    'phone',
+                    'email',
+                    'address',
+                    'position',
+                    'department',
+                    'start_date',
+                    'status',
+                    'rol_id'
+                ]));
 
                 return redirect()->back()->with('success', 'Empleado actualizado correctamente');
             });

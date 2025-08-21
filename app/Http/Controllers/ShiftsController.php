@@ -101,6 +101,10 @@ class ShiftsController extends Controller
                 'id'     => $employee->id,
                 'nombre' => $employee->name,
                 'rut'    => $employee->rut,
+                'first_name' => $employee->first_name,
+                'paternal_lastname' => $employee->paternal_lastname,
+                'maternal_lastname' => $employee->maternal_lastname,
+                'employee_id' => $employee->id, // Agregar también employee_id para compatibilidad
             ];
 
             // Inicializar todos los días del mes como vacíos

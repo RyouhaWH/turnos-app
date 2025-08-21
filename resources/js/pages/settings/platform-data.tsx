@@ -20,7 +20,9 @@ import {
     Save,
     X,
     UserCheck,
-    Search
+    Search,
+    ChevronDown,
+    ChevronUp
 } from 'lucide-react';
 
 interface Rol {
@@ -35,6 +37,9 @@ interface Rol {
 interface Empleado {
     id: number;
     name: string;
+    first_name?: string;
+    paternal_lastname?: string;
+    maternal_lastname?: string;
     rut: string;
     phone: string;
     email?: string;
@@ -69,6 +74,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [editingEmployeeData, setEditingEmployeeData] = useState<Partial<Empleado>>({});
     const [searchEmployee, setSearchEmployee] = useState('');
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
+    const [loadingEmployee, setLoadingEmployee] = useState(false);
+    const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null);
 
     // Función para obtener el color del rol
     const getRoleColor = (roleName: string) => {
@@ -222,6 +229,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                 setData(prev => ({ ...prev, empleados: updatedEmployees }));
                 setEditingEmployee(null);
+                setExpandedEmployee(null);
                 toast.success('Empleado actualizado correctamente');
             },
             onError: (errors) => {
@@ -232,26 +240,105 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     };
 
     // Función para iniciar edición de empleado
-    const startEditingEmployee = (employee: Empleado) => {
+    const startEditingEmployee = async (employee: Empleado) => {
+        // Si ya está expandido, cerrar
+        if (expandedEmployee === employee.id) {
+            setExpandedEmployee(null);
+            setEditingEmployee(null);
+            setEditingEmployeeData({});
+            setLoadingEmployee(false);
+            return;
+        }
+
+        // Expandir el empleado seleccionado
+        setExpandedEmployee(employee.id);
         setEditingEmployee(employee.id);
-        setEditingEmployeeData({
-            name: employee.name,
-            rut: employee.rut,
-            phone: employee.phone,
-            email: employee.email,
-            address: employee.address,
-            position: employee.position,
-            department: employee.department,
-            start_date: employee.start_date,
-            status: employee.status,
-            rol_id: employee.rol_id
-        });
+        setLoadingEmployee(true);
+
+        try {
+            // Obtener datos completos del empleado desde el backend
+            const response = await fetch(`/platform-data/employees/${employee.id}`);
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                const employeeData = result.data;
+                setEditingEmployeeData({
+                    name: employeeData.name,
+                    first_name: employeeData.first_name,
+                    paternal_lastname: employeeData.paternal_lastname,
+                    maternal_lastname: employeeData.maternal_lastname,
+                    rut: employeeData.rut,
+                    phone: employeeData.phone,
+                    email: employeeData.email,
+                    address: employeeData.address,
+                    position: employeeData.position,
+                    department: employeeData.department,
+                    start_date: employeeData.start_date,
+                    status: employeeData.status,
+                    rol_id: employeeData.rol_id
+                });
+            } else {
+                // Fallback a los datos locales si falla la petición
+                setEditingEmployeeData({
+                    name: employee.name,
+                    first_name: employee.first_name,
+                    paternal_lastname: employee.paternal_lastname,
+                    maternal_lastname: employee.maternal_lastname,
+                    rut: employee.rut,
+                    phone: employee.phone,
+                    email: employee.email,
+                    address: employee.address,
+                    position: employee.position,
+                    department: employee.department,
+                    start_date: employee.start_date,
+                    status: employee.status,
+                    rol_id: employee.rol_id
+                });
+            }
+        } catch (error) {
+            console.error('Error al obtener datos del empleado:', error);
+            // Fallback a los datos locales en caso de error
+            setEditingEmployeeData({
+                name: employee.name,
+                first_name: employee.first_name,
+                paternal_lastname: employee.paternal_lastname,
+                maternal_lastname: employee.maternal_lastname,
+                rut: employee.rut,
+                phone: employee.phone,
+                email: employee.email,
+                address: employee.address,
+                position: employee.position,
+                department: employee.department,
+                start_date: employee.start_date,
+                status: employee.status,
+                rol_id: employee.rol_id
+            });
+        } finally {
+            setLoadingEmployee(false);
+        }
     };
 
     // Función para cancelar edición
     const cancelEditingEmployee = () => {
         setEditingEmployee(null);
         setEditingEmployeeData({});
+        setLoadingEmployee(false);
+        setExpandedEmployee(null);
+    };
+
+    // Función para construir nombre completo automáticamente
+    const buildFullName = (firstName: string, paternalLastname: string, maternalLastname: string) => {
+        const parts = [firstName, paternalLastname, maternalLastname].filter(part => part && part.trim());
+        return parts.join(' ').trim();
+    };
+
+    // Función para actualizar nombre completo cuando cambian los campos separados
+    const updateFullName = () => {
+        const { first_name, paternal_lastname, maternal_lastname } = editingEmployeeData;
+        if (first_name && paternal_lastname) {
+            const fullName = buildFullName(first_name, paternal_lastname, maternal_lastname || '');
+            setEditingEmployeeData(prev => ({ ...prev, name: fullName }));
+        }
     };
 
     // Filtrar empleados
@@ -262,6 +349,13 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         );
         setFilteredEmployees(filtered);
     }, [searchEmployee, data.empleados]);
+
+    // Actualizar nombre completo automáticamente
+    useEffect(() => {
+        if (editingEmployee && editingEmployeeData.first_name && editingEmployeeData.paternal_lastname) {
+            updateFullName();
+        }
+    }, [editingEmployeeData.first_name, editingEmployeeData.paternal_lastname, editingEmployeeData.maternal_lastname]);
 
     // Inicializar configuración de roles operativos
 
@@ -592,19 +686,119 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                     {filteredEmployees.map((employee) => (
                                         <Card key={employee.id} className="border bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                                             <CardContent className="pt-6">
-                                                {editingEmployee === employee.id ? (
+                                                {/* Header del empleado - siempre visible y clickeable */}
+                                                <div
+                                                    className="flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 p-2 -m-2 rounded-lg transition-colors"
+                                                    onClick={() => startEditingEmployee(employee)}
+                                                >
+                                                    <div className="flex-1">
+                                                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                                                            {employee.first_name && employee.paternal_lastname
+                                                                ? `${employee.first_name} ${employee.paternal_lastname} ${employee.maternal_lastname || ''}`.trim()
+                                                                : employee.name
+                                                            }
+                                                        </h3>
+                                                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                            <span>RUT: {employee.rut || 'Sin RUT'}</span>
+                                                            <span>•</span>
+                                                            <span>Tel: {employee.phone || 'Sin teléfono'}</span>
+                                                            {employee.email && (
+                                                                <>
+                                                                    <span>•</span>
+                                                                    <span>Email: {employee.email}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            <Badge
+                                                                variant="outline"
+                                                                className={`text-xs border ${getRoleBadgeClasses(employee.rol_nombre)}`}
+                                                                style={getRoleBadgeStyles(employee.rol_nombre)}
+                                                            >
+                                                                {employee.rol_nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : employee.rol_nombre}
+                                                            </Badge>
+                                                            {employee.position && (
+                                                                <Badge variant="secondary" className="text-xs">
+                                                                    {employee.position}
+                                                                </Badge>
+                                                            )}
+                                                            {employee.status && employee.status !== 'activo' && (
+                                                                <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                                                                    {employee.status}
+                                                                </Badge>
+                                                            )}
+                                                            <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
+                                                        </div>
+                                                        {(employee.department || employee.start_date) && (
+                                                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                                                                {employee.department && <span>Depto: {employee.department}</span>}
+                                                                {employee.department && employee.start_date && <span> • </span>}
+                                                                {employee.start_date && <span>Inicio: {new Date(employee.start_date).toLocaleDateString('es-CL')}</span>}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 ml-4">
+                                                        {loadingEmployee && editingEmployee === employee.id ? (
+                                                            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600"></div>
+                                                        ) : (
+                                                            <div className="text-gray-400 dark:text-gray-500">
+                                                                {expandedEmployee === employee.id ? (
+                                                                    <ChevronUp className="h-5 w-5" />
+                                                                ) : (
+                                                                    <ChevronDown className="h-5 w-5" />
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Contenido expandible */}
+                                                {expandedEmployee === employee.id && (
+                                                    <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
+                                                        {editingEmployee === employee.id ? (
                                                     <div className="space-y-6">
                                                         {/* Información Personal */}
                                                         <div>
                                                             <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información Personal</h4>
                                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                                 <div>
-                                                                    <Label htmlFor={`employee-name-${employee.id}`}>Nombre Completo</Label>
+                                                                    <Label htmlFor={`employee-name-${employee.id}`}>Nombre Completo (se actualiza automáticamente)</Label>
                                                                     <Input
                                                                         id={`employee-name-${employee.id}`}
                                                                         value={editingEmployeeData.name || ''}
                                                                         onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, name: e.target.value }))}
-                                                                        placeholder="Nombre completo"
+                                                                        placeholder="Se llena automáticamente"
+                                                                        className="mt-1 bg-gray-50 dark:bg-gray-700"
+                                                                        readOnly
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-first-name-${employee.id}`}>Nombre</Label>
+                                                                    <Input
+                                                                        id={`employee-first-name-${employee.id}`}
+                                                                        value={editingEmployeeData.first_name || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, first_name: e.target.value }))}
+                                                                        placeholder="Nombre"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-paternal-lastname-${employee.id}`}>Apellido Paterno</Label>
+                                                                    <Input
+                                                                        id={`employee-paternal-lastname-${employee.id}`}
+                                                                        value={editingEmployeeData.paternal_lastname || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, paternal_lastname: e.target.value }))}
+                                                                        placeholder="Apellido paterno"
+                                                                        className="mt-1"
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <Label htmlFor={`employee-maternal-lastname-${employee.id}`}>Apellido Materno</Label>
+                                                                    <Input
+                                                                        id={`employee-maternal-lastname-${employee.id}`}
+                                                                        value={editingEmployeeData.maternal_lastname || ''}
+                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, maternal_lastname: e.target.value }))}
+                                                                        placeholder="Apellido materno"
                                                                         className="mt-1"
                                                                     />
                                                                 </div>
@@ -765,62 +959,13 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                         </div>
                                                     </div>
                                                 ) : (
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex-1">
-                                                            <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">{employee.name}</h3>
-                                                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                                                <span>RUT: {employee.rut || 'Sin RUT'}</span>
-                                                                <span>•</span>
-                                                                <span>Tel: {employee.phone || 'Sin teléfono'}</span>
-                                                                {employee.email && (
-                                                                    <>
-                                                                        <span>•</span>
-                                                                        <span>Email: {employee.email}</span>
-                                                                    </>
-                                                                )}
-                                                            </div>
-                                                            <div className="flex flex-wrap items-center gap-2 mb-2">
-                                                                <Badge
-                                                                    variant="outline"
-                                                                    className={`text-xs border ${getRoleBadgeClasses(employee.rol_nombre)}`}
-                                                                    style={getRoleBadgeStyles(employee.rol_nombre)}
-                                                                >
-                                                                    {employee.rol_nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : employee.rol_nombre}
-                                                                </Badge>
-                                                                {employee.position && (
-                                                                    <Badge variant="secondary" className="text-xs">
-                                                                        {employee.position}
-                                                                    </Badge>
-                                                                )}
-                                                                {employee.status && employee.status !== 'activo' && (
-                                                                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
-                                                                        {employee.status}
-                                                                    </Badge>
-                                                                )}
-                                                                <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
-                                                            </div>
-                                                            {(employee.department || employee.start_date) && (
-                                                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                                    {employee.department && <span>Depto: {employee.department}</span>}
-                                                                    {employee.department && employee.start_date && <span> • </span>}
-                                                                    {employee.start_date && <span>Inicio: {new Date(employee.start_date).toLocaleDateString('es-CL')}</span>}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <Button
-                                                                variant="outline"
-                                                                size="sm"
-                                                                onClick={() => startEditingEmployee(employee)}
-                                                                className="flex items-center gap-2"
-                                                            >
-                                                                <Edit className="h-4 w-4" />
-                                                                Editar Empleado
-                                                            </Button>
-                                                        </div>
+                                                    <div className="text-gray-500 dark:text-gray-400">
+                                                        Haz clic para editar este empleado
                                                     </div>
                                                 )}
-                                            </CardContent>
+                                            </div>
+                                        )}
+                                    </CardContent>
                                         </Card>
                                     ))}
 

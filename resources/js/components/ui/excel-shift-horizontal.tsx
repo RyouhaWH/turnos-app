@@ -238,7 +238,17 @@ const DateHeaderComponent = (props: any) => {
                     maxWidth: 250,
                     flex: 0,
                     suppressSizeToFit: true,
-                    autoHeight: true
+                    autoHeight: true,
+                    valueGetter: (params) => {
+                        // Si tiene first_name y paternal_lastname, usar esos
+                        if (params.data?.first_name && params.data?.paternal_lastname) {
+                            // Extraer solo el primer nombre del first_name
+                            const firstName = params.data.first_name.split(' ')[0];
+                            return `${firstName} ${params.data.paternal_lastname}`;
+                        }
+                        // Si no, usar el nombre completo como fallback
+                        return params.data?.nombre || '';
+                    }
                 }
             ];
 

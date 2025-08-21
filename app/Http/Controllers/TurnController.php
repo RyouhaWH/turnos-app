@@ -179,6 +179,10 @@ class TurnController extends Controller
                     'id'     => $employee->id,
                     'employee_id' => $employee->id,
                     'nombre' => $nombre,
+                    'first_name' => $employee->first_name,
+                    'paternal_lastname' => $employee->paternal_lastname,
+                    'maternal_lastname' => $employee->maternal_lastname,
+                    'rut' => $employee->rut,
                 ], $days);
                 }
             }
@@ -201,6 +205,10 @@ class TurnController extends Controller
                     'id'     => $shift['employee']['id'],
                     'employee_id' => $shift['employee']['id'],
                     'nombre' => $nombre,
+                    'first_name' => $shift['employee']['first_name'],
+                    'paternal_lastname' => $shift['employee']['paternal_lastname'],
+                    'maternal_lastname' => $shift['employee']['maternal_lastname'],
+                    'rut' => $shift['employee']['rut'],
                 ];
                 }
                 $agrupados[$nombre][strval($dia)] = $turno;

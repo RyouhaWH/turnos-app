@@ -7,10 +7,24 @@ class Employees extends Model
 {
     protected $fillable = [
         'name',
+        'first_name',
+        'paternal_lastname',
+        'maternal_lastname',
         'rut',
         'phone',
+        'email',
+        'address',
+        'position',
+        'department',
+        'start_date',
+        'status',
         'amzoma',
         'rol_id',
+    ];
+
+    protected $casts = [
+        'start_date' => 'date',
+        'amzoma' => 'boolean',
     ];
 
     public function rol()
