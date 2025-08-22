@@ -607,6 +607,7 @@ class TurnController extends Controller
                     $status['sinTurno'][] = [
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'reason' => 'Sin turno programado'
@@ -619,6 +620,7 @@ class TurnController extends Controller
                     $status['descanso'][] = [
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
@@ -638,6 +640,7 @@ class TurnController extends Controller
                     $status['ausente'][] = [
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
@@ -668,6 +671,7 @@ class TurnController extends Controller
                     $status['trabajando'][] = [
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,

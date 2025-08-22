@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RoleCard } from '@/components/RoleCard';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
@@ -15,6 +16,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
         trabajando: Array<{
             id: number;
             name: string;
+            paternal_lastname?: string;
             rol_id: number;
             amzoma?: boolean;
             shift?: string;
@@ -83,8 +85,29 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
 
             const data = await response.json();
 
+
             if (data.success) {
-                setEmployeeStatus(data.data.status);
+                // Procesar los datos para extraer solo el primer nombre
+                const processedStatus = {
+                    trabajando: data.data.status.trabajando.map((emp: any) => ({
+                        ...emp,
+                        name: emp.name.split(' ')[0] // Solo el primer nombre
+                    })),
+                    descanso: data.data.status.descanso.map((emp: any) => ({
+                        ...emp,
+                        name: emp.name.split(' ')[0] // Solo el primer nombre
+                    })),
+                    ausente: data.data.status.ausente.map((emp: any) => ({
+                        ...emp,
+                        name: emp.name.split(' ')[0] // Solo el primer nombre
+                    })),
+                    sinTurno: data.data.status.sinTurno.map((emp: any) => ({
+                        ...emp,
+                        name: emp.name.split(' ')[0] // Solo el primer nombre
+                    }))
+                };
+
+                setEmployeeStatus(processedStatus);
                 setCounts(data.data.counts);
                 setTotalActivos(data.data.totalActivos);
                 setTotalEmpleados(data.data.totalEmpleados);
@@ -234,7 +257,7 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     const [showAll, setShowAll] = useState(true);
 
     return (
-        <Card className={`border-l-4 ${getDashboardRoleColors(roleColor)}`}>
+        <Card className={`border-l-4 ${getDashboardRoleColors(roleColor)} w-full h-full border-2 border-red-500`}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                     <div className="w-4 h-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
@@ -534,7 +557,6 @@ export default function DashboardV2() {
 
     // Hook personalizado para obtener datos de una fecha específica
     const { employeeStatus, counts, totalActivos, totalEmpleados, roles, roleColors, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
-
     const selectedDateFormatted = (() => {
         const [year, month, day] = selectedDate.split('-').map(Number);
         const date = new Date(year, month - 1, day); // month - 1 porque getMonth() devuelve 0-11
@@ -759,10 +781,11 @@ export default function DashboardV2() {
                         </div>
                     )}
 
-                    {/* Columnas principales por roles - Solo trabajando */}
-                    <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 auto-rows-fr">
+                    {/* Grid de roles operativos */}
+                    <div className="mb-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-fr">
                         {Object.entries(roles)
                             .filter(([roleId, roleName]) => {
+                                const roleIdNum = parseInt(roleId);
                                 const lowerRoleName = roleName.toLowerCase();
                                 return (
                                     !lowerRoleName.includes('administrativo') &&
@@ -773,11 +796,8 @@ export default function DashboardV2() {
                             .map(([roleId, roleName]) => {
                                 const roleIdNum = parseInt(roleId);
                                 const roleNameStr = String(roleName);
-                                console.log(
-                                    `Renderizando rol ${roleIdNum} (${roleNameStr}) con ${employeeStatus.trabajando.length} empleados trabajando`,
-                                );
                                 return (
-                                    <RoleColumn
+                                    <RoleCard
                                         key={roleId}
                                         roleId={roleIdNum}
                                         roleName={roleNameStr}
