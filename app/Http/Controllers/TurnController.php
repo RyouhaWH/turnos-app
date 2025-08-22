@@ -662,11 +662,36 @@ class TurnController extends Controller
                     $counts['ausente']['total']++;
                     $counts['ausente']['byRole'][$roleId]++;
                 } else {
-                    // Trabajando = ACTIVO (M, T, N, 1, 2, 3)
+                    // Trabajando = ACTIVO (M, T, N, 1, 2, 3, 1e, 2e, 3e, etc.)
+
+                    // Verificar si es un turno extra (termina en 'e' o 'E')
+                    $isExtraShift = in_array(substr($todayShift->shift, -1), ['e', 'E']);
+                    $baseShift = $isExtraShift ? substr($todayShift->shift, 0, -1) : $todayShift->shift;
+
+                    // Debug: Log para turnos extras
+                    if ($isExtraShift) {
+                        Log::info('Turno extra detectado:', [
+                            'employee_id' => $employee->id,
+                            'employee_name' => $employee->name,
+                            'shift' => $todayShift->shift,
+                            'base_shift' => $baseShift,
+                            'role_id' => $roleId
+                        ]);
+                    }
+
                     $shiftLabels = [
                         'M' => 'Mañana', 'T' => 'Tarde', 'N' => 'Noche',
                         '1' => '1er Turno', '2' => '2do Turno', '3' => '3er Turno'
                     ];
+
+                    // Generar etiqueta para turnos extras
+                    $shiftLabel = '';
+                    if ($isExtraShift) {
+                        $baseLabel = $shiftLabels[$baseShift] ?? $baseShift;
+                        $shiftLabel = $baseLabel . ' (Extra)';
+                    } else {
+                        $shiftLabel = $shiftLabels[$todayShift->shift] ?? $todayShift->shift;
+                    }
 
                     $status['trabajando'][] = [
                         'id' => $employee->id,
@@ -675,7 +700,9 @@ class TurnController extends Controller
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
-                        'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift
+                        'shift_label' => $shiftLabel,
+                        'is_extra' => $isExtraShift,
+                        'base_shift' => $baseShift
                     ];
                     $counts['trabajando']['total']++;
                     $counts['trabajando']['byRole'][$roleId]++;
@@ -717,7 +744,7 @@ class TurnController extends Controller
                     'roleColors' => $roleColors
                 ],
                 'definitions' => [
-                    'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3',
+                    'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3, 1e, 2e, 3e, 1E, 2E, 3E, Me, Te, Ne, ME, TE, NE',
                     'descanso' => 'Descansos programados: F (Franco), L (Libre)',
                     'ausente' => 'Ausencias programadas: V (Vacaciones), LM (Licencia Médica), S (Sindical), A (Día Administrativo)',
                     'sinTurno' => 'Sin turno asignado = NO ACTIVOS hoy',

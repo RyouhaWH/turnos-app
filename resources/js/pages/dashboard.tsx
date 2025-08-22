@@ -87,6 +87,7 @@ const useEmployeeStatusWithDate = (selectedDate: string) => {
 
 
             if (data.success) {
+
                 // Procesar los datos para extraer solo el primer nombre
                 const processedStatus = {
                     trabajando: data.data.status.trabajando.map((emp: any) => ({
@@ -229,6 +230,64 @@ interface RoleColumnProps {
     roleColor: string;
 }
 
+// Función helper para agrupar turnos incluyendo extras (unificados)
+const groupShiftsWithExtras = (employees: any[]) => {
+    const turnosMañanaTardeNoche: Record<string, any> = {};
+    const turnosNumericos: Record<string, any> = {};
+
+    employees.forEach(emp => {
+        if (!emp.shift) return;
+
+        const isExtra = emp.shift.endsWith('e') || emp.shift.endsWith('E');
+        const baseShift = isExtra ? emp.shift.slice(0, -1) : emp.shift;
+
+        // Debug: Log para cada empleado procesado
+        console.log(`🔍 Procesando en agrupación: ${emp.name} - Turno: ${emp.shift} - Es extra: ${isExtra} - Base: ${baseShift}`);
+
+        // Turnos de mañana, tarde, noche
+        if (['M', 'T', 'N', 'Me', 'Te', 'Ne', 'ME', 'TE', 'NE'].includes(emp.shift)) {
+            const key = baseShift;
+            if (!turnosMañanaTardeNoche[key]) {
+                const labels = { M: 'Mañana', T: 'Tarde', N: 'Noche' };
+                const emojis = { M: '🌅', T: '🌇', N: '🌙' };
+                turnosMañanaTardeNoche[key] = {
+                    label: labels[key as keyof typeof labels],
+                    emoji: emojis[key as keyof typeof emojis],
+                    allEmployees: [] // Un solo array con todos los empleados
+                };
+            }
+
+            // Agregar empleado con información de si es extra
+            turnosMañanaTardeNoche[key].allEmployees.push({
+                ...emp,
+                is_extra: isExtra
+            });
+        }
+
+        // Turnos numéricos
+        if (['1', '2', '3', '1e', '2e', '3e', '1E', '2E', '3E'].includes(emp.shift)) {
+            const key = baseShift;
+            if (!turnosNumericos[key]) {
+                const labels = { '1': '1er Turno', '2': '2do Turno', '3': '3er Turno' };
+                const emojis = { '1': '1️⃣', '2': '2️⃣', '3': '3️⃣' };
+                turnosNumericos[key] = {
+                    label: labels[key as keyof typeof labels],
+                    emoji: emojis[key as keyof typeof emojis],
+                    allEmployees: [] // Un solo array con todos los empleados
+                };
+            }
+
+            // Agregar empleado con información de si es extra
+            turnosNumericos[key].allEmployees.push({
+                ...emp,
+                is_extra: isExtra
+            });
+        }
+    });
+
+    return { turnosMañanaTardeNoche, turnosNumericos };
+};
+
 function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps) {
     // Si es Alerta Móvil, usar el componente especial
     if (roleId === 1) {
@@ -238,21 +297,14 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
-    // Solo empleados trabajando (excluir turno administrativo A)
-    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
+    // Solo empleados trabajando (incluir turnos extras)
+    const trabajando = roleEmployees.filter((emp) => emp.shift &&
+        ['M', 'T', 'N', '1', '2', '3', 'Me', 'Te', 'Ne', '1e', '2e', '3e', 'ME', 'TE', 'NE', '1E', '2E', '3E'].includes(emp.shift));
 
-    // Agrupar por turnos
-    const turnosMañanaTardeNoche = {
-        M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
-        T: { label: 'Tarde', emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
-        N: { label: 'Noche', emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
-    };
 
-    const turnosNumericos = {
-        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter((emp) => emp.shift === '1') },
-        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
-        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
-    };
+
+    // Agrupar por turnos usando la función helper
+    const { turnosMañanaTardeNoche, turnosNumericos } = groupShiftsWithExtras(trabajando);
 
     const [showAll, setShowAll] = useState(true);
 
@@ -276,18 +328,36 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                     <div className="space-y-3">
                         {/* Turnos Mañana, Tarde, Noche */}
                         {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
-                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} roleColor={roleColor} />
-                                ),
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
+                                    <TurnoSection
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            }
                         )}
 
                         {/* Turnos Numéricos */}
                         {Object.entries(turnosNumericos).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
-                                    <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} roleColor={roleColor} />
-                                ),
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
+                                    <TurnoSection
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            }
                         )}
                     </div>
                 )}
@@ -301,21 +371,14 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
-    // Solo empleados trabajando (excluir turno administrativo A)
-    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
+    // Solo empleados trabajando (incluir turnos extras)
+    const trabajando = roleEmployees.filter((emp) => emp.shift &&
+        ['M', 'T', 'N', '1', '2', '3', 'Me', 'Te', 'Ne', '1e', '2e', '3e', 'ME', 'TE', 'NE', '1E', '2E', '3E'].includes(emp.shift));
 
-    // Agrupar por turnos (lista unificada)
-    const turnosMañanaTardeNoche = {
-        M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
-        T: { label: 'Tarde', emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
-        N: { label: 'Noche', emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
-    };
 
-    const turnosNumericos = {
-        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter((emp) => emp.shift === '1') },
-        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
-        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
-    };
+
+    // Agrupar por turnos usando la función helper
+    const { turnosMañanaTardeNoche, turnosNumericos } = groupShiftsWithExtras(trabajando);
 
     const [showAll, setShowAll] = useState(true);
 
@@ -339,30 +402,36 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                     <div className="space-y-3">
                         {/* Turnos Mañana, Tarde, Noche */}
                         {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
                                     <TurnoSectionWithIndicator
                                         key={turno}
                                         title={`${data.emoji} ${data.label}`}
-                                        employees={data.employees}
+                                        employees={data.allEmployees}
                                         showAll={showAll}
                                         roleColor={roleColor}
                                     />
-                                ),
+                                );
+                            }
                         )}
 
                         {/* Turnos Numéricos */}
                         {Object.entries(turnosNumericos).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
                                     <TurnoSectionWithIndicator
                                         key={turno}
                                         title={`${data.emoji} ${data.label}`}
-                                        employees={data.employees}
+                                        employees={data.allEmployees}
                                         showAll={showAll}
                                         roleColor={roleColor}
                                     />
-                                ),
+                                );
+                            }
                         )}
                     </div>
                 )}
@@ -381,12 +450,15 @@ interface TurnoSectionWithIndicatorProps {
         amzoma?: boolean;
         shift?: string;
         shift_label?: string;
+        is_extra?: boolean;
+        base_shift?: string;
     }>;
     showAll: boolean;
     roleColor?: string;
+    isExtra?: boolean;
 }
 
-function TurnoSectionWithIndicator({ title, employees, showAll, roleColor = '#3B82F6' }: TurnoSectionWithIndicatorProps) {
+function TurnoSectionWithIndicator({ title, employees, showAll, roleColor = '#3B82F6', isExtra = false }: TurnoSectionWithIndicatorProps) {
     const displayEmployees = showAll ? employees : employees.slice(0, 4);
     const colorClasses = getTurnoTitleColors(roleColor);
 
@@ -398,7 +470,14 @@ function TurnoSectionWithIndicator({ title, employees, showAll, roleColor = '#3B
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1">
                 {displayEmployees.map((employee) => (
                     <div key={employee.id} className="flex items-center justify-between gap-2 rounded-md p-1.5 bg-white/50 dark:bg-slate-800/50">
-                        <span className="text-xs font-medium truncate">{employee.name}</span>
+                        <div className="flex items-center gap-1">
+                            <span className="text-xs font-medium truncate">{employee.name}</span>
+                            {employee.is_extra && (
+                                <Badge variant="outline" className="px-1 py-0 text-xs bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50">
+                                    EX
+                                </Badge>
+                            )}
+                        </div>
                         <Badge
                             variant="outline"
                             className={`px-1 py-0 text-xs flex-shrink-0 ${
@@ -429,12 +508,15 @@ interface TurnoSectionProps {
         amzoma?: boolean;
         shift?: string;
         shift_label?: string;
+        is_extra?: boolean;
+        base_shift?: string;
     }>;
     showAll: boolean;
     roleColor?: string;
+    isExtra?: boolean;
 }
 
-function TurnoSection({ title, employees, showAll, roleColor = '#3B82F6' }: TurnoSectionProps) {
+function TurnoSection({ title, employees, showAll, roleColor = '#3B82F6', isExtra = false }: TurnoSectionProps) {
     const displayEmployees = showAll ? employees : employees.slice(0, 4);
     const colorClasses = getTurnoTitleColors(roleColor);
 
@@ -447,6 +529,11 @@ function TurnoSection({ title, employees, showAll, roleColor = '#3B82F6' }: Turn
                 {displayEmployees.map((employee) => (
                     <div key={employee.id} className="flex items-center justify-center rounded-md p-1.5 bg-white/50 dark:bg-slate-800/50">
                         <span className="text-xs font-medium truncate">{employee.name}</span>
+                        {employee.is_extra && (
+                            <Badge variant="outline" className="ml-1 px-1 py-0 text-xs bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50">
+                                EX
+                            </Badge>
+                        )}
                     </div>
                 ))}
                 {!showAll && employees.length > 4 && (
@@ -590,9 +677,9 @@ export default function DashboardV2() {
                     <div className="px-6 py-8">
                         <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                             {/* Title Section */}
-                            <div className="flex w-full items-center justify-center gap-4 flex-col md:flex-row">
+                            <div className="flex w-full items-center justify-center gap-4 flex-col lg:flex-row">
 
-                                <div className="flex-1 text-center md:absolute left-0 right-0">
+                                <div className="flex-1 text-center xl:absolute left-0 right-0">
                                     <h1 className="text-2xl font-bold">Dotación diaria de fuerza operativa</h1>
                                     <div className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-500">
                                         <Activity className="h-4 w-4" />
@@ -607,7 +694,7 @@ export default function DashboardV2() {
                                 </div>
 
                                 {/* Caja de Total de Dotación */}
-                                <div className="flex items-center gap-4 md:absolute right-6">
+                                <div className="flex items-center gap-4 xl:absolute right-6">
                                     <div className="flex gap-3">
                                         {/* Caja de Dotación Activa */}
                                         <Card className="border-green-200 bg-green-50 shadow-lg dark:border-green-700/30 dark:bg-green-900/20">
@@ -671,12 +758,12 @@ export default function DashboardV2() {
                 <div className="mx-6 my-8">
                     {/* Desglose de personal por rol */}
                     <div className="mb-6">
-                        <div className="mb-4 flex items-center justify-between px-4 flex-col md:flex-row">
+                        <div className="pb-4 flex items-center justify-between px-4 flex-col lg:flex-row">
                             <h2 className="mb-4 text-xl font-semibold text-gray-700 dark:text-slate-200">
                                 Desglose de Personal - {selectedDateFormatted}
                             </h2>
 
-                            <div className="flex items-center justify-baseline gap-2">
+                            <div className="flex items-center justify-center gap-2 pb-4 flex-col sm:flex-row">
                                 {/* Selector de fecha */}
                                 <div className="flex items-center gap-2">
                                     <Label htmlFor="date-selector" className="text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -701,7 +788,7 @@ export default function DashboardV2() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
                             {Object.entries(roles)
                                 .filter(([roleId, roleName]) => {
                                     const lowerRoleName = roleName.toLowerCase();
@@ -796,6 +883,16 @@ export default function DashboardV2() {
                             .map(([roleId, roleName]) => {
                                 const roleIdNum = parseInt(roleId);
                                 const roleNameStr = String(roleName);
+
+                                // Debug: Log para ver qué roles se están procesando
+                                console.log(`🔍 Procesando rol: ${roleIdNum} - ${roleNameStr}`);
+                                const roleEmployees = employeeStatus.trabajando.filter(emp => emp.rol_id === roleIdNum);
+                                console.log(`   Empleados en este rol: ${roleEmployees.length}`);
+                                roleEmployees.forEach(emp => {
+                                    const isExtra = (emp as any).is_extra || false;
+                                    console.log(`     - ${emp.name}: ${emp.shift} (extra: ${isExtra})`);
+                                });
+
                                 return (
                                     <RoleCard
                                         key={roleId}

@@ -31,21 +31,63 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
     // Filtrar empleados por rol y solo mostrar los que están trabajando
     const roleEmployees = employees.filter((emp) => emp.rol_id === roleId);
 
-    // Solo empleados trabajando (excluir turno administrativo A)
-    const trabajando = roleEmployees.filter((emp) => emp.shift && ['M', 'T', 'N', '1', '2', '3'].includes(emp.shift));
+    // Solo empleados trabajando (incluir turnos extras)
+    const trabajando = roleEmployees.filter((emp) => emp.shift &&
+        ['M', 'T', 'N', '1', '2', '3', 'Me', 'Te', 'Ne', '1e', '2e', '3e', 'ME', 'TE', 'NE', '1E', '2E', '3E'].includes(emp.shift));
 
-    // Agrupar por turnos
-    const turnosMañanaTardeNoche = {
-        M: { label: 'Mañana', emoji: '🌅', employees: trabajando.filter((emp) => emp.shift === 'M') },
-        T: { label: 'Tarde', emoji: '🌇', employees: trabajando.filter((emp) => emp.shift === 'T') },
-        N: { label: 'Noche', emoji: '🌙', employees: trabajando.filter((emp) => emp.shift === 'N') },
+    // Función helper para agrupar turnos incluyendo extras (unificados)
+    const groupShiftsWithExtras = (employees: any[]) => {
+        const turnosMañanaTardeNoche: Record<string, any> = {};
+        const turnosNumericos: Record<string, any> = {};
+
+        employees.forEach(emp => {
+            if (!emp.shift) return;
+
+            const isExtra = emp.shift.endsWith('e') || emp.shift.endsWith('E');
+            const baseShift = isExtra ? emp.shift.slice(0, -1) : emp.shift;
+
+            // Turnos de mañana, tarde, noche
+            if (['M', 'T', 'N', 'Me', 'Te', 'Ne', 'ME', 'TE', 'NE'].includes(emp.shift)) {
+                const key = baseShift;
+                if (!turnosMañanaTardeNoche[key]) {
+                    const labels = { M: 'Mañana', T: 'Tarde', N: 'Noche' };
+                    const emojis = { M: '🌅', T: '🌇', N: '🌙' };
+                    turnosMañanaTardeNoche[key] = {
+                        label: labels[key as keyof typeof labels],
+                        emoji: emojis[key as keyof typeof emojis],
+                        allEmployees: []
+                    };
+                }
+                turnosMañanaTardeNoche[key].allEmployees.push({
+                    ...emp,
+                    is_extra: isExtra
+                });
+            }
+
+            // Turnos numéricos
+            if (['1', '2', '3', '1e', '2e', '3e', '1E', '2E', '3E'].includes(emp.shift)) {
+                const key = baseShift;
+                if (!turnosNumericos[key]) {
+                    const labels = { '1': '1er Turno', '2': '2do Turno', '3': '3er Turno' };
+                    const emojis = { '1': '1️⃣', '2': '2️⃣', '3': '3️⃣' };
+                    turnosNumericos[key] = {
+                        label: labels[key as keyof typeof labels],
+                        emoji: emojis[key as keyof typeof emojis],
+                        allEmployees: []
+                    };
+                }
+                turnosNumericos[key].allEmployees.push({
+                    ...emp,
+                    is_extra: isExtra
+                });
+            }
+        });
+
+        return { turnosMañanaTardeNoche, turnosNumericos };
     };
 
-    const turnosNumericos = {
-        '1': { label: '1er Turno', emoji: '1️⃣', employees: trabajando.filter((emp) => emp.shift === '1') },
-        '2': { label: '2do Turno', emoji: '2️⃣', employees: trabajando.filter((emp) => emp.shift === '2') },
-        '3': { label: '3er Turno', emoji: '3️⃣', employees: trabajando.filter((emp) => emp.shift === '3') },
-    };
+    // Agrupar por turnos usando la función helper
+    const { turnosMañanaTardeNoche, turnosNumericos } = groupShiftsWithExtras(trabajando);
 
     const [showAll, setShowAll] = React.useState(true);
 
@@ -76,16 +118,18 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
                     <div className="space-y-3">
                         {/* Turnos Mañana, Tarde, Noche */}
                         {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
                                     <div key={turno} className="space-y-2">
                                         <h5
                                             className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${getTurnoTitleColors(roleColor)}`}
                                         >
-                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.employees.length})</p>
+                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.allEmployees.length})</p>
                                         </h5>
                                         <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                                            {data.employees.slice(0, showAll ? undefined : 4).map((employee) => (
+                                            {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
                                                     className="flex items-center justify-between rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50"
@@ -93,35 +137,45 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}
                                                     </span>
-                                                    <span
-                                                        className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
-                                                    >
-                                                        {employee.amzoma ? 'Amz' : 'Mun'}
-                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        {employee.is_extra && (
+                                                            <Badge variant="outline" className="px-1 py-0 text-xs bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50">
+                                                                EX
+                                                            </Badge>
+                                                        )}
+                                                        <span
+                                                            className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
+                                                        >
+                                                            {employee.amzoma ? 'Amz' : 'Mun'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ))}
-                                            {!showAll && data.employees.length > 4 && (
+                                            {!showAll && data.allEmployees.length > 4 && (
                                                 <p className="col-span-full text-center text-xs italic opacity-75">
-                                                    +{data.employees.length - 4} más...
+                                                    +{data.allEmployees.length - 4} más...
                                                 </p>
                                             )}
                                         </div>
                                     </div>
-                                ),
+                                );
+                            }
                         )}
 
                         {/* Turnos Numéricos */}
                         {Object.entries(turnosNumericos).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                            ([turno, data]) => {
+                                if (data.allEmployees.length === 0) return null;
+
+                                return (
                                     <div key={turno} className="space-y-2">
                                         <h5
                                             className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${getTurnoTitleColors(roleColor)}`}
                                         >
-                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.employees.length})</p>
+                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.allEmployees.length})</p>
                                         </h5>
                                         <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                                            {data.employees.slice(0, showAll ? undefined : 4).map((employee) => (
+                                            {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
                                                     className="flex items-center justify-between rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50"
@@ -129,21 +183,29 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}
                                                     </span>
-                                                    <span
-                                                        className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
-                                                    >
-                                                        {employee.amzoma ? 'Amz' : 'Mun'}
-                                                    </span>
+                                                    <div className="flex items-center gap-1">
+                                                        {employee.is_extra && (
+                                                            <Badge variant="outline" className="rounded px-1 py-0 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-none">
+                                                                Extra
+                                                            </Badge>
+                                                        )}
+                                                        <span
+                                                            className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
+                                                        >
+                                                            {employee.amzoma ? 'Amz' : 'Mun'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             ))}
-                                            {!showAll && data.employees.length > 4 && (
+                                            {!showAll && data.allEmployees.length > 4 && (
                                                 <p className="col-span-full text-center text-xs italic opacity-75">
-                                                    +{data.employees.length - 4} más...
+                                                    +{data.allEmployees.length - 4} más...
                                                 </p>
                                             )}
                                         </div>
                                     </div>
-                                ),
+                                );
+                            }
                         )}
                     </div>
                 )}
