@@ -17,9 +17,10 @@ interface RoleCardProps {
         shift_label?: string;
         reason?: string;
     }>;
+    compact?: boolean;
 }
 
-export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardProps) {
+export function RoleCard({ roleId, roleName, roleColor, employees, compact = false }: RoleCardProps) {
     // Función para obtener el primer nombre y apellido paterno
     const getDisplayName = (fullName: string, lastName?: string) => {
         const firstName = fullName.split(' ')[0]; // Primer nombre
@@ -96,43 +97,44 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
 
     // Determinar la clase de altura
     const getHeightClass = () => {
+        if (compact) return 'h-fit';
         if (roleId === 1 || roleId === 2) return 'row-span-2';
         return 'h-full'; // Todas las cajas ocupan todo el espacio disponible
     };
 
     return (
-        <Card className={`w-full border-l-4 ${getDashboardRoleColors(roleColor)}  ${getHeightClass()}`}>
-            <CardHeader>
+        <Card className={`w-full border-l-4 ${getDashboardRoleColors(roleColor)} ${getHeightClass()}`}>
+            <CardHeader className={compact ? "pb-2" : ""}>
                 <CardTitle className="flex items-center gap-2">
                     <div className="h-4 w-4 rounded-full" style={{ backgroundColor: roleColor }}></div>
-                    <span className="font-semibold">{roleName === 'Alerta Móvil' ? 'Patrullaje y Proximidad' : roleName}</span>
-                    <Badge variant="secondary" className="ml-auto items-center justify-between p-2 text-xs font-light">
+                    <span className={`font-semibold ${compact ? "text-sm" : ""}`}>{roleName === 'Alerta Móvil' ? 'Patrullaje y Proximidad' : roleName}</span>
+                    <Badge variant="secondary" className={`ml-auto items-center justify-between ${compact ? "p-1 text-xs" : "p-2 text-xs"} font-light`}>
                         Total: {trabajando.length}
                     </Badge>
                 </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={compact ? "pt-0" : ""}>
                 {trabajando.length === 0 ? (
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
-                    <div className="space-y-3">
+                    <div className={`${compact ? "space-y-2" : "space-y-3"}`}>
                         {/* Turnos Mañana, Tarde, Noche */}
                         {Object.entries(turnosMañanaTardeNoche).map(
                             ([turno, data]) => {
                                 if (data.allEmployees.length === 0) return null;
 
                                 return (
-                                    <div key={turno} className="space-y-2">
+                                    <div key={turno} className={`${compact ? "space-y-1" : "space-y-2"}`}>
                                         <h5
-                                            className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${getTurnoTitleColors(roleColor)}`}
+                                            className={`flex flex-row items-center justify-center gap-2 rounded-lg border ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"} font-semibold ${getTurnoTitleColors(roleColor)}`}
                                         >
-                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.allEmployees.length})</p>
+                                            {data.emoji} {data.label} <p className={`${compact ? "text-xs" : "text-xs"} font-light`}>({data.allEmployees.length})</p>
                                         </h5>
                                         <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                             {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
-                                                    className="flex items-center justify-between rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50"
+                                                    className={`flex items-center justify-between rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
                                                 >
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}
@@ -168,17 +170,17 @@ export function RoleCard({ roleId, roleName, roleColor, employees }: RoleCardPro
                                 if (data.allEmployees.length === 0) return null;
 
                                 return (
-                                    <div key={turno} className="space-y-2">
+                                    <div key={turno} className={`${compact ? "space-y-1" : "space-y-2"}`}>
                                         <h5
-                                            className={`flex flex-row items-center justify-center gap-2 rounded-lg border px-3 py-2 text-center text-sm font-semibold ${getTurnoTitleColors(roleColor)}`}
+                                            className={`flex flex-row items-center justify-center gap-2 rounded-lg border ${compact ? "px-2 py-1 text-xs" : "px-3 py-2 text-sm"} font-semibold ${getTurnoTitleColors(roleColor)}`}
                                         >
-                                            {data.emoji} {data.label} <p className="text-xs font-light">({data.allEmployees.length})</p>
+                                            {data.emoji} {data.label} <p className={`${compact ? "text-xs" : "text-xs"} font-light`}>({data.allEmployees.length})</p>
                                         </h5>
                                         <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                                             {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
-                                                    className="flex items-center justify-between rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50"
+                                                    className={`flex items-center justify-between rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
                                                 >
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}

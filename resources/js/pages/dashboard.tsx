@@ -6,9 +6,10 @@ import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Activity, AlertTriangle, RefreshCw, UserCheck, UserX, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
 import { getDashboardRoleColors, getTurnoTitleColors } from '@/lib/role-colors';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Hook personalizado para obtener datos de una fecha específica
 const useEmployeeStatusWithDate = (selectedDate: string) => {
@@ -544,11 +545,91 @@ function TurnoSection({ title, employees, showAll, roleColor = '#3B82F6', isExtr
     );
 }
 
+// Componente de carrusel para móviles
+interface CarouselProps {
+    children: React.ReactNode;
+    className?: string;
+}
+
+function Carousel({ children, className = "" }: CarouselProps) {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(false);
+
+    const checkScrollButtons = () => {
+        if (scrollContainerRef.current) {
+            const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 1);
+        }
+    };
+
+    useEffect(() => {
+        checkScrollButtons();
+        const scrollContainer = scrollContainerRef.current;
+        if (scrollContainer) {
+            scrollContainer.addEventListener('scroll', checkScrollButtons);
+            return () => scrollContainer.removeEventListener('scroll', checkScrollButtons);
+        }
+    }, [children]);
+
+    const scrollTo = (direction: 'left' | 'right') => {
+        if (scrollContainerRef.current) {
+            const container = scrollContainerRef.current;
+            // Scroll por el ancho de una caja más el gap
+            const scrollAmount = container.clientWidth * 0.5;
+            const newScrollLeft = direction === 'left'
+                ? container.scrollLeft - scrollAmount
+                : container.scrollLeft + scrollAmount;
+
+            container.scrollTo({
+                left: newScrollLeft,
+                behavior: 'smooth'
+            });
+        }
+    };
+
+    return (
+        <div className={`relative ${className}`}>
+            {/* Botón izquierdo */}
+            {canScrollLeft && (
+                <button
+                    onClick={() => scrollTo('left')}
+                    className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-800"
+                >
+                    <ChevronLeft className="h-4 w-4" />
+                </button>
+            )}
+
+            {/* Contenedor de scroll */}
+            <div
+                ref={scrollContainerRef}
+                className="flex gap-3 overflow-x-auto scrollbar-hide snap-x snap-mandatory px-2"
+                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+                {children}
+            </div>
+
+            {/* Botón derecho */}
+            {canScrollRight && (
+                <button
+                    onClick={() => scrollTo('right')}
+                    className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-2 shadow-lg backdrop-blur-sm transition-all hover:bg-white dark:bg-slate-800/90 dark:hover:bg-slate-800"
+                >
+                    <ChevronRight className="h-4 w-4" />
+                </button>
+            )}
+        </div>
+    );
+}
+
 // Componente para mostrar empleados ausentes y sin turno
 interface BottomSectionProps {
     employees: Array<{
         id: number;
         name: string;
+        paternal_lastname?: string;
         rol_id: number;
         amzoma?: boolean;
         shift?: string;
@@ -562,48 +643,89 @@ interface BottomSectionProps {
     borderColor: string;
     textColor: string;
     roles: Record<number, string>;
+    mobile?: boolean;
 }
 
-function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderColor, textColor, roles }: BottomSectionProps) {
+function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderColor, textColor, roles, mobile = false }: BottomSectionProps) {
     const [showAll, setShowAll] = useState(false);
+
+    // Función para obtener el nombre completo
+    const getDisplayName = (fullName: string, lastName?: string) => {
+        const firstName = fullName.split(' ')[0]; // Primer nombre
+        const paternalLastName = lastName;
+        const result = paternalLastName ? `${firstName} ${paternalLastName}` : firstName;
+        return result.trim();
+    };
 
     // Para "Sin Turno Asignado" mostrar solo 4, para otros mostrar 6
     const initialCount = title === 'Sin Turno Asignado' ? 4 : 6;
     const displayEmployees = showAll ? employees : employees.slice(0, initialCount);
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle className={`flex items-center gap-2 ${textColor}`}>
+        <Card className={mobile ? "h-fit" : ""}>
+            <CardHeader className={mobile ? "pb-2" : ""}>
+                <CardTitle className={`flex items-center gap-2 ${textColor} ${mobile ? "text-base" : ""}`}>
                     {icon}
                     {title}
-                    <Badge variant="secondary" className="ml-auto">
+                    <Badge variant="secondary" className={`ml-auto ${mobile ? "text-xs px-2 py-1" : ""}`}>
                         {employees.length}
                     </Badge>
                 </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className={mobile ? "pt-0" : ""}>
                 {employees.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">{emptyMessage}</p>
+                    <p className={`${mobile ? "text-xs" : "text-sm"} text-muted-foreground italic`}>{emptyMessage}</p>
                 ) : (
-                    <div className="space-y-2 pb-8">
+                    <div className={`${mobile ? "space-y-1 pb-4" : "space-y-2 pb-8"}`}>
                         {displayEmployees.map((employee) => (
-                            <div key={employee.id} className={`flex items-center justify-between rounded-lg p-2 ${bgColor} border ${borderColor}`}>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-gray-900 dark:text-slate-200">{employee.name}</span>
-                                    <Badge
-                                        variant="outline"
-                                        className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 text-gray-800 dark:bg-slate-700/30 dark:text-slate-300'}`}
-                                    >
-                                        {roles[employee.rol_id] || `Rol ${employee.rol_id}`}
-                                    </Badge>
-                                </div>
-                                {employee.shift_label && (
-                                    <Badge variant="outline" className={`text-xs font-medium ${getAbsenceColor(employee.shift_label)}`}>
-                                        {employee.shift_label}
-                                    </Badge>
+                            <div key={employee.id} className={`${mobile ? "flex flex-col gap-1.5" : "flex items-center justify-between"} rounded-lg ${mobile ? "p-2" : "p-2"} ${bgColor} border ${borderColor}`}>
+                                {mobile ? (
+                                    // Layout móvil: Nombre completo arriba, información abajo
+                                    <>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-900 dark:text-slate-200 truncate">
+                                                {getDisplayName(employee.name, employee.paternal_lastname)}
+                                            </span>
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 text-gray-800 dark:bg-slate-700/30 dark:text-slate-300'} px-1 py-0`}
+                                            >
+                                                {roles[employee.rol_id] || `Rol ${employee.rol_id}`}
+                                            </Badge>
+                                            {employee.shift_label && (
+                                                <Badge variant="outline" className={`text-xs font-medium ${getAbsenceColor(employee.shift_label)} px-1 py-0`}>
+                                                    {employee.shift_label}
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        {employee.reason && (
+                                            <span className="text-xs text-muted-foreground dark:text-slate-400">
+                                                {employee.reason}
+                                            </span>
+                                        )}
+                                    </>
+                                ) : (
+                                    // Layout desktop: Información horizontal
+                                    <>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-sm font-medium text-gray-900 dark:text-slate-200 truncate">{getDisplayName(employee.name, employee.paternal_lastname)}</span>
+                                            <Badge
+                                                variant="outline"
+                                                className={`text-xs ${ROLE_COLORS[employee.rol_id] || 'bg-gray-100 text-gray-800 dark:bg-slate-700/30 dark:text-slate-300'}`}
+                                            >
+                                                {roles[employee.rol_id] || `Rol ${employee.rol_id}`}
+                                            </Badge>
+                                        </div>
+                                        {employee.shift_label && (
+                                            <Badge variant="outline" className={`text-xs font-medium ${getAbsenceColor(employee.shift_label)}`}>
+                                                {employee.shift_label}
+                                            </Badge>
+                                        )}
+                                        {employee.reason && <span className="text-xs text-muted-foreground dark:text-slate-400">{employee.reason}</span>}
+                                    </>
                                 )}
-                                {employee.reason && <span className="text-xs text-muted-foreground dark:text-slate-400">{employee.reason}</span>}
                             </div>
                         ))}
 
@@ -611,16 +733,16 @@ function BottomSection({ employees, title, icon, emptyMessage, bgColor, borderCo
                         {title === 'Sin Turno Asignado' && employees.length > 4 && (
                             <button
                                 onClick={() => setShowAll(!showAll)}
-                                className="mt-3 w-full rounded-lg border border-gray-200 p-2 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700/30 dark:hover:text-slate-200"
+                                className={`${mobile ? "mt-2" : "mt-3"} w-full rounded-lg border border-gray-200 ${mobile ? "p-1.5 text-xs" : "p-2 text-sm"} text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-800 dark:border-slate-600 dark:text-slate-400 dark:hover:bg-slate-700/30 dark:hover:text-slate-200`}
                             >
                                 {showAll ? (
                                     <span className="flex items-center justify-center gap-2">
-                                        <span>Ocultar empleados</span>
+                                        <span>{mobile ? "Ocultar" : "Ocultar empleados"}</span>
                                         <span className="text-xs">({employees.length - 4} menos)</span>
                                     </span>
                                 ) : (
                                     <span className="flex items-center justify-center gap-2">
-                                        <span>Ver todos los empleados</span>
+                                        <span>{mobile ? "Ver todos" : "Ver todos los empleados"}</span>
                                         <span className="text-xs">({employees.length - 4} más)</span>
                                     </span>
                                 )}
@@ -644,6 +766,7 @@ export default function DashboardV2() {
 
     // Hook personalizado para obtener datos de una fecha específica
     const { employeeStatus, counts, totalActivos, totalEmpleados, roles, roleColors, loading, error, refetch } = useEmployeeStatusWithDate(selectedDate);
+    const isMobile = useIsMobile();
     const selectedDateFormatted = (() => {
         const [year, month, day] = selectedDate.split('-').map(Number);
         const date = new Date(year, month - 1, day); // month - 1 porque getMonth() devuelve 0-11
@@ -788,75 +911,145 @@ export default function DashboardV2() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
-                            {Object.entries(roles)
-                                .filter(([roleId, roleName]) => {
-                                    const lowerRoleName = roleName.toLowerCase();
-                                    return (
-                                        !lowerRoleName.includes('administrativo') &&
-                                        !lowerRoleName.includes('servicio') &&
-                                        !lowerRoleName.includes('personal de servicio')
-                                    );
-                                })
-                                .map(([roleId, roleName]) => {
-                                    const roleIdNum = parseInt(roleId);
-                                    const roleColor = roleColors[roleIdNum] || '#3B82F6';
-                                    const colorClasses = getDashboardRoleColors(roleColor);
+                        {isMobile ? (
+                            <Carousel className="pb-4">
+                                {Object.entries(roles)
+                                    .filter(([roleId, roleName]) => {
+                                        const lowerRoleName = roleName.toLowerCase();
+                                        return (
+                                            !lowerRoleName.includes('administrativo') &&
+                                            !lowerRoleName.includes('servicio') &&
+                                            !lowerRoleName.includes('personal de servicio')
+                                        );
+                                    })
+                                    .map(([roleId, roleName]) => {
+                                        const roleIdNum = parseInt(roleId);
+                                        const roleColor = roleColors[roleIdNum] || '#3B82F6';
+                                        const colorClasses = getDashboardRoleColors(roleColor);
 
-                                    // Determinar los turnos según el rol
-                                    const getShiftsForRole = (roleId: number) => {
-                                        if (roleId === 1) { // Alerta Móvil/Patrullaje usa M, T, N
-                                            return [
-                                                { shift: 'M', label: 'Mañana' },
-                                                { shift: 'T', label: 'Tarde' },
-                                                { shift: 'N', label: 'Noche' }
-                                            ];
-                                        } else { // Otros roles usan 1, 2, 3
-                                            return [
-                                                { shift: '1', label: '1er Turno' },
-                                                { shift: '2', label: '2do Turno' },
-                                                { shift: '3', label: '3er Turno' }
-                                            ];
-                                        }
-                                    };
+                                        // Determinar los turnos según el rol
+                                        const getShiftsForRole = (roleId: number) => {
+                                            if (roleId === 1) { // Alerta Móvil/Patrullaje usa M, T, N
+                                                return [
+                                                    { shift: 'M', label: 'Mañana' },
+                                                    { shift: 'T', label: 'Tarde' },
+                                                    { shift: 'N', label: 'Noche' }
+                                                ];
+                                            } else { // Otros roles usan 1, 2, 3
+                                                return [
+                                                    { shift: '1', label: '1er Turno' },
+                                                    { shift: '2', label: '2do Turno' },
+                                                    { shift: '3', label: '3er Turno' }
+                                                ];
+                                            }
+                                        };
 
-                                    const shifts = getShiftsForRole(roleIdNum);
-                                    const displayName = roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName;
+                                        const shifts = getShiftsForRole(roleIdNum);
+                                        const displayName = roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName;
 
-                                    return (
-                                        <Card key={roleId} className={colorClasses}>
-                                            <CardContent className="p-4">
-                                                <div className="mb-3 flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: roleColor }}></div>
-                                                    <div>
-                                                        <p className="text-sm font-semibold">{displayName}</p>
-                                                        <p className="text-xs opacity-75">Todos los turnos</p>
-                                                    </div>
-                                                </div>
-                                                <div className="mb-3 grid grid-cols-3 gap-2">
-                                                    {shifts.map((shiftInfo) => (
-                                                        <div key={shiftInfo.shift} className="text-center">
-                                                            <p className="text-lg font-bold">
-                                                                {employeeStatus.trabajando.filter((emp) =>
-                                                                    emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift
-                                                                ).length}
-                                                            </p>
-                                                            <p className="text-xs opacity-75">{shiftInfo.label}</p>
+                                        return (
+                                            <Card key={roleId} className={`${colorClasses} w-[calc(50vw-2.5rem)] min-w-[200px] max-w-[280px] snap-start flex-shrink-0`}>
+                                                <CardContent className="p-3">
+                                                    <div className="mb-2 flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: roleColor }}></div>
+                                                        <div>
+                                                            <p className="text-sm font-semibold">{displayName}</p>
+                                                            <p className="text-xs opacity-75">Todos los turnos</p>
                                                         </div>
-                                                    ))}
-                                                </div>
-                                                <div className="border-t pt-3 text-center" style={{ borderColor: roleColor + '40' }}>
-                                                    <p className="text-3xl font-bold">
-                                                        {employeeStatus.trabajando.filter((emp) => emp.rol_id === roleIdNum).length}
-                                                    </p>
-                                                    <p className="text-sm opacity-75">Total</p>
-                                                </div>
-                                            </CardContent>
-                                        </Card>
-                                    );
-                                })}
+                                                    </div>
+                                                    <div className="mb-2 grid grid-cols-3 gap-1">
+                                                        {shifts.map((shiftInfo) => (
+                                                            <div key={shiftInfo.shift} className="text-center">
+                                                                <p className="text-base font-bold">
+                                                                    {employeeStatus.trabajando.filter((emp) =>
+                                                                        emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift
+                                                                    ).length}
+                                                                </p>
+                                                                <p className="text-xs opacity-75">{shiftInfo.label}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="border-t pt-2 text-center" style={{ borderColor: roleColor + '40' }}>
+                                                        <p className="text-2xl font-bold">
+                                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === roleIdNum).length}
+                                                        </p>
+                                                        <p className="text-xs opacity-75">Total</p>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                            </Carousel>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+                                {Object.entries(roles)
+                                    .filter(([roleId, roleName]) => {
+                                        const lowerRoleName = roleName.toLowerCase();
+                                        return (
+                                            !lowerRoleName.includes('administrativo') &&
+                                            !lowerRoleName.includes('servicio') &&
+                                            !lowerRoleName.includes('personal de servicio')
+                                        );
+                                    })
+                                    .map(([roleId, roleName]) => {
+                                        const roleIdNum = parseInt(roleId);
+                                        const roleColor = roleColors[roleIdNum] || '#3B82F6';
+                                        const colorClasses = getDashboardRoleColors(roleColor);
 
-                        </div>
+                                        // Determinar los turnos según el rol
+                                        const getShiftsForRole = (roleId: number) => {
+                                            if (roleId === 1) { // Alerta Móvil/Patrullaje usa M, T, N
+                                                return [
+                                                    { shift: 'M', label: 'Mañana' },
+                                                    { shift: 'T', label: 'Tarde' },
+                                                    { shift: 'N', label: 'Noche' }
+                                                ];
+                                            } else { // Otros roles usan 1, 2, 3
+                                                return [
+                                                    { shift: '1', label: '1er Turno' },
+                                                    { shift: '2', label: '2do Turno' },
+                                                    { shift: '3', label: '3er Turno' }
+                                                ];
+                                            }
+                                        };
+
+                                        const shifts = getShiftsForRole(roleIdNum);
+                                        const displayName = roleName === "Alerta Móvil" ? "Patrullaje y Proximidad" : roleName;
+
+                                        return (
+                                            <Card key={roleId} className={colorClasses}>
+                                                <CardContent className="p-4">
+                                                    <div className="mb-3 flex items-center gap-2">
+                                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: roleColor }}></div>
+                                                        <div>
+                                                            <p className="text-sm font-semibold">{displayName}</p>
+                                                            <p className="text-xs opacity-75">Todos los turnos</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mb-3 grid grid-cols-3 gap-2">
+                                                        {shifts.map((shiftInfo) => (
+                                                            <div key={shiftInfo.shift} className="text-center">
+                                                                <p className="text-lg font-bold">
+                                                                    {employeeStatus.trabajando.filter((emp) =>
+                                                                        emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift
+                                                                    ).length}
+                                                                </p>
+                                                                <p className="text-xs opacity-75">{shiftInfo.label}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                    <div className="border-t pt-3 text-center" style={{ borderColor: roleColor + '40' }}>
+                                                        <p className="text-3xl font-bold">
+                                                            {employeeStatus.trabajando.filter((emp) => emp.rol_id === roleIdNum).length}
+                                                        </p>
+                                                        <p className="text-sm opacity-75">Total</p>
+                                                    </div>
+                                                </CardContent>
+                                            </Card>
+                                        );
+                                    })}
+                            </div>
+                        )}
                     </div>
                 </div>
 
@@ -869,41 +1062,75 @@ export default function DashboardV2() {
                     )}
 
                     {/* Grid de roles operativos */}
-                    <div className="mb-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-fr">
-                        {Object.entries(roles)
-                            .filter(([roleId, roleName]) => {
-                                const roleIdNum = parseInt(roleId);
-                                const lowerRoleName = roleName.toLowerCase();
-                                return (
-                                    !lowerRoleName.includes('administrativo') &&
-                                    !lowerRoleName.includes('servicio') &&
-                                    !lowerRoleName.includes('personal de servicio')
-                                );
-                            })
-                            .map(([roleId, roleName]) => {
-                                const roleIdNum = parseInt(roleId);
-                                const roleNameStr = String(roleName);
+                    {isMobile ? (
+                        <Carousel className="mb-8 pb-4">
+                            {Object.entries(roles)
+                                .filter(([roleId, roleName]) => {
+                                    const roleIdNum = parseInt(roleId);
+                                    const lowerRoleName = roleName.toLowerCase();
+                                    return (
+                                        !lowerRoleName.includes('administrativo') &&
+                                        !lowerRoleName.includes('servicio') &&
+                                        !lowerRoleName.includes('personal de servicio')
+                                    );
+                                })
+                                .map(([roleId, roleName]) => {
+                                    const roleIdNum = parseInt(roleId);
+                                    const roleNameStr = String(roleName);
 
-                                // Debug: Log para ver qué roles se están procesando
-                                console.log(`🔍 Procesando rol: ${roleIdNum} - ${roleNameStr}`);
-                                const roleEmployees = employeeStatus.trabajando.filter(emp => emp.rol_id === roleIdNum);
-                                console.log(`   Empleados en este rol: ${roleEmployees.length}`);
-                                roleEmployees.forEach(emp => {
-                                    const isExtra = (emp as any).is_extra || false;
-                                    console.log(`     - ${emp.name}: ${emp.shift} (extra: ${isExtra})`);
-                                });
+                                    // Determinar si usar modo compacto para roles > 2
+                                    const isCompact = roleIdNum > 2;
 
-                                return (
-                                    <RoleCard
-                                        key={roleId}
-                                        roleId={roleIdNum}
-                                        roleName={roleNameStr}
-                                        roleColor={roleColors[roleIdNum] || '#3B82F6'}
-                                        employees={employeeStatus.trabajando}
-                                    />
-                                );
-                            })}
-                    </div>
+                                    return (
+                                        <div key={roleId} className={`${isCompact ? "w-[calc(50vw-2.5rem)] min-w-[250px] max-w-[300px]" : "w-[calc(50vw-2.5rem)] min-w-[280px] max-w-[400px]"} snap-start flex-shrink-0`}>
+                                            <RoleCard
+                                                roleId={roleIdNum}
+                                                roleName={roleNameStr}
+                                                roleColor={roleColors[roleIdNum] || '#3B82F6'}
+                                                employees={employeeStatus.trabajando}
+                                                compact={isCompact}
+                                            />
+                                        </div>
+                                    );
+                                })}
+                        </Carousel>
+                    ) : (
+                        <div className="mb-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 auto-rows-fr">
+                            {Object.entries(roles)
+                                .filter(([roleId, roleName]) => {
+                                    const roleIdNum = parseInt(roleId);
+                                    const lowerRoleName = roleName.toLowerCase();
+                                    return (
+                                        !lowerRoleName.includes('administrativo') &&
+                                        !lowerRoleName.includes('servicio') &&
+                                        !lowerRoleName.includes('personal de servicio')
+                                    );
+                                })
+                                .map(([roleId, roleName]) => {
+                                    const roleIdNum = parseInt(roleId);
+                                    const roleNameStr = String(roleName);
+
+                                    // Debug: Log para ver qué roles se están procesando
+                                    console.log(`🔍 Procesando rol: ${roleIdNum} - ${roleNameStr}`);
+                                    const roleEmployees = employeeStatus.trabajando.filter(emp => emp.rol_id === roleIdNum);
+                                    console.log(`   Empleados en este rol: ${roleEmployees.length}`);
+                                    roleEmployees.forEach(emp => {
+                                        const isExtra = (emp as any).is_extra || false;
+                                        console.log(`     - ${emp.name}: ${emp.shift} (extra: ${isExtra})`);
+                                    });
+
+                                    return (
+                                        <RoleCard
+                                            key={roleId}
+                                            roleId={roleIdNum}
+                                            roleName={roleNameStr}
+                                            roleColor={roleColors[roleIdNum] || '#3B82F6'}
+                                            employees={employeeStatus.trabajando}
+                                        />
+                                    );
+                                })}
+                        </div>
+                    )}
 
                     {/* Sección inferior: Ausentes y Sin Turno */}
                     <div className="space-y-4">
@@ -911,29 +1138,60 @@ export default function DashboardV2() {
                             Estado Especial del Personal
                         </h2>
 
-                        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-                            <BottomSection
-                                employees={employeeStatus.ausente}
-                                title="Ausente"
-                                icon={<AlertTriangle className="h-5 w-5" />}
-                                emptyMessage="No hay empleados ausentes hoy"
-                                bgColor="bg-red-50 dark:bg-slate-800/25"
-                                borderColor="border-red-200 dark:border-slate-600/40"
-                                textColor="text-red-700 dark:text-slate-300"
-                                roles={roles}
-                            />
+                        {isMobile ? (
+                            <Carousel className="pb-4">
+                                <div className="w-[calc(50vw-2.5rem)] min-w-[280px] max-w-[400px] snap-start flex-shrink-0">
+                                    <BottomSection
+                                        employees={employeeStatus.ausente}
+                                        title="Ausente"
+                                        icon={<AlertTriangle className="h-4 w-4" />}
+                                        emptyMessage="No hay empleados ausentes hoy"
+                                        bgColor="bg-red-50 dark:bg-slate-800/25"
+                                        borderColor="border-red-200 dark:border-slate-600/40"
+                                        textColor="text-red-700 dark:text-slate-300"
+                                        roles={roles}
+                                        mobile={true}
+                                    />
+                                </div>
+                                <div className="w-[calc(50vw-2.5rem)] min-w-[280px] max-w-[400px] snap-start flex-shrink-0">
+                                    <BottomSection
+                                        employees={employeeStatus.sinTurno}
+                                        title="Sin Turno Asignado"
+                                        icon={<UserX className="h-4 w-4" />}
+                                        emptyMessage="Todos los empleados tienen turno asignado"
+                                        bgColor="bg-gray-50 dark:bg-slate-800/25"
+                                        borderColor="border-gray-200 dark:border-slate-600/40"
+                                        textColor="text-gray-700 dark:text-slate-300"
+                                        roles={roles}
+                                        mobile={true}
+                                    />
+                                </div>
+                            </Carousel>
+                        ) : (
+                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                <BottomSection
+                                    employees={employeeStatus.ausente}
+                                    title="Ausente"
+                                    icon={<AlertTriangle className="h-5 w-5" />}
+                                    emptyMessage="No hay empleados ausentes hoy"
+                                    bgColor="bg-red-50 dark:bg-slate-800/25"
+                                    borderColor="border-red-200 dark:border-slate-600/40"
+                                    textColor="text-red-700 dark:text-slate-300"
+                                    roles={roles}
+                                />
 
-                            <BottomSection
-                                employees={employeeStatus.sinTurno}
-                                title="Sin Turno Asignado"
-                                icon={<UserX className="h-5 w-5" />}
-                                emptyMessage="Todos los empleados tienen turno asignado"
-                                bgColor="bg-gray-50 dark:bg-slate-800/25"
-                                borderColor="border-gray-200 dark:border-slate-600/40"
-                                textColor="text-gray-700 dark:text-slate-300"
-                                roles={roles}
-                            />
-                        </div>
+                                <BottomSection
+                                    employees={employeeStatus.sinTurno}
+                                    title="Sin Turno Asignado"
+                                    icon={<UserX className="h-5 w-5" />}
+                                    emptyMessage="Todos los empleados tienen turno asignado"
+                                    bgColor="bg-gray-50 dark:bg-slate-800/25"
+                                    borderColor="border-gray-200 dark:border-slate-600/40"
+                                    textColor="text-gray-700 dark:text-slate-300"
+                                    roles={roles}
+                                />
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
