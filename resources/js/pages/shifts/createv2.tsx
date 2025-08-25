@@ -97,7 +97,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 if (empleadoIndex !== -1) {
                     // Aplicar el cambio al día correspondiente
                     turnosModificados[empleadoIndex][cambio.day] = cambio.newValue;
-                    console.log(`🔄 Aplicado cambio pendiente: ${cambio.employeeName} - día ${cambio.day} = ${cambio.newValue}`);
                 }
             });
 
@@ -112,11 +111,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
-        console.log('🔄 cargarTurnosPorMes llamado con fecha:', fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
-        console.log('🔄 selectedDate actual:', selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
-        console.log('🔄 originalChangeDate:', originalChangeDate?.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
-        console.log('🔄 listaCambios.length:', listaCambios.length);
-        console.log('🔄 resumen keys:', Object.keys(resumen));
+
 
         // Verificar si hay cambios pendientes y el usuario está cambiando de mes
         // Solo mostrar popup si hay cambios reales (no solo cambios vacíos)
@@ -124,9 +119,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const esCambioDeMes = originalChangeDate &&
             (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear());
 
-        console.log('🔄 hayCambiosReales:', hayCambiosReales);
-        console.log('🔄 esCambioDeMes:', esCambioDeMes);
-        console.log('🔄 isInitialLoad:', isInitialLoad);
+
 
         // Solo mostrar popup si no es la carga inicial y hay cambios reales
         if (hayCambiosReales && esCambioDeMes && !isInitialLoad) {
@@ -235,7 +228,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const employeeId = lastChange.employeeId;
 
         if (!employeeId) {
-            console.error('❌ No se pudo encontrar el ID del empleado:', lastChange.employeeName);
             toast.error('Error al deshacer cambio', {
                 description: 'No se pudo identificar al empleado',
                 duration: 4000,
@@ -289,7 +281,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 setShowPendingChanges(false);
                 setOriginalChangeDate(null); // Limpiar fecha original si no quedan cambios
             }
-            console.log('↩️ Cambio deshecho, cambios restantes:', newList.length);
             return newList;
         });
 
@@ -303,10 +294,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const undoSpecificChange = async (changeId: string) => {
 
         const changeIndex = listaCambios.findIndex((change) => change.id === changeId);
-        console.log('🔄 Índice encontrado:', changeIndex);
 
         if (changeIndex === -1) {
-            console.log('🔄 No se encontró el cambio con ID:', changeId);
             return;
         }
 
@@ -322,17 +311,13 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const claveEmpleado = employeeId.toString();
 
         // Eliminar completamente la entrada del resumen
-        console.log('🔄 Resumen antes de eliminar (específico):', newResumen);
         if (newResumen[claveEmpleado] && newResumen[claveEmpleado].turnos) {
-            console.log('🔄 Eliminando entrada específica:', claveEmpleado, change.day);
             delete (newResumen[claveEmpleado] as any).turnos[change.day];
             // Si no quedan cambios para este empleado, eliminar el empleado
             if (Object.keys((newResumen[claveEmpleado] as any).turnos).length === 0) {
-                console.log('🔄 Eliminando empleado completo (específico):', claveEmpleado);
                 delete newResumen[claveEmpleado];
             }
         }
-        console.log('🔄 Resumen después de eliminar (específico):', newResumen);
 
         // Actualizar el resumen
         setResumen(newResumen);
@@ -367,7 +352,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 setShowPendingChanges(false);
                 setOriginalChangeDate(null); // Limpiar fecha original si no quedan cambios
             }
-            console.log('↩️ Cambio específico deshecho, cambios restantes:', newList.length);
             return newList;
         });
 
@@ -386,7 +370,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             const currentYear = selectedDate.getFullYear();
             const fixedDate = new Date(currentYear, currentMonth, 1);
             setOriginalChangeDate(fixedDate);
-            console.log('📅 Fecha original establecida:', fixedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
         }
 
         // Buscar el employee_id del empleado en los datos
@@ -394,7 +377,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         const employeeId = employeeData?.employee_id || employeeData?.id;
 
         if (!employeeId) {
-            console.error('❌ No se pudo encontrar el ID del empleado:', employee);
             return;
         }
 
@@ -411,8 +393,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
         setListaCambios((prev) => {
             const newList = [...prev, change];
-            console.log('📝 Cambio registrado:', change);
-            console.log('📋 Total de cambios pendientes:', newList.length);
             return newList;
         });
     };
@@ -451,7 +431,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             gridRef.current.api.redrawRows();
         }
 
-        console.log('🧹 Todos los cambios han sido limpiados');
+
 
         toast.success('Cambios descartados', {
             description: 'Todos los cambios pendientes han sido descartados.',
@@ -474,7 +454,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         setOriginalChangeDate(null);
         setShowPendingChanges(false);
         setComentario('');
-        console.log('🧹 Cambios limpiados sin confirmación (inicialización)');
     };
 
     // Efecto para limpiar resumen al montar el componente
@@ -486,7 +465,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     // Efecto para manejar cambios de fecha pendientes después de guardar
     useEffect(() => {
         if (pendingDateChange && listaCambios.length === 0 && !isSaving) {
-            console.log('🔄 Ejecutando cambio de fecha pendiente a:', pendingDateChange.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
             cargarTurnosPorMes(pendingDateChange);
             setPendingDateChange(null);
         }
@@ -496,7 +474,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     useEffect(() => {
         // Después de la primera carga exitosa, marcar que ya no es la carga inicial
         if (rowData.length > 0 && isInitialLoad) {
-            console.log('🔄 Marcando que ya no es la carga inicial');
             setIsInitialLoad(false);
         }
     }, [rowData.length, isInitialLoad]);
@@ -540,7 +517,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 return response.json();
             } else {
                 // Si no es JSON, asumir que fue exitoso (los cambios se guardaron)
-                console.log('🔄 Respuesta no-JSON recibida, asumiendo éxito');
                 return { success: true, message: 'Cambios guardados correctamente' };
             }
         })
@@ -567,7 +543,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             // Si no hay fecha pendiente, recargar el mes actual
             if (!pendingDateChange) {
                 const fechaParaRecargar = originalChangeDate || selectedDate;
-                console.log('🔄 Recargando datos después de guardar para fecha:', fechaParaRecargar.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
                 cargarTurnosPorMes(fechaParaRecargar);
             }
         })
@@ -595,7 +570,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 // Si no hay fecha pendiente, recargar el mes actual
                 if (!pendingDateChange) {
                     const fechaParaRecargar = originalChangeDate || selectedDate;
-                    console.log('🔄 Recargando datos después de guardar (error case) para fecha:', fechaParaRecargar.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
                     cargarTurnosPorMes(fechaParaRecargar);
                 }
             } else {

@@ -272,7 +272,10 @@ const DateHeaderComponent = (props: any) => {
                     cellClass: (params) => {
                         const classes = [];
                         if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
-                        if (params.value) classes.push(`shift-${params.value.toLowerCase()}`);
+                        if (params.value) {
+                            const firstChar = params.value.toLowerCase().charAt(0);
+                            classes.push(`shift-${firstChar}`);
+                        }
 
                         // Verificar si esta celda tiene un cambio pendiente
                         if (showPendingChanges && pendingChanges && pendingChanges.length > 0 && originalChangeDate) {
