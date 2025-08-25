@@ -313,3 +313,4 @@ export const useAnimations = () => {
 };
 
 export default useAnimations;
+

@@ -40,3 +40,4 @@ export const useAnimationContext = (): AnimationContextType => {
 };
 
 export default AnimationContext;
+

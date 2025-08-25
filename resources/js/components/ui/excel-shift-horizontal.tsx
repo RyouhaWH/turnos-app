@@ -234,11 +234,26 @@ const DateHeaderComponent = (props: any) => {
                     headerName: 'Nombre',
                     field: 'nombre',
                     pinned: 'left',
-                    minWidth: 120,
-                    maxWidth: 250,
+                    minWidth: 80,
+                    maxWidth: 150,
                     flex: 0,
                     suppressSizeToFit: true,
                     autoHeight: true,
+                    suppressMenu: true,
+                    suppressMenuHide: true,
+                    suppressColumnMove: true,
+                    lockPosition: true,
+                    suppressMovable: true,
+                    resizable: false,
+                    sortable: false,
+                    filter: false,
+                    cellStyle: {
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                    },
                     valueGetter: (params) => {
                         // Si tiene first_name y paternal_lastname, usar esos
                         if (params.data?.first_name && params.data?.paternal_lastname) {
@@ -268,6 +283,14 @@ const DateHeaderComponent = (props: any) => {
                     minWidth: 50,
                     maxWidth: 50,
                     flex: 0,
+                    suppressMenu: true,
+                    suppressMenuHide: true,
+                    suppressColumnMove: true,
+                    lockPosition: true,
+                    suppressMovable: true,
+                    resizable: false,
+                    sortable: false,
+                    filter: false,
                     headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
                     cellClass: (params) => {
                         const classes = [];
@@ -559,9 +582,14 @@ const DateHeaderComponent = (props: any) => {
                     rowData={rowData}
                     columnDefs={columnDefs}
                     defaultColDef={{
-                        resizable: true,
+                        resizable: false,
                         sortable: false,
-                        filter: false
+                        filter: false,
+                        suppressMenu: true,
+                        suppressMenuHide: true,
+                        suppressColumnMove: true,
+                        lockPosition: true,
+                        suppressMovable: true
                     }}
                     onCellClicked={onCellClicked}
                     onCellValueChanged={handleCellChange}
@@ -575,6 +603,12 @@ const DateHeaderComponent = (props: any) => {
                     suppressNoRowsOverlay={true}
                     animateRows={false}
                     maintainColumnOrder={true}
+                    suppressColumnMenu={true}
+                    suppressContextMenu={true}
+                    suppressColumnMove={true}
+                    suppressMovableColumns={true}
+                    allowDragFromColumnsToolPanel={false}
+                    allowDragFromColumnsHeader={false}
                 />
             </div>
         )

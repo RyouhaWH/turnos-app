@@ -239,3 +239,4 @@ export const Animated: React.FC<WithAnimationsProps & AnimationConfig> = ({
 };
 
 export default withAnimations;
+

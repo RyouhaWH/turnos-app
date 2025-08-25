@@ -40,7 +40,22 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const user = props.auth?.user;
     const hasEditPermissions = user?.roles?.some((role: any) => role.name === 'Supervisor' || role.name === 'Administrador') || false;
 
-    const [rowData, setRowData] = useState<TurnoData[]>(props.turnos);
+    // Ordenar datos iniciales alfabéticamente
+    const datosInicialesOrdenados = useMemo(() => {
+        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
+            // Usar first_name y paternal_lastname si están disponibles, sino usar nombre
+            const nombreA = a.first_name && a.paternal_lastname
+                ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
+                : (a.nombre || '').toLowerCase();
+            const nombreB = b.first_name && b.paternal_lastname
+                ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
+                : (b.nombre || '').toLowerCase();
+
+            return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+        });
+    }, [props.turnos]);
+
+    const [rowData, setRowData] = useState<TurnoData[]>(datosInicialesOrdenados);
     const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
     const [comentario, setComentario] = useState('');
     const [historial, setHistorial] = useState([]);
@@ -165,6 +180,19 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             const turnosArray = Object.values(data) as TurnoData[];
 
+            // Ordenar alfabéticamente por nombre
+            const turnosOrdenados = turnosArray.sort((a, b) => {
+                // Usar first_name y paternal_lastname si están disponibles, sino usar nombre
+                const nombreA = a.first_name && a.paternal_lastname
+                    ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
+                    : (a.nombre || '').toLowerCase();
+                const nombreB = b.first_name && b.paternal_lastname
+                    ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
+                    : (b.nombre || '').toLowerCase();
+
+                return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+            });
+
             // Solo aplicar cambios pendientes si estamos en el mes original
             const isOriginalMonth = originalChangeDate &&
                 originalChangeDate.getMonth() === fecha.getMonth() &&
@@ -172,7 +200,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             if (isOriginalMonth && listaCambios.length > 0) {
                 // Aplicar cambios pendientes sobre los datos cargados
-                const turnosConCambiosPendientes = aplicarCambiosPendientes(turnosArray, fecha);
+                const turnosConCambiosPendientes = aplicarCambiosPendientes(turnosOrdenados, fecha);
                 setRowData(turnosConCambiosPendientes);
                 // Activar visualización de cambios pendientes después de un pequeño delay
                 setTimeout(() => {
@@ -180,7 +208,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                 }, 200);
             } else {
                 // Cargar datos sin modificar y limpiar resumen solo si no hay cambios pendientes
-                setRowData(turnosArray);
+                setRowData(turnosOrdenados);
                 if (listaCambios.length === 0) {
                     setResumen({}); // Solo limpiar resumen si no hay cambios pendientes
                 }
@@ -609,7 +637,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                     <div className="border-b bg-slate-50/50 pb-4 dark:border-slate-800 dark:bg-slate-800/50">
                                         <div className="flex flex-col gap-4 mt-6 px-4">
                                             {/* Título y selector en línea */}
-                                            <div className="flex items-center justify-between ">
+                                            <div className="flex flex-col md:flex-row gap-6 items-center justify-between ">
                                                 <div className="flex items-center gap-3">
                                                     <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
                                                         <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
