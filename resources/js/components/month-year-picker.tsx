@@ -129,7 +129,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Current Month Indicator */}
                 {isCurrentMonth && (
-                    <div className="hidden items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 sm:flex dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800">
+                    <div className="hidden items-center gap-1 rounded-md bg-blue-100 px-2 py-1 text-xs font-medium text-blue-700 md:flex dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800">
                         <div className="h-2 w-2 animate-pulse rounded-full bg-blue-500 dark:bg-blue-400"></div>
                         Actual
                     </div>

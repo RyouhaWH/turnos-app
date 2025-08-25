@@ -11,6 +11,7 @@ import { ChevronRight, FileSpreadsheet, FileText, History } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -57,6 +58,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const [clearChanges, setClearChanges] = useState(false); // Estado para limpiar cambios internos de AgGrid
     const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null); // Estado para manejar cambios de fecha pendientes
     const [isInitialLoad, setIsInitialLoad] = useState(true); // Estado para evitar popup en carga inicial
+    const isMobile = useIsMobile();
 
     // Array simplificado de cambios
     const [listaCambios, setListaCambios] = useState<Array<{
@@ -70,6 +72,15 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         timestamp: number;
     }>>([]);
     const gridRef = useRef<any>(null);
+
+    // Efecto para manejar el estado inicial de los dropdowns según el dispositivo
+    useEffect(() => {
+        if (isMobile) {
+            setIsChangesExpanded(false); // Comprimir en móvil
+        } else {
+            setIsChangesExpanded(true); // Expandir en desktop
+        }
+    }, [isMobile]);
 
     // Función para aplicar cambios pendientes sobre los datos cargados
     const aplicarCambiosPendientes = (turnosArray: TurnoData[], fechaActual: Date): TurnoData[] => {
@@ -589,99 +600,191 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
             <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 {/* Main Content */}
-                <div className="p-6">
-                    <div className="flex h-[calc(100vh-120px)] flex-col gap-6 xl:flex-row">
+                <div className={isMobile ? "p-0" : "p-6"}>
+                    <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
                         {/* Left Panel - Data Grid */}
                         <div className="min-w-0 flex-1">
-                            <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
-                                <CardHeader className="border-b bg-slate-50/50 pb-2 dark:border-slate-800 dark:bg-slate-800/50">
-                                    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
-                                                <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                            {isMobile ? (
+                                <div className="flex h-full flex-col transition-all duration-300 ease-in-out">
+                                    <div className="border-b bg-slate-50/50 pb-4 dark:border-slate-800 dark:bg-slate-800/50">
+                                        <div className="flex flex-col gap-4 mt-6 px-4">
+                                            {/* Título y selector en línea */}
+                                            <div className="flex items-center justify-between ">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
+                                                        <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white leading-tight">
+                                                            Turnos del Personal {employee_rol_id === 1 ? '- Patrullaje' : ''}
+                                                        </CardTitle>
+                                                        <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+                                                            {getTotalEmployees()} empleados
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {/* Selector de fecha compacto */}
+                                                <div className="flex-shrink-0 ">
+                                                    <MonthYearPicker
+                                                        onChange={setSelectedDate}
+                                                        onLoadData={cargarTurnosPorMes}
+                                                        loading={loading}
+                                                        currentMonthTitle={currentMonthTitle}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div>
-                                                <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
-                                                    Turnos del Personal {employee_rol_id === 1 ? '- Patrullaje y Proximidad' : ''}
+
+                                            {/* Badge de cambios pendientes */}
+                                            {(listaCambios.length > 0 || originalChangeDate) && (
+                                                <div className="flex items-center gap-2 justify-center">
                                                     {listaCambios.length > 0 && (
-                                                        <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
                                                             {listaCambios.length} cambio{listaCambios.length !== 1 ? 's' : ''} pendiente{listaCambios.length !== 1 ? 's' : ''}
                                                         </Badge>
                                                     )}
-                                                </CardTitle>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                    {getTotalEmployees()} empleados registrados
                                                     {originalChangeDate && (
-                                                        <span className="ml-2 text-orange-600 dark:text-orange-400">
+                                                        <span className="text-sm text-orange-600 dark:text-orange-400">
                                                             • Cambios para {originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}
                                                         </span>
                                                     )}
-                                                </p>
-                                            </div>
+                                                </div>
+                                            )}
                                         </div>
+                                    </div>
 
-                                        {/* Integrated Month/Year Picker */}
-                                        <div className="flex items-center gap-3">
-                                            <MonthYearPicker
-                                                onChange={setSelectedDate}
-                                                onLoadData={cargarTurnosPorMes}
-                                                loading={loading}
-                                                currentMonthTitle={currentMonthTitle}
+                                    {/* Ag-grid con altura máxima */}
+                                    <div className="flex-1 md:px-3 pt-3 transition-all duration-300 ease-in-out">
+                                        {!hasEditPermissions && (
+                                            <div className="mb-3 border-l-4 border-yellow-400 bg-yellow-50 p-3">
+                                                <div className="flex">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="h-4 w-4 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="ml-2">
+                                                        <p className="text-xs text-yellow-700">
+                                                            <strong>Modo de solo lectura:</strong> Solo puedes visualizar la información.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="ag-theme-alpine h-full max-h-[60vh] overflow-hidden border-0 shadow-xl rounded-sm mx-4 transition-all duration-300 ease-in-out">
+                                            <AgGridHorizontal
+                                                ref={gridRef}
+                                                rowData={rowData}
+                                                onResumenChange={handleResumenUpdate}
+                                                editable={hasEditPermissions}
+                                                resetGrid={resetGrid}
+                                                onRegisterChange={registerChange}
+                                                isUndoing={isUndoing}
+                                                pendingChanges={listaCambios}
+                                                originalChangeDate={originalChangeDate}
+                                                month={selectedDate.getMonth()}
+                                                year={selectedDate.getFullYear()}
+                                                showPendingChanges={showPendingChanges}
+                                                clearChanges={clearChanges}
                                             />
                                         </div>
                                     </div>
-                                </CardHeader>
-
-                                <CardContent className="flex h-full flex-col px-2">
-                                    {!hasEditPermissions && (
-                                        <div className="mb-4 border-l-4 border-yellow-400 bg-yellow-50 p-4">
-                                            <div className="flex">
-                                                <div className="flex-shrink-0">
-                                                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                                        <path
-                                                            fillRule="evenodd"
-                                                            d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                                            clipRule="evenodd"
-                                                        />
-                                                    </svg>
+                                </div>
+                            ) : (
+                                <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                                    <CardHeader className="border-b bg-slate-50/50 pb-2 dark:border-slate-800 dark:bg-slate-800/50">
+                                        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
+                                                    <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                                 </div>
-                                                <div className="ml-3">
-                                                    <p className="text-sm text-yellow-700">
-                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes
-                                                        visualizar la información.
+                                                <div>
+                                                    <CardTitle className="text-xl font-semibold text-slate-900 dark:text-white">
+                                                        Turnos del Personal {employee_rol_id === 1 ? '- Patrullaje y Proximidad' : ''}
+                                                        {listaCambios.length > 0 && (
+                                                            <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                                                {listaCambios.length} cambio{listaCambios.length !== 1 ? 's' : ''} pendiente{listaCambios.length !== 1 ? 's' : ''}
+                                                            </Badge>
+                                                        )}
+                                                    </CardTitle>
+                                                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                        {getTotalEmployees()} empleados registrados
+                                                        {originalChangeDate && (
+                                                            <span className="ml-2 text-orange-600 dark:text-orange-400">
+                                                                • Cambios para {originalChangeDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}
+                                                            </span>
+                                                        )}
                                                     </p>
                                                 </div>
                                             </div>
+
+                                            {/* Integrated Month/Year Picker */}
+                                            <div className="flex items-center gap-3">
+                                                <MonthYearPicker
+                                                    onChange={setSelectedDate}
+                                                    onLoadData={cargarTurnosPorMes}
+                                                    loading={loading}
+                                                    currentMonthTitle={currentMonthTitle}
+                                                />
+                                            </div>
                                         </div>
-                                    )}
-                                    <div className="ag-theme-alpine h-full min-h-[400px] flex-1 overflow-hidden rounded-b-lg border-0">
-                                        <AgGridHorizontal
-                                            ref={gridRef}
-                                            rowData={rowData}
-                                            onResumenChange={handleResumenUpdate}
-                                            editable={hasEditPermissions}
-                                            resetGrid={resetGrid}
-                                            onRegisterChange={registerChange}
-                                            isUndoing={isUndoing}
-                                            pendingChanges={listaCambios}
-                                            originalChangeDate={originalChangeDate}
-                                            month={selectedDate.getMonth()}
-                                            year={selectedDate.getFullYear()}
-                                            showPendingChanges={showPendingChanges}
-                                            clearChanges={clearChanges}
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                    </CardHeader>
+
+                                    <CardContent className="flex h-full flex-col px-2">
+                                        {!hasEditPermissions && (
+                                            <div className="mb-4 border-l-4 border-yellow-400 bg-yellow-50 p-4">
+                                                <div className="flex">
+                                                    <div className="flex-shrink-0">
+                                                        <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                                            <path
+                                                                fillRule="evenodd"
+                                                                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                                                                clipRule="evenodd"
+                                                            />
+                                                        </svg>
+                                                    </div>
+                                                    <div className="ml-3">
+                                                        <p className="text-sm text-yellow-700">
+                                                            <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes
+                                                            visualizar la información.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                        <div className="ag-theme-alpine h-full min-h-[400px] flex-1 overflow-hidden rounded-b-lg border-0 mt-4">
+                                            <AgGridHorizontal
+                                                ref={gridRef}
+                                                rowData={rowData}
+                                                onResumenChange={handleResumenUpdate}
+                                                editable={hasEditPermissions}
+                                                resetGrid={resetGrid}
+                                                onRegisterChange={registerChange}
+                                                isUndoing={isUndoing}
+                                                pendingChanges={listaCambios}
+                                                originalChangeDate={originalChangeDate}
+                                                month={selectedDate.getMonth()}
+                                                year={selectedDate.getFullYear()}
+                                                showPendingChanges={showPendingChanges}
+                                                clearChanges={clearChanges}
+                                            />
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            )}
                         </div>
 
                         {/* Right Panel - Controls & History */}
-                        <div className="flex flex-col gap-4 xl:w-[320px]">
+                        <div className={`${isMobile ? 'mt-4 transition-all duration-300 ease-in-out' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
                             {/* Resumen de cambios por aplicar - colapsable */}
                             {hasEditPermissions && (
-                                <Card className="border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                                <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                                     <CardHeader
-                                        className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
+                                        className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                                         onClick={() => setIsChangesExpanded(!isChangesExpanded)}
                                     >
                                         <div className="flex items-center justify-between">
@@ -696,14 +799,20 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
                                             <div className="flex items-center gap-2">
                                                 <ChevronRight
-                                                    className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isChangesExpanded ? 'rotate-90' : ''}`}
+                                                    className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isChangesExpanded ? 'rotate-90' : ''}`}
                                                 />
                                             </div>
                                         </div>
                                     </CardHeader>
 
-                                    {isChangesExpanded && hasEditPermissions && (
-                                        <div className="duration-200 animate-in slide-in-from-top-2">
+                                    <div
+                                        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                            isChangesExpanded && hasEditPermissions
+                                                ? 'max-h-[800px] opacity-100'
+                                                : 'max-h-0 opacity-0'
+                                        }`}
+                                    >
+                                        <div className="pt-2">
                                             <ListaCambios
                                                 cambios={resumen}
                                                 onActualizar={(comentario) => handleActualizarCambios(comentario)}
@@ -717,14 +826,14 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                                                 changeHistory={listaCambios}
                                             />
                                         </div>
-                                    )}
+                                    </div>
                                 </Card>
                             )}
 
                             {/* History Feed - Collapsible */}
-                            <Card className="max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                            <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none max-h-none transition-all duration-300 ease-in-out' : 'max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                                 <CardHeader
-                                    className="cursor-pointer border-b border-slate-100 pb-2 transition-colors hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50"
+                                    className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                                     onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
                                 >
                                     <div className="flex items-center justify-between">
@@ -737,21 +846,27 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
                                         <div className="flex items-center gap-2">
                                             <ChevronRight
-                                                className={`h-4 w-4 text-slate-500 transition-transform duration-200 ${isHistoryExpanded ? 'rotate-90' : ''}`}
+                                                className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isHistoryExpanded ? 'rotate-90' : ''}`}
                                             />
                                         </div>
                                     </div>
                                 </CardHeader>
 
-                                {isHistoryExpanded && (
-                                    <div className="px-2 duration-200 animate-in slide-in-from-top-2">
+                                <div
+                                    className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                                        isHistoryExpanded
+                                            ? 'max-h-[600px] opacity-100'
+                                            : 'max-h-0 opacity-0'
+                                    }`}
+                                >
+                                    <div className="px-2 pt-2">
                                         <CardContent className="p-0">
-                                            <div className="p-t-[-10rem] h-[400px] overflow-hidden">
+                                            <div className="h-[400px] overflow-hidden">
                                                 <ShiftHistoryFeed employee_rol_id={employee_rol_id} />
                                             </div>
                                         </CardContent>
                                     </div>
-                                )}
+                                </div>
                             </Card>
                         </div>
                     </div>

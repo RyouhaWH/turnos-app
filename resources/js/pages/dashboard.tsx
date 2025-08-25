@@ -973,7 +973,7 @@ export default function DashboardV2() {
                     <div className="mb-6 px-6">
                         {isMobile ? (
                             /* Vista móvil */
-                            <div className="space-y-4 px-2">
+                            <div className="space-y-4 ">
                                 {/* Título */}
                                 <div className="text-center">
                                     <h2 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Desglose de Personal</h2>
@@ -1197,7 +1197,7 @@ export default function DashboardV2() {
                     {/* Grid de roles operativos */}
                     {isMobile ? (
                         <Carousel
-                            className=" mb-8 lg:px-2 pb-4"
+                            className="mb-8 lg:px-2 pb-4 animate-smooth"
                             onCardChange={() => setOpenDropdownId(null)}
                             dropdownState={openDropdownId}
                         >
@@ -1415,7 +1415,7 @@ export default function DashboardV2() {
 
                         {isMobile ? (
                             <Carousel
-                                className="pb-4"
+                                className="pb-4 animate-smooth"
                                 onCardChange={() => setOpenDropdownId(null)}
                                 dropdownState={openDropdownId}
                             >
