@@ -91,8 +91,12 @@ const ListaCambios: React.FC<Props> = ({
         const limpio = nombreCrudo.replace(/_/g, ' ').trim();
         const partes = limpio.split(' ');
 
-        const capitalizado = partes
-            .slice(0, 2)
+        // Tomar solo el primer nombre y primer apellido
+        const primerNombre = partes[0] || '';
+        const primerApellido = partes[1] || '';
+
+        const capitalizado = [primerNombre, primerApellido]
+            .filter(p => p) // Filtrar strings vacíos
             .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
             .join(' ');
 
