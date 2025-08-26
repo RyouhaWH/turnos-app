@@ -221,7 +221,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
             <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 {/* Main Content */}
                 <div className={isMobile ? "p-0" : "p-6"}>
-                    <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
+                    <div className={`flex ${isMobile ? 'h-screen' : 'h-[calc(100vh-120px)]'} ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
                         {/* Left Panel - Data Grid */}
                         <div className="min-w-0 flex-1">
 
