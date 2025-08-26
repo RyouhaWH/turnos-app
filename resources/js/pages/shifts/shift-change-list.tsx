@@ -93,20 +93,23 @@ const ListaCambios: React.FC<Props> = ({
 
         if (partes.length === 0) return '';
 
-        // Tomar el primer nombre
-        const primerNombre = partes[0];
-        
-        // Buscar el apellido paterno (generalmente el segundo elemento, pero puede variar)
-        // Si hay 2 o más partes, el segundo es el apellido paterno
-        // Si hay solo 1 parte, solo mostrar el nombre
-        const apellidoPaterno = partes.length >= 2 ? partes[1] : '';
+        // Si el nombre tiene más de 2 palabras, intentar extraer primer nombre y apellido paterno
+        if (partes.length >= 2) {
+            // Tomar el primer nombre
+            const primerNombre = partes[0];
+            // Tomar el segundo elemento como apellido paterno
+            const apellidoPaterno = partes[1];
 
-        const capitalizado = [primerNombre, apellidoPaterno]
-            .filter(p => p) // Filtrar strings vacíos
-            .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-            .join(' ');
+            const capitalizado = [primerNombre, apellidoPaterno]
+                .filter(p => p) // Filtrar strings vacíos
+                .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
+                .join(' ');
 
-        return capitalizado;
+            return capitalizado;
+        }
+
+        // Si solo hay una palabra, devolverla capitalizada
+        return partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();
     };
 
     // Función para construir fecha correcta desde el día
