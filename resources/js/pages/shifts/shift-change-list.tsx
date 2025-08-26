@@ -89,13 +89,19 @@ const ListaCambios: React.FC<Props> = ({
 
     const formatNombre = (nombreCrudo: string) => {
         const limpio = nombreCrudo.replace(/_/g, ' ').trim();
-        const partes = limpio.split(' ');
+        const partes = limpio.split(' ').filter(p => p); // Filtrar strings vacíos
 
-        // Tomar solo el primer nombre y primer apellido
-        const primerNombre = partes[0] || '';
-        const primerApellido = partes[1] || '';
+        if (partes.length === 0) return '';
 
-        const capitalizado = [primerNombre, primerApellido]
+        // Tomar el primer nombre
+        const primerNombre = partes[0];
+        
+        // Buscar el apellido paterno (generalmente el segundo elemento, pero puede variar)
+        // Si hay 2 o más partes, el segundo es el apellido paterno
+        // Si hay solo 1 parte, solo mostrar el nombre
+        const apellidoPaterno = partes.length >= 2 ? partes[1] : '';
+
+        const capitalizado = [primerNombre, apellidoPaterno]
             .filter(p => p) // Filtrar strings vacíos
             .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
             .join(' ');
