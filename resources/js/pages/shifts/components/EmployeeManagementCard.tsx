@@ -88,9 +88,9 @@ export const EmployeeManagementCard = memo(({
     }, [allEmployees, searchTerm]);
 
     return (
-        <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out mb-1' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+        <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out mb-0.5 hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
             <CardHeader
-                className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 py-2' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
+                className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                 onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
             >
                 <div className="flex items-center justify-between">

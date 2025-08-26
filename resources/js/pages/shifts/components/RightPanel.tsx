@@ -82,7 +82,7 @@ export const RightPanel = memo(({
     clearAllEmployees,
 }: RightPanelProps) => {
     return (
-        <div className={`${isMobile ? 'mt-2 mb-2 transition-all duration-300 ease-in-out flex flex-col gap-1' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
+        <div className={`${isMobile ? 'mt-1 mb-1 transition-all duration-300 ease-in-out flex flex-col gap-0.5' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
             {/* Tarjeta de gestión de funcionarios */}
             <EmployeeManagementCard
                 searchTerm={searchTerm}
@@ -101,9 +101,9 @@ export const RightPanel = memo(({
 
             {/* Resumen de cambios por aplicar - colapsable */}
             {hasEditPermissions && (
-                <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+                <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                     <CardHeader
-                        className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
+                        className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                         onClick={() => setIsChangesExpanded(!isChangesExpanded)}
                     >
                         <div className="flex items-center justify-between">
@@ -150,9 +150,9 @@ export const RightPanel = memo(({
             )}
 
             {/* History Feed - Collapsible */}
-            <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none max-h-none transition-all duration-300 ease-in-out' : 'max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+            <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none max-h-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                 <CardHeader
-                    className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
+                    className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                     onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
                 >
                     <div className="flex items-center justify-between">
