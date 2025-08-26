@@ -47,8 +47,8 @@ export const ShiftsControls = memo(({
 }: ShiftsControlsProps) => {
     // Estado para mantener historial de empleados recientes
     const [recentEmployees, setRecentEmployees] = useState<TurnoData[]>([]);
-    // Estado para controlar si mostrar solo empleados en grid
-    const [showOnlyInGrid, setShowOnlyInGrid] = useState(false);
+    // Estado para empleados seleccionados temporalmente (antes de agregar al grid)
+    const [tempSelectedEmployees, setTempSelectedEmployees] = useState<Set<string>>(new Set());
 
     // Función para obtener nombre de visualización
     const getDisplayName = (employee: TurnoData) => {
@@ -57,15 +57,39 @@ export const ShiftsControls = memo(({
             : employee.nombre;
     };
 
-    // Función para manejar click en empleado
-    const handleEmployeeClick = (employee: TurnoData, isInGrid: boolean) => {
-        if (isInGrid) {
-            removeEmployeeFromGrid(employee);
-        } else {
-            addEmployeeToGrid(employee);
-            // Agregar al historial de recientes
-            addToRecentEmployees(employee);
-        }
+    // Función para manejar selección temporal de empleados
+    const handleTempEmployeeSelection = (employee: TurnoData) => {
+        const employeeId = getEmployeeId(employee);
+        setTempSelectedEmployees(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(employeeId)) {
+                newSet.delete(employeeId);
+            } else {
+                newSet.add(employeeId);
+            }
+            return newSet;
+        });
+    };
+
+    // Función para agregar empleados seleccionados al grid
+    const handleAddSelectedToGrid = () => {
+        tempSelectedEmployees.forEach(employeeId => {
+            const employee = availableEmployees.find(emp => getEmployeeId(emp) === employeeId) ||
+                           allEmployees.find(emp => getEmployeeId(emp) === employeeId);
+            if (employee) {
+                addEmployeeToGrid(employee);
+                addToRecentEmployees(employee);
+            }
+        });
+        // Limpiar selección temporal
+        setTempSelectedEmployees(new Set());
+        // Limpiar búsqueda
+        setSearchTerm('');
+    };
+
+    // Función para limpiar selección temporal
+    const handleClearTempSelection = () => {
+        setTempSelectedEmployees(new Set());
     };
 
     // Función para agregar empleado al historial de recientes
@@ -90,19 +114,6 @@ export const ShiftsControls = memo(({
             addToRecentEmployees(firstAvailable);
             setSearchTerm(''); // Limpiar búsqueda después de agregar
         }
-    };
-
-    // Función para manejar click en el input de búsqueda
-    const handleSearchInputClick = () => {
-        if (!showOnlyInGrid) {
-            setShowOnlyInGrid(true);
-        }
-    };
-
-    // Función para limpiar búsqueda y filtros
-    const handleClearSearch = () => {
-        setSearchTerm('');
-        setShowOnlyInGrid(false);
     };
 
     // Combinar todos los empleados y determinar su estado
@@ -130,29 +141,23 @@ export const ShiftsControls = memo(({
         });
     }, [availableEmployees, rowData, getEmployeeId]);
 
-    // Filtrar empleados según el término de búsqueda y filtro de grid
+    // Filtrar empleados según el término de búsqueda
     const filteredAllEmployees = useMemo(() => {
-        let filtered = allEmployees;
+        if (!searchTerm.trim()) return allEmployees;
 
-        // Primero filtrar por estado en grid si está activado
-        if (showOnlyInGrid) {
-            filtered = filtered.filter(employee => {
-                const employeeId = getEmployeeId(employee);
-                return rowData.some(emp => getEmployeeId(emp) === employeeId);
-            });
-        }
+        return allEmployees.filter(employee => {
+            const displayName = getDisplayName(employee).toLowerCase();
+            const searchLower = searchTerm.toLowerCase();
+            return displayName.includes(searchLower);
+        });
+    }, [allEmployees, searchTerm]);
 
-        // Luego filtrar por término de búsqueda
-        if (searchTerm.trim()) {
-            filtered = filtered.filter(employee => {
-                const displayName = getDisplayName(employee).toLowerCase();
-                const searchLower = searchTerm.toLowerCase();
-                return displayName.includes(searchLower);
-            });
-        }
-
-        return filtered;
-    }, [allEmployees, searchTerm, showOnlyInGrid, rowData, getEmployeeId]);
+    // Obtener empleados seleccionados temporalmente
+    const selectedEmployeesList = useMemo(() => {
+        return Array.from(tempSelectedEmployees).map(employeeId => {
+            return allEmployees.find(emp => getEmployeeId(emp) === employeeId);
+        }).filter(Boolean) as TurnoData[];
+    }, [tempSelectedEmployees, allEmployees, getEmployeeId]);
 
     return (
         <>
@@ -162,10 +167,9 @@ export const ShiftsControls = memo(({
                     <div className="relative flex-1">
                         <Input
                             type="text"
-                            placeholder={showOnlyInGrid ? "Buscar funcionarios en grid..." : "Buscar funcionarios en grid y disponibles..."}
+                            placeholder="Buscar funcionarios..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            onClick={handleSearchInputClick}
                             className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -173,12 +177,11 @@ export const ShiftsControls = memo(({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        {(searchTerm || showOnlyInGrid) && (
+                        {searchTerm && (
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                                 <button
-                                    onClick={handleClearSearch}
+                                    onClick={() => setSearchTerm('')}
                                     className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                    title="Limpiar búsqueda y filtros"
                                 >
                                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -189,7 +192,7 @@ export const ShiftsControls = memo(({
                     </div>
 
                     {/* Botón para agregar funcionario filtrado */}
-                    {searchTerm && filteredAvailableEmployees.length > 0 && !showOnlyInGrid && (
+                    {searchTerm && filteredAvailableEmployees.length > 0 && (
                         <button
                             onClick={handleQuickAdd}
                             className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
@@ -213,14 +216,9 @@ export const ShiftsControls = memo(({
                 {/* Contador y controles */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        {showOnlyInGrid && (
-                            <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
-                                Solo en Grid
-                            </span>
-                        )}
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Mostrando {filteredAllEmployees.length} de {showOnlyInGrid ? rowData.length : allEmployees.length} funcionarios
+                                Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
                             </p>
                         )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -266,6 +264,54 @@ export const ShiftsControls = memo(({
                             </button>
                         </div>
 
+                        {/* Empleados seleccionados temporalmente */}
+                        {selectedEmployeesList.length > 0 && (
+                            <div className="mb-4">
+                                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <Check className="h-4 w-4" />
+                                    Seleccionados para agregar ({selectedEmployeesList.length})
+                                </h4>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
+                                    {selectedEmployeesList.map((employee) => {
+                                        const employeeId = getEmployeeId(employee);
+                                        const displayName = getDisplayName(employee);
+
+                                        return (
+                                            <div
+                                                key={employeeId}
+                                                className="flex items-center justify-between p-2 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700"
+                                            >
+                                                <span className="text-sm text-slate-900 dark:text-white truncate">
+                                                    {displayName}
+                                                </span>
+                                                <button
+                                                    onClick={() => handleTempEmployeeSelection(employee)}
+                                                    className="text-xs px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50"
+                                                >
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="flex gap-2 mb-4">
+                                    <button
+                                        onClick={handleAddSelectedToGrid}
+                                        className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+                                    >
+                                        <UserPlus className="h-4 w-4" />
+                                        Añadir a la Grid ({selectedEmployeesList.length})
+                                    </button>
+                                    <button
+                                        onClick={handleClearTempSelection}
+                                        className="flex items-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                                    >
+                                        Limpiar Selección
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Empleados recientes */}
                         {recentEmployees.length > 0 && (
                             <div className="mb-4">
@@ -287,7 +333,11 @@ export const ShiftsControls = memo(({
                                                         ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
                                                         : 'bg-slate-50 border-slate-200 dark:bg-slate-700/50 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
                                                 }`}
-                                                onClick={() => handleEmployeeClick(employee, isInGrid)}
+                                                onClick={() => {
+                                                    if (!isInGrid) {
+                                                        handleTempEmployeeSelection(employee);
+                                                    }
+                                                }}
                                             >
                                                 <span className="text-sm text-slate-900 dark:text-white truncate">
                                                     {displayName}
@@ -297,7 +347,7 @@ export const ShiftsControls = memo(({
                                                         ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                                                         : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
                                                 }`}>
-                                                    {isInGrid ? 'En Grid' : 'Agregar'}
+                                                    {isInGrid ? 'En Grid' : 'Seleccionar'}
                                                 </span>
                                             </div>
                                         );
@@ -312,6 +362,7 @@ export const ShiftsControls = memo(({
                                 filteredAllEmployees.map((employee) => {
                                     const employeeId = getEmployeeId(employee);
                                     const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
+                                    const isTempSelected = tempSelectedEmployees.has(employeeId);
                                     const displayName = getDisplayName(employee);
 
                                     return (
@@ -320,20 +371,32 @@ export const ShiftsControls = memo(({
                                             className={`flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
                                                 isInGrid
                                                     ? 'hover:bg-red-50 dark:hover:bg-red-900/20 bg-slate-50 dark:bg-slate-700/50'
-                                                    : 'hover:bg-green-50 dark:hover:bg-green-900/20'
+                                                    : isTempSelected
+                                                    ? 'hover:bg-green-50 dark:hover:bg-green-900/20 bg-green-50 dark:bg-green-900/20'
+                                                    : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
                                             }`}
-                                            onClick={() => handleEmployeeClick(employee, isInGrid)}
+                                            onClick={() => {
+                                                if (isInGrid) {
+                                                    removeEmployeeFromGrid(employee);
+                                                } else {
+                                                    handleTempEmployeeSelection(employee);
+                                                }
+                                            }}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                     isInGrid
                                                         ? 'border-red-300 dark:border-red-600'
-                                                        : 'border-green-300 dark:border-green-600'
+                                                        : isTempSelected
+                                                        ? 'border-green-300 dark:border-green-600 bg-green-600'
+                                                        : 'border-slate-300 dark:border-slate-600'
                                                 }`}>
                                                     {isInGrid ? (
                                                         <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
+                                                    ) : isTempSelected ? (
+                                                        <Check className="h-3 w-3 text-white" />
                                                     ) : (
-                                                        <UserPlus className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                                        <UserPlus className="h-3 w-3 text-slate-400 dark:text-slate-500" />
                                                     )}
                                                 </div>
                                                 <span className="text-slate-900 dark:text-white">
@@ -344,13 +407,20 @@ export const ShiftsControls = memo(({
                                                         En Grid
                                                     </span>
                                                 )}
+                                                {isTempSelected && !isInGrid && (
+                                                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 rounded-full">
+                                                        Seleccionado
+                                                    </span>
+                                                )}
                                             </div>
                                             <span className={`text-xs font-medium ${
                                                 isInGrid
                                                     ? 'text-red-600 dark:text-red-400'
-                                                    : 'text-green-600 dark:text-green-400'
+                                                    : isTempSelected
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-slate-500 dark:text-slate-400'
                                             }`}>
-                                                {isInGrid ? 'Quitar del grid' : 'Agregar al grid'}
+                                                {isInGrid ? 'Quitar del grid' : isTempSelected ? 'Deseleccionar' : 'Seleccionar'}
                                             </span>
                                         </div>
                                     );
