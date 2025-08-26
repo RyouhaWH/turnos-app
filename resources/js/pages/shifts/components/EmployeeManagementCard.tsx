@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { Users, UserPlus, UserMinus } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, UserPlus, UserMinus, ChevronRight } from 'lucide-react';
 import { memo, useMemo } from 'react';
 
 interface TurnoData {
@@ -87,35 +88,41 @@ export const EmployeeManagementCard = memo(({
     }, [allEmployees, searchTerm]);
 
     return (
-        <div className={`mb-4 ${isMobile ? 'px-4' : 'px-2'}`}>
-            <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
-                {/* Header de la tarjeta */}
-                <div
-                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
-                >
-                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Users className="h-5 w-5" />
-                        Gestión de Funcionarios ({allEmployees.length})
-                    </h3>
+        <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+            <CardHeader
+                className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
+                onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
+            >
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm text-slate-600 dark:text-slate-400">
+                        <div className="rounded-md bg-blue-100 p-1 dark:bg-blue-900">
+                            <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        </div>
+                        <CardTitle className="text-sm text-slate-900 dark:text-white">
+                            Gestión de Funcionarios ({allEmployees.length})
+                        </CardTitle>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
                             {rowData.length} en grid
                         </span>
-                        <svg
-                            className={`h-5 w-5 text-slate-400 transition-transform ${showEmployeeSelector ? 'rotate-90' : ''}`}
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
+                        <ChevronRight
+                            className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${showEmployeeSelector ? 'rotate-90' : ''}`}
+                        />
                     </div>
                 </div>
+            </CardHeader>
 
-                {/* Contenido expandible */}
-                {showEmployeeSelector && (
-                    <div className="border-t border-slate-200 dark:border-slate-700 p-4">
+            <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    showEmployeeSelector
+                        ? 'max-h-[600px] opacity-100'
+                        : 'max-h-0 opacity-0'
+                }`}
+            >
+                <div className="px-2 pt-2">
+                    <CardContent className="p-0">
                         {/* Barra de búsqueda */}
                         <div className="mb-4">
                             <div className="relative">
@@ -235,9 +242,9 @@ export const EmployeeManagementCard = memo(({
                                 </button>
                             </div>
                         </div>
-                    </div>
-                )}
+                    </CardContent>
+                </div>
             </div>
-        </div>
+        </Card>
     );
 });
