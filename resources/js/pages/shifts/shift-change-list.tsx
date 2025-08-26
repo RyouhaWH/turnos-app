@@ -73,8 +73,8 @@ const ListaCambios: React.FC<Props> = ({
                 // Solo incluir si hay turnos (cambios reales)
                 if (Object.keys(cambioData.turnos).length > 0) {
                     // Usar first_name y paternal_lastname si están disponibles, sino usar nombre
-                    const nombreParaMostrar = cambioData.first_name && cambioData.paternal_lastname 
-                        ? `${cambioData.first_name} ${cambioData.paternal_lastname}`
+                    const nombreParaMostrar = cambioData.first_name && cambioData.paternal_lastname
+                        ? `${cambioData.first_name.split(' ')[0]} ${cambioData.paternal_lastname}`
                         : cambioData.nombre;
                     normalized[nombreParaMostrar] = cambioData.turnos;
                 }
