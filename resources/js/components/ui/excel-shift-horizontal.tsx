@@ -397,6 +397,9 @@ const DateHeaderComponent = (props: any) => {
                         newCambios[clave] = {
                             rut: rut,
                             nombre: funcionario,
+                            employee_id: employeeId,
+                            first_name: e.data.first_name,
+                            paternal_lastname: e.data.paternal_lastname,
                             turnos: {}
                         }
                     }

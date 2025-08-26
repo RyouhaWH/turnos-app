@@ -20,6 +20,9 @@ export interface CambiosPorFuncionario {
 export interface CambioData {
     rut: string;
     nombre: string;
+    employee_id?: string | number;
+    first_name?: string;
+    paternal_lastname?: string;
     turnos: Record<string, string>;
 }
 
@@ -65,11 +68,15 @@ const ListaCambios: React.FC<Props> = ({
 
         Object.entries(cambiosData).forEach(([key, value]) => {
             if (typeof value === 'object' && value !== null && 'turnos' in value) {
-                // Nuevo formato: { rut, nombre, turnos }
+                // Nuevo formato: { rut, nombre, turnos, employee_id, first_name, paternal_lastname }
                 const cambioData = value as CambioData;
                 // Solo incluir si hay turnos (cambios reales)
                 if (Object.keys(cambioData.turnos).length > 0) {
-                    normalized[cambioData.nombre] = cambioData.turnos;
+                    // Usar first_name y paternal_lastname si están disponibles, sino usar nombre
+                    const nombreParaMostrar = cambioData.first_name && cambioData.paternal_lastname 
+                        ? `${cambioData.first_name} ${cambioData.paternal_lastname}`
+                        : cambioData.nombre;
+                    normalized[nombreParaMostrar] = cambioData.turnos;
                 }
             } else if (typeof value === 'object' && value !== null) {
                 // Formato antiguo: { fecha: turno }
@@ -88,35 +95,9 @@ const ListaCambios: React.FC<Props> = ({
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
-        console.log('🔍 formatNombre recibió:', nombreCrudo);
-        
-        const limpio = nombreCrudo.replace(/_/g, ' ').trim();
-        const partes = limpio.split(' ').filter(p => p); // Filtrar strings vacíos
-        
-        console.log('🔍 Partes del nombre:', partes);
-
-        if (partes.length === 0) return '';
-
-        // Si el nombre tiene más de 2 palabras, intentar extraer primer nombre y apellido paterno
-        if (partes.length >= 2) {
-            // Tomar el primer nombre
-            const primerNombre = partes[0];
-            // Tomar el segundo elemento como apellido paterno
-            const apellidoPaterno = partes[1];
-
-            const capitalizado = [primerNombre, apellidoPaterno]
-                .filter(p => p) // Filtrar strings vacíos
-                .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
-                .join(' ');
-
-            console.log('🔍 Resultado:', capitalizado);
-            return capitalizado;
-        }
-
-        // Si solo hay una palabra, devolverla capitalizada
-        const resultado = partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();
-        console.log('🔍 Resultado (una palabra):', resultado);
-        return resultado;
+        // Ya no necesitamos formatear el nombre porque viene pre-formateado
+        // con first_name y paternal_lastname desde el ag-grid
+        return nombreCrudo;
     };
 
     // Función para construir fecha correcta desde el día
