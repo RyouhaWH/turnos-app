@@ -2,7 +2,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, FileText, History } from 'lucide-react';
 import ListaCambios from '../shift-change-list';
 import ShiftHistoryFeed from '@/components/ui/shift-history-feed';
+import { EmployeeManagementCard } from './EmployeeManagementCard';
 import { memo } from 'react';
+
+interface TurnoData {
+    id: string;
+    nombre: string;
+    [key: string]: string;
+}
 
 interface RightPanelProps {
     isChangesExpanded: boolean;
@@ -30,6 +37,18 @@ interface RightPanelProps {
     }>;
     employee_rol_id: number;
     isMobile?: boolean;
+    // Props para EmployeeManagementCard
+    searchTerm: string;
+    setSearchTerm: (term: string) => void;
+    showEmployeeSelector: boolean;
+    setShowEmployeeSelector: (show: boolean) => void;
+    rowData: TurnoData[];
+    availableEmployees: TurnoData[];
+    getEmployeeId: (employee: TurnoData) => string;
+    addEmployeeToGrid: (employee: TurnoData) => void;
+    removeEmployeeFromGrid: (employee: TurnoData) => void;
+    addAllEmployees: () => void;
+    clearAllEmployees: () => void;
 }
 
 export const RightPanel = memo(({
@@ -49,9 +68,37 @@ export const RightPanel = memo(({
     listaCambios,
     employee_rol_id,
     isMobile = false,
+    // Props para EmployeeManagementCard
+    searchTerm,
+    setSearchTerm,
+    showEmployeeSelector,
+    setShowEmployeeSelector,
+    rowData,
+    availableEmployees,
+    getEmployeeId,
+    addEmployeeToGrid,
+    removeEmployeeFromGrid,
+    addAllEmployees,
+    clearAllEmployees,
 }: RightPanelProps) => {
     return (
         <div className={`${isMobile ? 'mt-4 transition-all duration-300 ease-in-out' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
+            {/* Tarjeta de gestión de funcionarios */}
+            <EmployeeManagementCard
+                searchTerm={searchTerm}
+                setSearchTerm={setSearchTerm}
+                showEmployeeSelector={showEmployeeSelector}
+                setShowEmployeeSelector={setShowEmployeeSelector}
+                rowData={rowData}
+                availableEmployees={availableEmployees}
+                getEmployeeId={getEmployeeId}
+                addEmployeeToGrid={addEmployeeToGrid}
+                removeEmployeeFromGrid={removeEmployeeFromGrid}
+                addAllEmployees={addAllEmployees}
+                clearAllEmployees={clearAllEmployees}
+                isMobile={isMobile}
+            />
+
             {/* Resumen de cambios por aplicar - colapsable */}
             {hasEditPermissions && (
                 <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>

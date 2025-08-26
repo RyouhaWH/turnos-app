@@ -6,7 +6,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useShiftsManager } from './hooks/useShiftsManager';
 import { ShiftsGrid } from './components/ShiftsGrid';
 import { ShiftsControls } from './components/ShiftsControls';
-import { EmployeeManagementCard } from './components/EmployeeManagementCard';
+
 import { RightPanel } from './components/RightPanel';
 import { useMemo } from 'react';
 
@@ -171,6 +171,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         listaCambios,
         employee_rol_id,
         isMobile,
+        // Props para EmployeeManagementCard
+        searchTerm,
+        setSearchTerm,
+        showEmployeeSelector,
+        setShowEmployeeSelector,
+        rowData,
+        availableEmployees,
+        getEmployeeId,
+        addEmployeeToGrid,
+        removeEmployeeFromGrid,
+        addAllEmployees,
+        clearAllEmployees,
     }), [
         isChangesExpanded,
         setIsChangesExpanded,
@@ -188,6 +200,18 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         listaCambios,
         employee_rol_id,
         isMobile,
+        // Props para EmployeeManagementCard
+        searchTerm,
+        setSearchTerm,
+        showEmployeeSelector,
+        setShowEmployeeSelector,
+        rowData,
+        availableEmployees,
+        getEmployeeId,
+        addEmployeeToGrid,
+        removeEmployeeFromGrid,
+        addAllEmployees,
+        clearAllEmployees,
     ]);
 
     return (
@@ -200,24 +224,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
                         {/* Left Panel - Data Grid */}
                         <div className="min-w-0 flex-1">
-                            {/* Controles básicos */}
-                            <ShiftsControls {...shiftsControlsProps} />
 
-                            {/* Tarjeta de gestión de funcionarios - después de controles, antes de grid */}
-                            <EmployeeManagementCard
-                                searchTerm={searchTerm}
-                                setSearchTerm={setSearchTerm}
-                                showEmployeeSelector={showEmployeeSelector}
-                                setShowEmployeeSelector={setShowEmployeeSelector}
-                                rowData={rowData}
-                                availableEmployees={availableEmployees}
-                                getEmployeeId={getEmployeeId}
-                                addEmployeeToGrid={addEmployeeToGrid}
-                                removeEmployeeFromGrid={removeEmployeeFromGrid}
-                                addAllEmployees={addAllEmployees}
-                                clearAllEmployees={clearAllEmployees}
-                                isMobile={isMobile}
-                            />
 
                             <ShiftsGrid {...shiftsGridProps} />
                         </div>
