@@ -169,7 +169,7 @@ export const EmployeeManagementCard = memo(({
                                     return (
                                         <div
                                             key={employeeId}
-                                            className={`flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
+                                            className={`flex items-center justify-between p-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
                                                 isInGrid
                                                     ? 'hover:bg-red-50 dark:hover:bg-red-900/20 bg-slate-50 dark:bg-slate-700/50'
                                                     : 'hover:bg-green-50 dark:hover:bg-green-900/20'
@@ -182,23 +182,23 @@ export const EmployeeManagementCard = memo(({
                                                 }
                                             }}
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
                                                     isInGrid
                                                         ? 'border-red-300 dark:border-red-600'
                                                         : 'border-green-300 dark:border-green-600'
                                                 }`}>
                                                     {isInGrid ? (
-                                                        <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
+                                                        <UserMinus className="h-2 w-2 text-red-600 dark:text-red-400" />
                                                     ) : (
-                                                        <UserPlus className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                                        <UserPlus className="h-2 w-2 text-green-600 dark:text-green-400" />
                                                     )}
                                                 </div>
-                                                <span className="text-slate-900 dark:text-white">
+                                                <span className="text-sm text-slate-900 dark:text-white">
                                                     {displayName}
                                                 </span>
                                                 {isInGrid && (
-                                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
                                                         En Grid
                                                     </span>
                                                 )}
@@ -208,13 +208,13 @@ export const EmployeeManagementCard = memo(({
                                                     ? 'text-red-600 dark:text-red-400'
                                                     : 'text-green-600 dark:text-green-400'
                                             }`}>
-                                                {isInGrid ? 'Quitar del grid' : 'Agregar al grid'}
+                                                {isInGrid ? 'Quitar' : 'Agregar'}
                                             </span>
                                         </div>
                                     );
                                 })
                             ) : (
-                                <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                                <div className="p-3 text-center text-slate-500 dark:text-slate-400 text-sm">
                                     {searchTerm ? 'No se encontraron funcionarios' : 'No hay funcionarios disponibles'}
                                 </div>
                             )}
