@@ -200,7 +200,6 @@ const DateHeaderComponent = (props: any) => {
         // Efecto para limpiar cambios internos cuando se solicita
         useEffect(() => {
             if (clearChanges) {
-                console.log('🧹 Limpiando cambios internos de AgGrid');
                 setCambios({});
             }
         }, [clearChanges]);
@@ -380,10 +379,6 @@ const DateHeaderComponent = (props: any) => {
             const turno = e.value || '';
             const valorAnterior = e.oldValue || '';
 
-            console.log('🔄 handleCellChange - isUndoing:', isUndoing, 'valorAnterior:', valorAnterior, 'turno:', turno);
-
-
-
             // No registrar cambios si estamos deshaciendo
             if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
                 onRegisterChange(funcionario, rut, dayField, valorAnterior, turno);
@@ -427,7 +422,6 @@ const DateHeaderComponent = (props: any) => {
                             delete newCambios[clave]
                         }
                     }
-                    console.log('🔄 Enviando resumen desde AgGrid:', newCambios);
                     onResumenChange(newCambios)
                     return newCambios
                 })

@@ -123,8 +123,6 @@ export default function ShiftHistoryFeed({ employee_rol_id }: ShiftHistoryFeedPr
         );
     }
 
-    console.log(logs);
-
     return (
         <div className="h-full bg-white dark:bg-slate-900 overflow-hidden">
             {/* Feed Content */}
