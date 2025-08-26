@@ -101,7 +101,7 @@ export const RightPanel = memo(({
 
             {/* Resumen de cambios por aplicar - colapsable */}
             {hasEditPermissions && (
-                <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+                <Card className={`${isMobile ? 'border-0 !:mb-0 pb-0 bg-transparent shadow-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                     <CardHeader
                         className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                         onClick={() => setIsChangesExpanded(!isChangesExpanded)}
@@ -150,7 +150,7 @@ export const RightPanel = memo(({
             )}
 
             {/* History Feed - Collapsible */}
-            <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none max-h-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+            <Card className={`${isMobile ? 'border-0 !:mb-0 pb-0 bg-transparent shadow-none max-h-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'max-h-[40.5vh] overflow-clip border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
                 <CardHeader
                     className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                     onClick={() => setIsHistoryExpanded(!isHistoryExpanded)}
