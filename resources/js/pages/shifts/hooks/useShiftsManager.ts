@@ -52,10 +52,12 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const [rowData, setRowData] = useState<TurnoData[]>(datosInicialesOrdenados);
     const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
     const [comentario, setComentario] = useState('');
-    const [historial, setHistorial] = useState([]);
-    const [empleadoSeleccionado, setEmpleadoSeleccionado] = useState<any>(null);
     const [selectedDate, setSelectedDate] = useState(new Date());
-    const [currentMonthTitle, setCurrentMonthTitle] = useState(new Date().toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+    
+    // Derivar el título del mes en lugar de mantenerlo como estado
+    const currentMonthTitle = useMemo(() => {
+        return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
+    }, [selectedDate]);
     const [loading, setLoading] = useState(false);
     const [isChangesExpanded, setIsChangesExpanded] = useState(true);
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
@@ -243,8 +245,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         }
 
         try {
-            setLoading(true);
-            setCurrentMonthTitle(`Cargando turnos de ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}...`);
+                    setLoading(true);
 
             const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
             const data = await response.json();
@@ -280,7 +281,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 setShowPendingChanges(false);
             }
 
-            setCurrentMonthTitle(fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' }));
+
 
             toast.success('Turnos cargados correctamente', {
                 description: `Se cargaron los turnos de ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}`,
@@ -288,7 +289,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             });
         } catch (error) {
             console.error('Error al cargar turnos:', error);
-            setCurrentMonthTitle(`Error cargando ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}`);
+
 
             toast.error('Error al cargar turnos', {
                 description: 'Hubo un problema al cargar los turnos del mes seleccionado.',
@@ -559,7 +560,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         if (rowData.length > 0 && isInitialLoad) {
             setIsInitialLoad(false);
         }
-    }, [rowData.length, isInitialLoad]);
+    }, [rowData.length]);
 
     useEffect(() => {
         if (listaCambios.length === 0) {
@@ -612,7 +613,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
         // Funciones
         setSelectedDate,
-        setCurrentMonthTitle,
+
         setIsChangesExpanded,
         setIsHistoryExpanded,
         setSearchTerm,
