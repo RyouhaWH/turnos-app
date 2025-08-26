@@ -62,20 +62,10 @@ export const ShiftsControls = memo(({
         }, 0);
     };
 
-    // Función para agregar empleado filtrado (desde el botón rápido)
-    const handleQuickAdd = () => {
-        const firstAvailable = filteredAvailableEmployees[0];
-        if (firstAvailable) {
-            // Agregar el empleado seleccionado sin limpiar grid
-            addEmployeeToGrid(firstAvailable);
-            // No limpiar búsqueda para mantener el filtrado en la grid
-        }
-    };
-
     // Función para manejar apertura/cierre del selector
     const handleToggleEmployeeSelector = () => {
         if (showEmployeeSelector) {
-            // Si se está cerrando, limpiar búsqueda para que vuelva a filtrar la grid
+            // Si se está cerrando, limpiar búsqueda
             setSearchTerm('');
         }
         setShowEmployeeSelector(!showEmployeeSelector);
@@ -119,48 +109,9 @@ export const ShiftsControls = memo(({
 
     return (
         <>
-            {/* Barra de búsqueda unificada */}
+            {/* Barra de controles simplificada */}
             <div className={`mb-4 ${isMobile ? 'px-4' : 'px-2'}`}>
                 <div className="flex items-center gap-3 mb-3">
-                    <div className="relative flex-1">
-                        <Input
-                            type="text"
-                            placeholder={showEmployeeSelector ? "Buscar en gestión de funcionarios..." : "Buscar funcionarios en grid..."}
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
-                        />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                        {searchTerm && (
-                            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <button
-                                    onClick={() => setSearchTerm('')}
-                                    className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                                >
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Botón para agregar funcionario filtrado - solo mostrar cuando selector está cerrado */}
-                    {!showEmployeeSelector && searchTerm && filteredAvailableEmployees.length > 0 && (
-                        <button
-                            onClick={handleQuickAdd}
-                            className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
-                            title={`Agregar "${getDisplayName(filteredAvailableEmployees[0])}" al grid`}
-                        >
-                            <UserPlus className="h-4 w-4" />
-                            <span className="hidden sm:inline">Agregar</span>
-                        </button>
-                    )}
-
                     {/* Botón para mostrar/ocultar selector */}
                     <button
                         onClick={handleToggleEmployeeSelector}
@@ -174,14 +125,6 @@ export const ShiftsControls = memo(({
                 {/* Contador y controles */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        {searchTerm && (
-                            <p className="text-sm text-slate-600 dark:text-slate-400">
-                                {showEmployeeSelector
-                                    ? `Buscando en gestión: ${filteredAllEmployees.length} de ${allEmployees.length} funcionarios`
-                                    : `Mostrando ${filteredRowData.length} de ${rowData.length} funcionarios en grid`
-                                }
-                            </p>
-                        )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
                             Total en grid: {rowData.length} funcionarios
                         </p>
@@ -223,6 +166,41 @@ export const ShiftsControls = memo(({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                 </svg>
                             </button>
+                        </div>
+
+                        {/* Barra de búsqueda solo para el selector */}
+                        <div className="mb-4">
+                            <div className="relative">
+                                <Input
+                                    type="text"
+                                    placeholder="Buscar funcionarios..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                                />
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                </div>
+                                {searchTerm && (
+                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                        <button
+                                            onClick={() => setSearchTerm('')}
+                                            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                        >
+                                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                            {searchTerm && (
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                                    Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
+                                </p>
+                            )}
                         </div>
 
                         {/* Lista unificada de todos los funcionarios */}
