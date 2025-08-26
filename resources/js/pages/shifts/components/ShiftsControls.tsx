@@ -56,8 +56,10 @@ export const ShiftsControls = memo(({
     const handleEmployeeClick = (employee: TurnoData) => {
         // Agregar el empleado seleccionado sin limpiar grid
         addEmployeeToGrid(employee);
-        // Limpiar búsqueda
-        setSearchTerm('');
+        // Limpiar búsqueda después de que se actualice el grid
+        setTimeout(() => {
+            setSearchTerm('');
+        }, 0);
     };
 
     // Función para agregar empleado filtrado (desde el botón rápido)
