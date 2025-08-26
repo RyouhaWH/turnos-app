@@ -118,7 +118,7 @@ export const RightPanel = memo(({
 
                             <div className="flex items-center gap-2">
                                 <ChevronRight
-                                    className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isChangesExpanded ? 'rotate-90' : ''}`}
+                                    className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isMobile ? false : isChangesExpanded ? 'rotate-90' : ''}`}
                                 />
                             </div>
                         </div>
@@ -126,9 +126,9 @@ export const RightPanel = memo(({
 
                     <div
                         className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                            isChangesExpanded && hasEditPermissions
+                            isMobile ? 'max-h-0 opacity-0' : (isChangesExpanded && hasEditPermissions
                                 ? 'max-h-[800px] opacity-100'
-                                : 'max-h-0 opacity-0'
+                                : 'max-h-0 opacity-0')
                         }`}
                     >
                         <div className="pt-2">
@@ -165,7 +165,7 @@ export const RightPanel = memo(({
 
                         <div className="flex items-center gap-2">
                             <ChevronRight
-                                className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isHistoryExpanded ? 'rotate-90' : ''}`}
+                                className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isMobile ? false : isHistoryExpanded ? 'rotate-90' : ''}`}
                             />
                         </div>
                     </div>
@@ -173,9 +173,9 @@ export const RightPanel = memo(({
 
                 <div
                     className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                        isHistoryExpanded
+                        isMobile ? 'max-h-0 opacity-0' : (isHistoryExpanded
                             ? 'max-h-[600px] opacity-100'
-                            : 'max-h-0 opacity-0'
+                            : 'max-h-0 opacity-0')
                     }`}
                 >
                     <div className="px-2 pt-2">
