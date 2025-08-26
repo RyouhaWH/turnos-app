@@ -59,7 +59,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
     }, [selectedDate]);
     const [loading, setLoading] = useState(false);
-    const [isChangesExpanded, setIsChangesExpanded] = useState(true);
+    const [isChangesExpanded, setIsChangesExpanded] = useState(false);
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
     const [resetGrid, setResetGrid] = useState(false);
     const [isUndoing, setIsUndoing] = useState(false);
