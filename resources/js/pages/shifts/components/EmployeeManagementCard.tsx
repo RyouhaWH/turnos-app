@@ -222,11 +222,6 @@ export const EmployeeManagementCard = memo(({
 
                         {/* Controles de acción */}
                         <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                            <div className="flex items-center justify-between">
-                                <span className="text-xs text-slate-600 dark:text-slate-400">
-                                    {rowData.length} de {allEmployees.length} en grid
-                                </span>
-                            </div>
                             <div className="flex gap-1">
                                 <button
                                     onClick={addAllEmployees}
@@ -242,6 +237,11 @@ export const EmployeeManagementCard = memo(({
                                     <UserMinus className="h-3 w-3" />
                                     Limpiar
                                 </button>
+                            </div>
+                            <div className="flex justify-center">
+                                <span className="text-xs text-slate-600 dark:text-slate-400">
+                                    {rowData.length} de {allEmployees.length} en grid
+                                </span>
                             </div>
                         </div>
                     </CardContent>
