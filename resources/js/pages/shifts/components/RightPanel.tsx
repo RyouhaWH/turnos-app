@@ -82,12 +82,12 @@ export const RightPanel = memo(({
     clearAllEmployees,
 }: RightPanelProps) => {
     return (
-        <div className={`${isMobile ? 'mt-4 transition-all duration-300 ease-in-out' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
+        <div className={`${isMobile ? 'mt-4 mb-4 transition-all duration-300 ease-in-out flex flex-col gap-2' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
             {/* Tarjeta de gestión de funcionarios */}
             <EmployeeManagementCard
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                showEmployeeSelector={showEmployeeSelector}
+                showEmployeeSelector={isMobile ? false : showEmployeeSelector}
                 setShowEmployeeSelector={setShowEmployeeSelector}
                 rowData={rowData}
                 availableEmployees={availableEmployees}
