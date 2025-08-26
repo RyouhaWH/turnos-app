@@ -45,11 +45,6 @@ export const ShiftsControls = memo(({
     closeEmployeeSelector,
     isMobile = false,
 }: ShiftsControlsProps) => {
-    // Estado para mantener historial de empleados recientes
-    const [recentEmployees, setRecentEmployees] = useState<TurnoData[]>([]);
-    // Estado para empleados seleccionados temporalmente (antes de agregar al grid)
-    const [tempSelectedEmployees, setTempSelectedEmployees] = useState<Set<string>>(new Set());
-
     // Función para obtener nombre de visualización
     const getDisplayName = (employee: TurnoData) => {
         return employee.first_name && employee.paternal_lastname
@@ -57,62 +52,21 @@ export const ShiftsControls = memo(({
             : employee.nombre;
     };
 
-    // Función para manejar selección temporal de empleados
-    const handleTempEmployeeSelection = (employee: TurnoData) => {
-        const employeeId = getEmployeeId(employee);
-        setTempSelectedEmployees(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(employeeId)) {
-                newSet.delete(employeeId);
-            } else {
-                newSet.add(employeeId);
-            }
-            return newSet;
-        });
-    };
-
-    // Función para agregar empleados seleccionados al grid
-    const handleAddSelectedToGrid = () => {
-        tempSelectedEmployees.forEach(employeeId => {
-            const employee = availableEmployees.find(emp => getEmployeeId(emp) === employeeId) ||
-                           allEmployees.find(emp => getEmployeeId(emp) === employeeId);
-            if (employee) {
-                addEmployeeToGrid(employee);
-                addToRecentEmployees(employee);
-            }
-        });
-        // Limpiar selección temporal
-        setTempSelectedEmployees(new Set());
+    // Función para manejar click en empleado - limpia grid y agrega al empleado
+    const handleEmployeeClick = (employee: TurnoData) => {
+        // Limpiar grid primero
+        clearAllEmployees();
+        // Agregar el empleado seleccionado
+        addEmployeeToGrid(employee);
         // Limpiar búsqueda
         setSearchTerm('');
-    };
-
-    // Función para limpiar selección temporal
-    const handleClearTempSelection = () => {
-        setTempSelectedEmployees(new Set());
-    };
-
-    // Función para agregar empleado al historial de recientes
-    const addToRecentEmployees = (employee: TurnoData) => {
-        setRecentEmployees(prev => {
-            const employeeId = getEmployeeId(employee);
-            // Evitar duplicados
-            if (prev.some(emp => getEmployeeId(emp) === employeeId)) {
-                return prev;
-            }
-            // Mantener máximo 5 empleados recientes
-            const newRecent = [employee, ...prev.slice(0, 4)];
-            return newRecent;
-        });
     };
 
     // Función para agregar empleado filtrado (desde el botón rápido)
     const handleQuickAdd = () => {
         const firstAvailable = filteredAvailableEmployees[0];
         if (firstAvailable) {
-            addEmployeeToGrid(firstAvailable);
-            addToRecentEmployees(firstAvailable);
-            setSearchTerm(''); // Limpiar búsqueda después de agregar
+            handleEmployeeClick(firstAvailable);
         }
     };
 
@@ -152,13 +106,6 @@ export const ShiftsControls = memo(({
         });
     }, [allEmployees, searchTerm]);
 
-    // Obtener empleados seleccionados temporalmente
-    const selectedEmployeesList = useMemo(() => {
-        return Array.from(tempSelectedEmployees).map(employeeId => {
-            return allEmployees.find(emp => getEmployeeId(emp) === employeeId);
-        }).filter(Boolean) as TurnoData[];
-    }, [tempSelectedEmployees, allEmployees, getEmployeeId]);
-
     return (
         <>
             {/* Barra de búsqueda unificada */}
@@ -196,7 +143,7 @@ export const ShiftsControls = memo(({
                         <button
                             onClick={handleQuickAdd}
                             className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
-                            title={`Agregar "${getDisplayName(filteredAvailableEmployees[0])}" al grid`}
+                            title={`Limpiar grid y agregar "${getDisplayName(filteredAvailableEmployees[0])}"`}
                         >
                             <UserPlus className="h-4 w-4" />
                             <span className="hidden sm:inline">Agregar</span>
@@ -264,105 +211,12 @@ export const ShiftsControls = memo(({
                             </button>
                         </div>
 
-                        {/* Empleados seleccionados temporalmente */}
-                        {selectedEmployeesList.length > 0 && (
-                            <div className="mb-4">
-                                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                    <Check className="h-4 w-4" />
-                                    Seleccionados para agregar ({selectedEmployeesList.length})
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                                    {selectedEmployeesList.map((employee) => {
-                                        const employeeId = getEmployeeId(employee);
-                                        const displayName = getDisplayName(employee);
-
-                                        return (
-                                            <div
-                                                key={employeeId}
-                                                className="flex items-center justify-between p-2 rounded-lg border bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700"
-                                            >
-                                                <span className="text-sm text-slate-900 dark:text-white truncate">
-                                                    {displayName}
-                                                </span>
-                                                <button
-                                                    onClick={() => handleTempEmployeeSelection(employee)}
-                                                    className="text-xs px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 rounded-full hover:bg-red-200 dark:hover:bg-red-900/50"
-                                                >
-                                                    Quitar
-                                                </button>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <div className="flex gap-2 mb-4">
-                                    <button
-                                        onClick={handleAddSelectedToGrid}
-                                        className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-                                    >
-                                        <UserPlus className="h-4 w-4" />
-                                        Añadir a la Grid ({selectedEmployeesList.length})
-                                    </button>
-                                    <button
-                                        onClick={handleClearTempSelection}
-                                        className="flex items-center gap-2 px-3 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
-                                    >
-                                        Limpiar Selección
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Empleados recientes */}
-                        {recentEmployees.length > 0 && (
-                            <div className="mb-4">
-                                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                    <Clock className="h-4 w-4" />
-                                    Agregados Recientemente
-                                </h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 mb-4">
-                                    {recentEmployees.map((employee) => {
-                                        const employeeId = getEmployeeId(employee);
-                                        const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
-                                        const displayName = getDisplayName(employee);
-
-                                        return (
-                                            <div
-                                                key={employeeId}
-                                                className={`flex items-center justify-between p-2 rounded-lg border cursor-pointer transition-colors ${
-                                                    isInGrid
-                                                        ? 'bg-blue-50 border-blue-200 dark:bg-blue-900/20 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/30'
-                                                        : 'bg-slate-50 border-slate-200 dark:bg-slate-700/50 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
-                                                }`}
-                                                onClick={() => {
-                                                    if (!isInGrid) {
-                                                        handleTempEmployeeSelection(employee);
-                                                    }
-                                                }}
-                                            >
-                                                <span className="text-sm text-slate-900 dark:text-white truncate">
-                                                    {displayName}
-                                                </span>
-                                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                                    isInGrid
-                                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                                        : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
-                                                }`}>
-                                                    {isInGrid ? 'En Grid' : 'Seleccionar'}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
                         {/* Lista unificada de todos los funcionarios */}
                         <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
                             {filteredAllEmployees.length > 0 ? (
                                 filteredAllEmployees.map((employee) => {
                                     const employeeId = getEmployeeId(employee);
                                     const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
-                                    const isTempSelected = tempSelectedEmployees.has(employeeId);
                                     const displayName = getDisplayName(employee);
 
                                     return (
@@ -371,15 +225,13 @@ export const ShiftsControls = memo(({
                                             className={`flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
                                                 isInGrid
                                                     ? 'hover:bg-red-50 dark:hover:bg-red-900/20 bg-slate-50 dark:bg-slate-700/50'
-                                                    : isTempSelected
-                                                    ? 'hover:bg-green-50 dark:hover:bg-green-900/20 bg-green-50 dark:bg-green-900/20'
-                                                    : 'hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                                                    : 'hover:bg-green-50 dark:hover:bg-green-900/20'
                                             }`}
                                             onClick={() => {
                                                 if (isInGrid) {
                                                     removeEmployeeFromGrid(employee);
                                                 } else {
-                                                    handleTempEmployeeSelection(employee);
+                                                    handleEmployeeClick(employee);
                                                 }
                                             }}
                                         >
@@ -387,16 +239,12 @@ export const ShiftsControls = memo(({
                                                 <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
                                                     isInGrid
                                                         ? 'border-red-300 dark:border-red-600'
-                                                        : isTempSelected
-                                                        ? 'border-green-300 dark:border-green-600 bg-green-600'
-                                                        : 'border-slate-300 dark:border-slate-600'
+                                                        : 'border-green-300 dark:border-green-600'
                                                 }`}>
                                                     {isInGrid ? (
                                                         <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
-                                                    ) : isTempSelected ? (
-                                                        <Check className="h-3 w-3 text-white" />
                                                     ) : (
-                                                        <UserPlus className="h-3 w-3 text-slate-400 dark:text-slate-500" />
+                                                        <UserPlus className="h-3 w-3 text-green-600 dark:text-green-400" />
                                                     )}
                                                 </div>
                                                 <span className="text-slate-900 dark:text-white">
@@ -407,20 +255,13 @@ export const ShiftsControls = memo(({
                                                         En Grid
                                                     </span>
                                                 )}
-                                                {isTempSelected && !isInGrid && (
-                                                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 rounded-full">
-                                                        Seleccionado
-                                                    </span>
-                                                )}
                                             </div>
                                             <span className={`text-xs font-medium ${
                                                 isInGrid
                                                     ? 'text-red-600 dark:text-red-400'
-                                                    : isTempSelected
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-slate-500 dark:text-slate-400'
+                                                    : 'text-green-600 dark:text-green-400'
                                             }`}>
-                                                {isInGrid ? 'Quitar del grid' : isTempSelected ? 'Deseleccionar' : 'Seleccionar'}
+                                                {isInGrid ? 'Quitar del grid' : 'Limpiar grid y agregar'}
                                             </span>
                                         </div>
                                     );
