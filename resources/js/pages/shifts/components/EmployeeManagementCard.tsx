@@ -171,8 +171,8 @@ export const EmployeeManagementCard = memo(({
                                             key={employeeId}
                                             className={`flex items-center justify-between p-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
                                                 isInGrid
-                                                    ? 'hover:bg-red-50 dark:hover:bg-red-900/20 bg-slate-50 dark:bg-slate-700/50'
-                                                    : 'hover:bg-green-50 dark:hover:bg-green-900/20'
+                                                    ? 'hover:bg-green-50 dark:hover:bg-green-900/20 bg-slate-50 dark:bg-slate-700/50'
+                                                    : 'hover:bg-red-50 dark:hover:bg-red-900/20'
                                             }`}
                                             onClick={() => {
                                                 if (isInGrid) {
@@ -185,28 +185,28 @@ export const EmployeeManagementCard = memo(({
                                             <div className="flex items-center gap-2">
                                                 <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
                                                     isInGrid
-                                                        ? 'border-red-300 dark:border-red-600'
-                                                        : 'border-green-300 dark:border-green-600'
+                                                        ? 'border-green-300 dark:border-green-600'
+                                                        : 'border-red-300 dark:border-red-600'
                                                 }`}>
                                                     {isInGrid ? (
-                                                        <UserMinus className="h-2 w-2 text-red-600 dark:text-red-400" />
+                                                        <UserMinus className="h-2 w-2 text-green-600 dark:text-green-400" />
                                                     ) : (
-                                                        <UserPlus className="h-2 w-2 text-green-600 dark:text-green-400" />
+                                                        <UserPlus className="h-2 w-2 text-red-600 dark:text-red-400" />
                                                     )}
                                                 </div>
                                                 <span className="text-sm text-slate-900 dark:text-white">
                                                     {displayName}
                                                 </span>
                                                 {isInGrid && (
-                                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full">
-                                                        En Grid
+                                                    <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-1.5 py-0.5 rounded-full">
+                                                        En Planilla
                                                     </span>
                                                 )}
                                             </div>
                                             <span className={`text-xs font-medium ${
                                                 isInGrid
-                                                    ? 'text-red-600 dark:text-red-400'
-                                                    : 'text-green-600 dark:text-green-400'
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-600 dark:text-red-400'
                                             }`}>
                                                 {isInGrid ? 'Quitar' : 'Agregar'}
                                             </span>
@@ -240,7 +240,7 @@ export const EmployeeManagementCard = memo(({
                             </div>
                             <div className="flex justify-center">
                                 <span className="text-xs text-slate-600 dark:text-slate-400">
-                                    {rowData.length} de {allEmployees.length} en grid
+                                    {rowData.length} de {allEmployees.length} en planilla
                                 </span>
                             </div>
                         </div>
