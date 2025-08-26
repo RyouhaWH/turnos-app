@@ -147,7 +147,7 @@ export const ShiftsGrid = memo(({
                             </div>
                         </div>
                     )}
-                    <div className="ag-theme-alpine h-full max-h-[60vh] overflow-hidden border-0 shadow-xl rounded-sm mx-4 transition-all duration-300 ease-in-out">
+                    <div className="ag-theme-alpine h-full max-h-[40vh] overflow-hidden border-0 shadow-xl rounded-sm mx-4 transition-all duration-300 ease-in-out">
                         <AgGridHorizontal
                             ref={gridRef}
                             rowData={filteredRowData}
