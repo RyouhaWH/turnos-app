@@ -124,6 +124,8 @@ class TurnController extends Controller
                     'changed_at' => $log->created_at->format('Y-m-d H:i:s'),
                     'changed_by' => optional($log->changedBy)->name ?? 'Desconocido',
                     'empleado'   => optional($log->employee)->name ?? 'Desconocido',
+                    'empleado_first_name' => optional($log->employee)->first_name ?? null,
+                    'empleado_paternal_lastname' => optional($log->employee)->paternal_lastname ?? null,
                     'shift_date' => $shiftDate,
                 ];
             });

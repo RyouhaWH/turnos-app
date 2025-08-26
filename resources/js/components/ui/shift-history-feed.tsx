@@ -20,6 +20,8 @@ interface LogItem {
     changed_at: string;
     changed_by: string;
     empleado: string;
+    empleado_first_name?: string | null;
+    empleado_paternal_lastname?: string | null;
     shift_date?: string;
 }
 
@@ -75,6 +77,16 @@ export default function ShiftHistoryFeed({ employee_rol_id }: ShiftHistoryFeedPr
 
     const getInitials = (name: string) => {
         return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    };
+
+    const formatEmployeeName = (log: LogItem) => {
+        // Usar first_name y paternal_lastname si están disponibles
+        if (log.empleado_first_name && log.empleado_paternal_lastname) {
+            const firstName = log.empleado_first_name.split(' ')[0]; // Solo el primer nombre
+            return `${firstName} ${log.empleado_paternal_lastname}`;
+        }
+        // Fallback al nombre completo
+        return log.empleado;
     };
 
     const formatDate = (dateString: string) => {
@@ -166,7 +178,7 @@ export default function ShiftHistoryFeed({ employee_rol_id }: ShiftHistoryFeedPr
                                                     cambió el turno de:
                                                 </span>
                                                 <span className="font-medium text-slate-700 dark:text-slate-300">
-                                                    {log.empleado}
+                                                    {formatEmployeeName(log)}
                                                 </span>
                                                 <span className="text-slate-600 dark:text-slate-400">
                                                     el día:
