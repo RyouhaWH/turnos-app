@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input';
 import { Plus, Check, Users, UserPlus, UserMinus } from 'lucide-react';
-import { memo, useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 
 interface TurnoData {
     id: string;
@@ -45,8 +45,6 @@ export const ShiftsControls = memo(({
     closeEmployeeSelector,
     isMobile = false,
 }: ShiftsControlsProps) => {
-    const [activeTab, setActiveTab] = useState<'grid' | 'available'>('grid');
-
     // Función para obtener nombre de visualización
     const getDisplayName = (employee: TurnoData) => {
         return employee.first_name && employee.paternal_lastname
@@ -62,6 +60,42 @@ export const ShiftsControls = memo(({
             addEmployeeToGrid(employee);
         }
     };
+
+    // Combinar todos los empleados y determinar su estado
+    const allEmployees = useMemo(() => {
+        const employeeMap = new Map<string, TurnoData>();
+        
+        // Agregar todos los empleados disponibles
+        availableEmployees.forEach(emp => {
+            const id = getEmployeeId(emp);
+            employeeMap.set(id, emp);
+        });
+        
+        // Agregar empleados en el grid (pueden no estar en availableEmployees)
+        rowData.forEach(emp => {
+            const id = getEmployeeId(emp);
+            if (!employeeMap.has(id)) {
+                employeeMap.set(id, emp);
+            }
+        });
+        
+        return Array.from(employeeMap.values()).sort((a, b) => {
+            const nombreA = getDisplayName(a).toLowerCase();
+            const nombreB = getDisplayName(b).toLowerCase();
+            return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+        });
+    }, [availableEmployees, rowData, getEmployeeId]);
+
+    // Filtrar empleados según el término de búsqueda
+    const filteredAllEmployees = useMemo(() => {
+        if (!searchTerm.trim()) return allEmployees;
+        
+        return allEmployees.filter(employee => {
+            const displayName = getDisplayName(employee).toLowerCase();
+            const searchLower = searchTerm.toLowerCase();
+            return displayName.includes(searchLower);
+        });
+    }, [allEmployees, searchTerm]);
 
     return (
         <>
@@ -128,7 +162,7 @@ export const ShiftsControls = memo(({
                     <div className="flex items-center gap-4">
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Mostrando {filteredRowData.length} de {rowData.length} funcionarios en grid
+                                Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
                             </p>
                         )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -162,7 +196,7 @@ export const ShiftsControls = memo(({
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Users className="h-5 w-5" />
-                                Gestionar Funcionarios
+                                Gestionar Funcionarios ({allEmployees.length})
                             </h3>
                             <button
                                 onClick={closeEmployeeSelector}
@@ -174,105 +208,66 @@ export const ShiftsControls = memo(({
                             </button>
                         </div>
 
-                        {/* Tabs para navegar entre secciones */}
-                        <div className="flex border-b border-slate-200 dark:border-slate-700 mb-4">
-                            <button
-                                onClick={() => setActiveTab('grid')}
-                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                                    activeTab === 'grid'
-                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-                                }`}
-                            >
-                                <UserMinus className="h-4 w-4" />
-                                En Grid ({filteredRowData.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('available')}
-                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                                    activeTab === 'available'
-                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
-                                }`}
-                            >
-                                <UserPlus className="h-4 w-4" />
-                                Disponibles ({filteredAvailableEmployees.length})
-                            </button>
-                        </div>
-
-                        {/* Contenido de las tabs */}
+                        {/* Lista unificada de todos los funcionarios */}
                         <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
-                            {activeTab === 'grid' ? (
-                                // Empleados en el grid
-                                filteredRowData.length > 0 ? (
-                                    filteredRowData.map((employee) => {
-                                        const employeeId = getEmployeeId(employee);
-                                        const displayName = getDisplayName(employee);
+                            {filteredAllEmployees.length > 0 ? (
+                                filteredAllEmployees.map((employee) => {
+                                    const employeeId = getEmployeeId(employee);
+                                    const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
+                                    const displayName = getDisplayName(employee);
 
-                                        return (
-                                            <div
-                                                key={employeeId}
-                                                className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors"
-                                                onClick={() => handleEmployeeClick(employee, true)}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-4 h-4 rounded border-2 border-red-300 dark:border-red-600 flex items-center justify-center">
+                                    return (
+                                        <div
+                                            key={employeeId}
+                                            className={`flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
+                                                isInGrid 
+                                                    ? 'hover:bg-red-50 dark:hover:bg-red-900/20 bg-slate-50 dark:bg-slate-700/50' 
+                                                    : 'hover:bg-green-50 dark:hover:bg-green-900/20'
+                                            }`}
+                                            onClick={() => handleEmployeeClick(employee, isInGrid)}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
+                                                    isInGrid
+                                                        ? 'border-red-300 dark:border-red-600'
+                                                        : 'border-green-300 dark:border-green-600'
+                                                }`}>
+                                                    {isInGrid ? (
                                                         <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
-                                                    </div>
-                                                    <span className="text-slate-900 dark:text-white">
-                                                        {displayName}
-                                                    </span>
-                                                </div>
-                                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">
-                                                    Remover del grid
-                                                </span>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="p-4 text-center text-slate-500 dark:text-slate-400">
-                                        {searchTerm ? 'No se encontraron funcionarios en el grid' : 'No hay funcionarios en el grid'}
-                                    </div>
-                                )
-                            ) : (
-                                // Empleados disponibles
-                                filteredAvailableEmployees.length > 0 ? (
-                                    filteredAvailableEmployees.map((employee) => {
-                                        const employeeId = getEmployeeId(employee);
-                                        const displayName = getDisplayName(employee);
-
-                                        return (
-                                            <div
-                                                key={employeeId}
-                                                className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer transition-colors"
-                                                onClick={() => handleEmployeeClick(employee, false)}
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-4 h-4 rounded border-2 border-green-300 dark:border-green-600 flex items-center justify-center">
+                                                    ) : (
                                                         <UserPlus className="h-3 w-3 text-green-600 dark:text-green-400" />
-                                                    </div>
-                                                    <span className="text-slate-900 dark:text-white">
-                                                        {displayName}
-                                                    </span>
+                                                    )}
                                                 </div>
-                                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
-                                                    Agregar al grid
+                                                <span className="text-slate-900 dark:text-white">
+                                                    {displayName}
                                                 </span>
+                                                {isInGrid && (
+                                                    <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                                                        En Grid
+                                                    </span>
+                                                )}
                                             </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="p-4 text-center text-slate-500 dark:text-slate-400">
-                                        {searchTerm ? 'No se encontraron funcionarios disponibles' : 'No hay funcionarios disponibles'}
-                                    </div>
-                                )
+                                            <span className={`text-xs font-medium ${
+                                                isInGrid 
+                                                    ? 'text-red-600 dark:text-red-400' 
+                                                    : 'text-green-600 dark:text-green-400'
+                                            }`}>
+                                                {isInGrid ? 'Quitar del grid' : 'Agregar al grid'}
+                                            </span>
+                                        </div>
+                                    );
+                                })
+                            ) : (
+                                <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                                    {searchTerm ? 'No se encontraron funcionarios' : 'No hay funcionarios disponibles'}
+                                </div>
                             )}
                         </div>
 
                         {/* Controles de acción */}
                         <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                             <span className="text-sm text-slate-600 dark:text-slate-400">
-                                {selectedEmployees.size} de {availableEmployees.length} funcionarios seleccionados
+                                {rowData.length} de {allEmployees.length} funcionarios en el grid
                             </span>
                             <div className="flex gap-2">
                                 <button
