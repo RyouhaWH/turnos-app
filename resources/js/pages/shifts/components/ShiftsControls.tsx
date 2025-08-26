@@ -70,6 +70,15 @@ export const ShiftsControls = memo(({
         }
     };
 
+    // Función para manejar apertura/cierre del selector
+    const handleToggleEmployeeSelector = () => {
+        if (showEmployeeSelector) {
+            // Si se está cerrando, limpiar búsqueda para que vuelva a filtrar la grid
+            setSearchTerm('');
+        }
+        setShowEmployeeSelector(!showEmployeeSelector);
+    };
+
     // Combinar todos los empleados y determinar su estado
     const allEmployees = useMemo(() => {
         const employeeMap = new Map<string, TurnoData>();
@@ -114,7 +123,7 @@ export const ShiftsControls = memo(({
                     <div className="relative flex-1">
                         <Input
                             type="text"
-                            placeholder="Buscar funcionarios..."
+                            placeholder={showEmployeeSelector ? "Buscar en gestión de funcionarios..." : "Buscar funcionarios en grid..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
@@ -138,8 +147,8 @@ export const ShiftsControls = memo(({
                         )}
                     </div>
 
-                    {/* Botón para agregar funcionario filtrado */}
-                    {searchTerm && filteredAvailableEmployees.length > 0 && (
+                    {/* Botón para agregar funcionario filtrado - solo mostrar cuando selector está cerrado */}
+                    {!showEmployeeSelector && searchTerm && filteredAvailableEmployees.length > 0 && (
                         <button
                             onClick={handleQuickAdd}
                             className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
@@ -152,7 +161,7 @@ export const ShiftsControls = memo(({
 
                     {/* Botón para mostrar/ocultar selector */}
                     <button
-                        onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
+                        onClick={handleToggleEmployeeSelector}
                         className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
                     >
                         <Users className="h-4 w-4" />
@@ -165,7 +174,10 @@ export const ShiftsControls = memo(({
                     <div className="flex items-center gap-4">
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
+                                {showEmployeeSelector 
+                                    ? `Buscando en gestión: ${filteredAllEmployees.length} de ${allEmployees.length} funcionarios`
+                                    : `Mostrando ${filteredRowData.length} de ${rowData.length} funcionarios en grid`
+                                }
                             </p>
                         )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
