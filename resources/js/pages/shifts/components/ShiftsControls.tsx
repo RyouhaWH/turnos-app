@@ -132,7 +132,7 @@ export const ShiftsControls = memo(({
             <div className={`mb-4 ${isMobile ? 'px-4' : 'px-2'}`}>
                 <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg">
                     {/* Header de la tarjeta */}
-                    <div 
+                    <div
                         className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
                         onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
                     >
@@ -144,10 +144,10 @@ export const ShiftsControls = memo(({
                             <span className="text-sm text-slate-600 dark:text-slate-400">
                                 {rowData.length} en grid
                             </span>
-                            <svg 
+                            <svg
                                 className={`h-5 w-5 text-slate-400 transition-transform ${showEmployeeSelector ? 'rotate-90' : ''}`}
-                                fill="none" 
-                                stroke="currentColor" 
+                                fill="none"
+                                stroke="currentColor"
                                 viewBox="0 0 24 24"
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
