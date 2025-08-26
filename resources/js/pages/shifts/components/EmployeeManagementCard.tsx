@@ -88,7 +88,7 @@ export const EmployeeManagementCard = memo(({
     }, [allEmployees, searchTerm]);
 
     return (
-        <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+        <Card className={`${isMobile ? 'border-0 bg-transparent shadow-none transition-all duration-300 ease-in-out mb-2' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
             <CardHeader
                 className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
                 onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
@@ -121,7 +121,7 @@ export const EmployeeManagementCard = memo(({
                         : 'max-h-0 opacity-0'
                 }`}
             >
-                <div className="px-2 pt-2">
+                <div className={`${isMobile ? 'px-1 pt-1' : 'px-2 pt-2'}`}>
                     <CardContent className="p-0">
                         {/* Barra de búsqueda */}
                         <div className="mb-4">
@@ -221,7 +221,7 @@ export const EmployeeManagementCard = memo(({
                         </div>
 
                         {/* Controles de acción */}
-                        <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        <div className={`flex flex-col gap-2 ${isMobile ? 'mt-2 pt-2' : 'mt-3 pt-3'} border-t border-slate-200 dark:border-slate-700`}>
                             <div className="flex gap-1">
                                 <button
                                     onClick={addAllEmployees}
