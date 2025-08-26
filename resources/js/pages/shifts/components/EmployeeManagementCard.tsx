@@ -99,14 +99,14 @@ export const EmployeeManagementCard = memo(({
                             <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
                         <CardTitle className="text-sm text-slate-900 dark:text-white">
-                            Gestión de Funcionarios ({allEmployees.length})
+                            Gestión de Funcionarios
                         </CardTitle>
                     </div>
 
                     <div className="flex items-center gap-2">
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {/* <span className="text-xs text-slate-500 dark:text-slate-400">
                             {rowData.length} en grid
-                        </span>
+                        </span> */}
                         <ChevronRight
                             className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${showEmployeeSelector ? 'rotate-90' : ''}`}
                         />
@@ -221,24 +221,26 @@ export const EmployeeManagementCard = memo(({
                         </div>
 
                         {/* Controles de acción */}
-                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                            <span className="text-sm text-slate-600 dark:text-slate-400">
-                                {rowData.length} de {allEmployees.length} funcionarios en el grid
-                            </span>
-                            <div className="flex gap-2">
+                        <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-slate-600 dark:text-slate-400">
+                                    {rowData.length} de {allEmployees.length} en grid
+                                </span>
+                            </div>
+                            <div className="flex gap-1">
                                 <button
                                     onClick={addAllEmployees}
-                                    className="text-sm px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors flex items-center gap-1"
+                                    className="flex-1 text-xs px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded transition-colors flex items-center justify-center gap-1"
                                 >
                                     <UserPlus className="h-3 w-3" />
                                     Agregar Todos
                                 </button>
                                 <button
                                     onClick={clearAllEmployees}
-                                    className="text-sm px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center gap-1"
+                                    className="flex-1 text-xs px-2 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center justify-center gap-1"
                                 >
                                     <UserMinus className="h-3 w-3" />
-                                    Limpiar Grid
+                                    Limpiar
                                 </button>
                             </div>
                         </div>
