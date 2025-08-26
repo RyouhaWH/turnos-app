@@ -88,8 +88,12 @@ const ListaCambios: React.FC<Props> = ({
     const [comentario, setComentario] = useState('');
 
     const formatNombre = (nombreCrudo: string) => {
+        console.log('🔍 formatNombre recibió:', nombreCrudo);
+        
         const limpio = nombreCrudo.replace(/_/g, ' ').trim();
         const partes = limpio.split(' ').filter(p => p); // Filtrar strings vacíos
+        
+        console.log('🔍 Partes del nombre:', partes);
 
         if (partes.length === 0) return '';
 
@@ -105,11 +109,14 @@ const ListaCambios: React.FC<Props> = ({
                 .map((p) => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
                 .join(' ');
 
+            console.log('🔍 Resultado:', capitalizado);
             return capitalizado;
         }
 
         // Si solo hay una palabra, devolverla capitalizada
-        return partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();
+        const resultado = partes[0].charAt(0).toUpperCase() + partes[0].slice(1).toLowerCase();
+        console.log('🔍 Resultado (una palabra):', resultado);
+        return resultado;
     };
 
     // Función para construir fecha correcta desde el día
