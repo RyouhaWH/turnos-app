@@ -132,6 +132,17 @@ const ListaCambios: React.FC<Props> = ({
                 color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
             },
 
+            // Turnos principales
+            ME: {
+                label: 'Mañana Extra',
+                color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+            },
+            TE: { label: 'Tarde Extra', color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800' },
+            NE: {
+                label: 'Noche Extra',
+                color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+            },
+
             // Turnos numerados (mismos colores que M, T, N)
             '1': {
                 label: '1er Turno',
@@ -143,6 +154,19 @@ const ListaCambios: React.FC<Props> = ({
             },
             '3': {
                 label: '3er Turno',
+                color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+            },
+
+            '1E': {
+                label: '1er Turno Extra',
+                color: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800',
+            },
+            '2E': {
+                label: '2do Turno Extra',
+                color: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+            },
+            '3E': {
+                label: '3er Turno Extra',
                 color: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
             },
 
@@ -171,6 +195,28 @@ const ListaCambios: React.FC<Props> = ({
             LM: {
                 label: 'Licencia Médica',
                 color: 'bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-800',
+            },
+
+            FE: {
+                label: 'Franco Extra',
+                color: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-300 dark:border-emerald-800',
+            },
+            LE: { label: 'Libre Extra', color: 'bg-teal-100 text-teal-800 border-teal-200 dark:bg-teal-900/30 dark:text-teal-300 dark:border-teal-800' },
+
+            // Días solicitados
+            AE: {
+                label: 'Administrativo Extra',
+                color: 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-900/30 dark:text-indigo-300 dark:border-indigo-800',
+            },
+            VE: {
+                label: 'Vacaciones Extra',
+                color: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-900/30 dark:text-cyan-300 dark:border-cyan-800',
+            },
+
+            // Situaciones especiales
+            SE: {
+                label: 'Sindical Extra',
+                color: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800'
             },
         };
         return (

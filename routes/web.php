@@ -116,110 +116,209 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             $numerosAReportarCambios = [];
 
-        //! Números base para notificaciones
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
-        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
-        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
-        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
-        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-        $numeroCristianMontecinos  = "";
-        $numeroInformacionesAmzoma = "985639782";
-        $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
+            //! Números base para notificaciones
+            $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
+            $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
+            $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
+            $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
+            $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
+            $numeroCristianMontecinos  = "";
+            $numeroInformacionesAmzoma = "985639782";
+            $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
 
-        // Verificar si estamos en producción o local
-        if (app()->environment('production')) {
-            $numerosAReportarCambios = [
-                $numeroInformacionesAmzoma,
-                $numeroJorgeWaltemath,
-                $numeroJulioSarmiento,
-                // $numeroMarianelaHuequelef,
-                // $numeroPriscilaEscobar,
-                // $numeroJavierAlvarado,
-                // $numeroEduardoEsparza,
-                // $numeroCristianMontecinos,
-            ];
+            // Verificar si estamos en producción o local
+            if (app()->environment('production')) {
+                $numerosAReportarCambios = [
+                    $numeroInformacionesAmzoma,
+                    $numeroJorgeWaltemath,
+                    $numeroJulioSarmiento,
+                    // $numeroMarianelaHuequelef,
+                    // $numeroPriscilaEscobar,
+                    // $numeroJavierAlvarado,
+                    // $numeroEduardoEsparza,
+                    // $numeroCristianMontecinos,
+                ];
 
-        } else {
-            // Agregar números a la lista para notificaciones
-            $numerosAReportarCambios = [
-            $numeroInformacionesAmzoma,
-            $numeroJorgeWaltemath,
+            } else {
+                // Agregar números a la lista para notificaciones
+                $numerosAReportarCambios = [
+                    $numeroInformacionesAmzoma,
+                    $numeroJorgeWaltemath,
 
-            ];
-        }
+                ];
+            }
 
+            $cambios    = $request->input('cambios');
+            $mes        = $request->input('mes', now()->month);
+            $año       = $request->input('año', now()->year);
+            $actualUser = Auth::id();
 
-        $cambios    = $request->input('cambios');
-        $mes        = $request->input('mes', now()->month);
-        $año        = $request->input('año', now()->year);
-        $actualUser = Auth::id();
+            // Debug: Verificar qué valores se están recibiendo
+            Log::info('🔄 Valores recibidos en actualización:', [
+                'mes'     => $mes,
+                'año'     => $año,
+                'cambios' => $cambios,
+            ]);
 
-        // Debug: Verificar qué valores se están recibiendo
-        Log::info('🔄 Valores recibidos en actualización:', [
-            'mes' => $mes,
-            'año' => $año,
-            'cambios' => $cambios
-        ]);
+            // Array para agrupar cambios por funcionario
+            $cambiosPorFuncionario = [];
 
-        // Array para agrupar cambios por funcionario
-        $cambiosPorFuncionario = [];
+            // Verificamos si vienen cambios
+            if (! is_array($cambios) || empty($cambios)) {
+                return response()->json(['message' => 'No hay cambios para guardar'], 400);
+            }
 
-        // Verificamos si vienen cambios
-        if (! is_array($cambios) || empty($cambios)) {
-            return response()->json(['message' => 'No hay cambios para guardar'], 400);
-        }
+            foreach ($cambios as $employeeId => $fechas) {
 
-        foreach ($cambios as $employeeId => $fechas) {
+                foreach ($fechas['turnos'] as $dia => $turno) {
 
-            foreach ($fechas['turnos'] as $dia => $turno) {
+                    // El frontend ahora envía el ID real del empleado
+                    $empleado = Employees::find($employeeId);
 
-                // El frontend ahora envía el ID real del empleado
-                $empleado = Employees::find($employeeId);
+                    if (! $empleado) {
+                        continue; // Saltar este empleado si no se encuentra
+                    }
 
-                if (!$empleado) {
-                    continue; // Saltar este empleado si no se encuentra
-                }
+                    if ($empleado) {
 
-                if ($empleado) {
+                        // Construir la fecha correctamente usando el día, mes y año actual
+                        $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
 
-                    // Construir la fecha correctamente usando el día, mes y año actual
-                    $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
+                        // Buscar si ya existe el turno
+                        $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
+                            ->whereDate('date', $fecha)
+                            ->first();
 
-                    // Buscar si ya existe el turno
-                    $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
-                        ->whereDate('date', $fecha)
-                        ->first();
+                        $nuevoTurno = strtoupper($turno);
+                        $comentario = '';
 
-                    $nuevoTurno = strtoupper($turno);
-                    $comentario = '';
+                        // Verificar si el turno está vacío (para eliminar)
+                        if (empty($turno) || $turno === '') {
 
-                    // Verificar si el turno está vacío (para eliminar)
-                    if (empty($turno) || $turno === '') {
+                            // Solo eliminar si realmente existe un turno
+                            if ($turnoActual !== null) {
 
-                        // Solo eliminar si realmente existe un turno
-                        if ($turnoActual !== null) {
+                                // Registrar en historial antes de eliminar
+                                ShiftChangeLog::create([
+                                    'employee_id'       => $empleado->id,
+                                    'employee_shift_id' => null, // null porque el registro se eliminará
+                                    'changed_by'        => $actualUser,
+                                    'old_shift'         => $turnoActual->shift,
+                                    'new_shift'         => '',
+                                    'comment'           => 'Turno eliminado desde plataforma',
+                                    'shift_date'        => $fecha, // Guardar la fecha del turno eliminado
+                                ]);
 
-                            // Registrar en historial antes de eliminar
-                            ShiftChangeLog::create([
-                                'employee_id'       => $empleado->id,
-                                'employee_shift_id' => null, // null porque el registro se eliminará
-                                'changed_by'        => $actualUser,
-                                'old_shift'         => $turnoActual->shift,
-                                'new_shift'         => '',
-                                'comment'           => 'Turno eliminado desde plataforma',
-                                'shift_date'        => $fecha, // Guardar la fecha del turno eliminado
-                            ]);
+                                // Almacenar eliminación para mensaje consolidado
+                                if (! isset($cambiosPorFuncionario[$empleado->id])) {
+                                    $cambiosPorFuncionario[$empleado->id] = [
+                                        'nombre'   => $empleado->name,
+                                        'telefono' => $empleado->phone,
+                                        'cambios'  => [],
+                                    ];
+                                }
 
-                            // Almacenar eliminación para mensaje consolidado
-                            if (!isset($cambiosPorFuncionario[$empleado->id])) {
-                                $cambiosPorFuncionario[$empleado->id] = [
-                                    'nombre' => $empleado->name,
-                                    'telefono' => $empleado->phone,
-                                    'cambios' => []
+                                $turnoAnterior = match ($turnoActual->shift) {
+                                    'PE' => 'Patrulla Escolar',
+                                    'A'     => 'Administrativo',
+                                    'AE'     => 'Administrativo Extra',
+                                    'LM'    => 'Licencia Médica',
+                                    'S'     => 'Día Sindical',
+                                    'SE'     => 'Día Sindical Extra',
+                                    'M'     => 'Mañana',
+                                    'T'     => 'Tarde',
+                                    'N'     => 'Noche',
+                                    'ME'     => 'Mañana Extra',
+                                    'TE'     => 'Tarde Extra',
+                                    'NE'     => 'Noche Extra',
+                                    'F'     => 'Franco',
+                                    'FE'     => 'Franco Extra',
+                                    'L'     => 'Libre',
+                                    'LE'     => 'Libre Extra',
+                                    '1'     => 'Primer Turno',
+                                    '2'     => 'Segundo Turno',
+                                    '3'     => 'Tercer Turno',
+                                    '1E'     => 'Primer Turno Extra',
+                                    '2E'     => 'Segundo Turno Extra',
+                                    '3E'     => 'Tercer Turno Extra',
+                                    null    => 'Sin Turno',
+                                    ''      => 'Sin Turno',
+                                    ' '     => 'Sin Turno',
+                                    default => 'Desconocido',
+                                };
+
+                                $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
+                                    'fecha'          => $fecha,
+                                    'turno_anterior' => $turnoAnterior,
+                                    'turno_nuevo'    => 'Sin Turno',
                                 ];
+
+                                // Eliminar el turno
+                                $turnoActual->delete();
+                            }
+                            // Si no existe un turno, no hacer nada (no registrar en historial)
+
+                        } else {
+                            // Procesar turno normal (no vacío)
+                            if ($turnoActual !== null) {
+
+                                // es o no un nuevo turno? si es así agrega
+                                if ($turnoActual->shift !== $nuevoTurno) {
+
+                                    // Guardar o actualizar el turno
+                                    $turnoCreado = EmployeeShifts::updateOrCreate(
+                                        [
+                                            'employee_id' => $empleado->id,
+                                            'date'        => $fecha,
+                                        ],
+                                        [
+                                            'shift'    => $nuevoTurno,
+                                            'comments' => $comentario,
+                                        ]
+                                    );
+
+                                    // Registrar en historial
+                                    ShiftChangeLog::create([
+                                        'employee_id'       => $empleado->id,
+                                        'employee_shift_id' => optional($turnoActual)->id,
+                                        'changed_by'        => $actualUser,
+                                        'old_shift'         => optional($turnoActual)->shift,
+                                        'new_shift'         => $nuevoTurno,
+                                        'comment'           => $turnoActual
+                                        ? "modificado el turno desde plataforma"
+                                        : "Turno creado desde plataforma",
+                                        'shift_date'        => $fecha, // Guardar la fecha del turno
+                                    ]);
+
+                                }
+
+                            } else {
+
+                                // Guardar o actualizar el turno
+                                $shiftToMake = EmployeeShifts::updateOrCreate(
+                                    [
+                                        'employee_id' => $empleado->id,
+                                        'date'        => $fecha,
+                                    ],
+                                    [
+                                        'shift'    => $nuevoTurno,
+                                        'comments' => $comentario,
+                                    ]
+                                );
+
+                                // Registrar en historial
+                                ShiftChangeLog::create([
+                                    'employee_id'       => $empleado->id,
+                                    'employee_shift_id' => $shiftToMake->id,
+                                    'changed_by'        => $actualUser,
+                                    'old_shift'         => '',
+                                    'new_shift'         => $nuevoTurno,
+                                    'comment'           => "Turno creado desde plataforma",
+                                    'shift_date'        => $fecha, // Guardar la fecha del turno
+                                ]);
                             }
 
-                            $turnoAnterior = match ($turnoActual->shift) {
+                            $shiftComplete = match ($turno) {
                                 'PE'    => 'Patrulla Escolar',
                                 'A'     => 'Administrativo',
                                 'LM'    => 'Licencia Médica',
@@ -235,178 +334,88 @@ Route::middleware(['auth', 'verified'])->group(function () {
                                 null    => 'Sin Turno',
                                 ''      => 'Sin Turno',
                                 ' '     => 'Sin Turno',
+                                'TE'    => 'Test',
                                 default => 'Desconocido',
                             };
 
-                            $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
-                                'fecha' => $fecha,
-                                'turno_anterior' => $turnoAnterior,
-                                'turno_nuevo' => 'Sin Turno'
-                            ];
-
-                            // Eliminar el turno
-                            $turnoActual->delete();
-                        }
-                        // Si no existe un turno, no hacer nada (no registrar en historial)
-
-                    } else {
-                        // Procesar turno normal (no vacío)
-                        if ($turnoActual !== null) {
-
-                            // es o no un nuevo turno? si es así agrega
-                            if ($turnoActual->shift !== $nuevoTurno) {
-
-                                // Guardar o actualizar el turno
-                                $turnoCreado = EmployeeShifts::updateOrCreate(
-                                    [
-                                        'employee_id' => $empleado->id,
-                                        'date'        => $fecha,
-                                    ],
-                                    [
-                                        'shift'    => $nuevoTurno,
-                                        'comments' => $comentario,
-                                    ]
-                                );
-
-                                // Registrar en historial
-                                ShiftChangeLog::create([
-                                    'employee_id'       => $empleado->id,
-                                    'employee_shift_id' => optional($turnoActual)->id,
-                                    'changed_by'        => $actualUser,
-                                    'old_shift'         => optional($turnoActual)->shift,
-                                    'new_shift'         => $nuevoTurno,
-                                    'comment'           => $turnoActual
-                                        ? "modificado el turno desde plataforma"
-                                        : "Turno creado desde plataforma",
-                                    'shift_date'        => $fecha, // Guardar la fecha del turno
-                                ]);
-
+                            // Almacenar cambio para mensaje consolidado
+                            if (! isset($cambiosPorFuncionario[$empleado->id])) {
+                                $cambiosPorFuncionario[$empleado->id] = [
+                                    'nombre'   => $empleado->name,
+                                    'telefono' => $empleado->phone,
+                                    'cambios'  => [],
+                                ];
                             }
 
-                        } else {
+                            $turnoAnterior = $turnoActual ? match ($turnoActual->shift) {
+                                'PE'    => 'Patrulla Escolar',
+                                'A'     => 'Administrativo',
+                                'LM'    => 'Licencia Médica',
+                                'S'     => 'Día Sindical',
+                                'M'     => 'Mañana',
+                                'T'     => 'Tarde',
+                                'N'     => 'Noche',
+                                'F'     => 'Franco',
+                                'L'     => 'Libre',
+                                '1'     => 'Primer Turno',
+                                '2'     => 'Segundo Turno',
+                                '3'     => 'Tercer Turno',
+                                null    => 'Sin Turno',
+                                ''      => 'Sin Turno',
+                                ' '     => 'Sin Turno',
+                                'TE'    => 'Test',
+                                default => 'Desconocido',
+                            } : 'Sin Turno';
 
-                            // Guardar o actualizar el turno
-                            $shiftToMake = EmployeeShifts::updateOrCreate(
-                                [
-                                    'employee_id' => $empleado->id,
-                                    'date'        => $fecha,
-                                ],
-                                [
-                                    'shift'    => $nuevoTurno,
-                                    'comments' => $comentario,
-                                ]
-                            );
-
-                            // Registrar en historial
-                            ShiftChangeLog::create([
-                                'employee_id'       => $empleado->id,
-                                'employee_shift_id' => $shiftToMake->id,
-                                'changed_by'        => $actualUser,
-                                'old_shift'         => '',
-                                'new_shift'         => $nuevoTurno,
-                                'comment'           => "Turno creado desde plataforma",
-                                'shift_date'        => $fecha, // Guardar la fecha del turno
-                            ]);
-                        }
-
-                        $shiftComplete = match ($turno) {
-                            'PE'    => 'Patrulla Escolar',
-                            'A'     => 'Administrativo',
-                            'LM'    => 'Licencia Médica',
-                            'S'     => 'Día Sindical',
-                            'M'     => 'Mañana',
-                            'T'     => 'Tarde',
-                            'N'     => 'Noche',
-                            'F'     => 'Franco',
-                            'L'     => 'Libre',
-                            '1'     => 'Primer Turno',
-                            '2'     => 'Segundo Turno',
-                            '3'     => 'Tercer Turno',
-                            null    => 'Sin Turno',
-                            ''      => 'Sin Turno',
-                            ' '     => 'Sin Turno',
-                            'TE'    => 'Test',
-                            default => 'Desconocido',
-                        };
-
-                        // Almacenar cambio para mensaje consolidado
-                        if (!isset($cambiosPorFuncionario[$empleado->id])) {
-                            $cambiosPorFuncionario[$empleado->id] = [
-                                'nombre' => $empleado->name,
-                                'telefono' => $empleado->phone,
-                                'cambios' => []
+                            $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
+                                'fecha'          => $fecha,
+                                'turno_anterior' => $turnoAnterior,
+                                'turno_nuevo'    => $shiftComplete,
                             ];
+
                         }
+                    }
+                }
 
-                        $turnoAnterior = $turnoActual ? match ($turnoActual->shift) {
-                            'PE'    => 'Patrulla Escolar',
-                            'A'     => 'Administrativo',
-                            'LM'    => 'Licencia Médica',
-                            'S'     => 'Día Sindical',
-                            'M'     => 'Mañana',
-                            'T'     => 'Tarde',
-                            'N'     => 'Noche',
-                            'F'     => 'Franco',
-                            'L'     => 'Libre',
-                            '1'     => 'Primer Turno',
-                            '2'     => 'Segundo Turno',
-                            '3'     => 'Tercer Turno',
-                            null    => 'Sin Turno',
-                            ''      => 'Sin Turno',
-                            ' '     => 'Sin Turno',
-                            'TE'    => 'Test',
-                            default => 'Desconocido',
-                        } : 'Sin Turno';
+                // Enviar mensajes consolidados por funcionario
+                foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
+                    if (empty($datosFuncionario['cambios'])) {
+                        continue;
+                    }
 
-                        $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
-                            'fecha' => $fecha,
-                            'turno_anterior' => $turnoAnterior,
-                            'turno_nuevo' => $shiftComplete
-                        ];
+                    // Construir mensaje consolidado
+                    $mensaje = "Se ha modificado el turno de: *{$datosFuncionario['nombre']}* los días:\n";
 
+                    foreach ($datosFuncionario['cambios'] as $cambio) {
+                        $fechaFormateada = date('d/m/Y', strtotime($cambio['fecha']));
+                        $mensaje .= "• *{$fechaFormateada}* de \"*{$cambio['turno_anterior']}*\" a \"*{$cambio['turno_nuevo']}*\"\n";
+                    }
+
+                    // Enviar mensaje a los contactos de reporte
+                    foreach ($numerosAReportarCambios as $numero) {
+                        $response = Http::post('http://localhost:3001/send-message', [
+                            'mensaje' => $mensaje,
+                            'numero'  => "56" . $numero,
+                        ]);
+                    }
+
+                    // Enviar mensaje al funcionario si tiene teléfono
+                    // if ($datosFuncionario['telefono']) {
+                    //     $response = Http::post('http://localhost:3001/send-message', [
+                    //         'mensaje' => $mensaje,
+                    //         'numero'  => "56" . $numeroJorgeWaltemath,
+                    //     ]);
+                    // }
+
+                    // Enviar separador después de cada funcionario
+                    foreach ($numerosAReportarCambios as $numero) {
+                        $response = Http::post('http://localhost:3001/send-message', [
+                            'mensaje' => "-------------",
+                            'numero'  => "56" . $numero,
+                        ]);
                     }
                 }
             }
-
-            // Enviar mensajes consolidados por funcionario
-            foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
-                if (empty($datosFuncionario['cambios'])) {
-                    continue;
-                }
-
-                // Construir mensaje consolidado
-                $mensaje = "Se ha modificado el turno de: *{$datosFuncionario['nombre']}* los días:\n";
-
-                foreach ($datosFuncionario['cambios'] as $cambio) {
-                    $fechaFormateada = date('d/m/Y', strtotime($cambio['fecha']));
-                    $mensaje .= "• *{$fechaFormateada}* de \"*{$cambio['turno_anterior']}*\" a \"*{$cambio['turno_nuevo']}*\"\n";
-                }
-
-                // Enviar mensaje a los contactos de reporte
-                foreach ($numerosAReportarCambios as $numero) {
-                    $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => $mensaje,
-                        'numero'  => "56" . $numero,
-                    ]);
-                }
-
-                // Enviar mensaje al funcionario si tiene teléfono
-                // if ($datosFuncionario['telefono']) {
-                //     $response = Http::post('http://localhost:3001/send-message', [
-                //         'mensaje' => $mensaje,
-                //         'numero'  => "56" . $numeroJorgeWaltemath,
-                //     ]);
-                // }
-
-                // Enviar separador después de cada funcionario
-                foreach ($numerosAReportarCambios as $numero) {
-                    $response = Http::post('http://localhost:3001/send-message', [
-                        'mensaje' => "-------------",
-                        'numero'  => "56" . $numero,
-                    ]);
-                }
-            }
-        }
 
             // Commit de la transacción si todo salió bien
             DB::commit();
@@ -421,9 +430,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             DB::rollBack();
 
             Log::error('Error al actualizar turnos: ' . $e->getMessage(), [
-                'user_id' => Auth::id(),
+                'user_id'      => Auth::id(),
                 'request_data' => $request->all(),
-                'trace' => $e->getTraceAsString()
+                'trace'        => $e->getTraceAsString(),
             ]);
 
             return back()->with('success',
@@ -438,23 +447,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Vista principal
         Route::get('/platform-data', function () {
-            $roles = \App\Models\Rol::all()->map(function($role) {
+            $roles = \App\Models\Rol::all()->map(function ($role) {
                 return [
-                    'id' => $role->id,
-                    'nombre' => $role->nombre,
+                    'id'             => $role->id,
+                    'nombre'         => $role->nombre,
                     'is_operational' => $role->is_operational,
-                    'color' => $role->color,
-                    'created_at' => $role->created_at,
-                    'updated_at' => $role->updated_at,
+                    'color'          => $role->color,
+                    'created_at'     => $role->created_at,
+                    'updated_at'     => $role->updated_at,
                 ];
             });
-            $empleados = \App\Models\Employees::with('rol')->get()->map(function($empleado) {
+            $empleados = \App\Models\Employees::with('rol')->get()->map(function ($empleado) {
                 return [
-                    'id' => $empleado->id,
-                    'name' => $empleado->name,
-                    'rut' => $empleado->rut,
-                    'phone' => $empleado->phone,
-                    'rol_id' => $empleado->rol_id,
+                    'id'         => $empleado->id,
+                    'name'       => $empleado->name,
+                    'rut'        => $empleado->rut,
+                    'phone'      => $empleado->phone,
+                    'rol_id'     => $empleado->rol_id,
                     'rol_nombre' => $empleado->rol->nombre ?? 'Sin rol',
                     'created_at' => $empleado->created_at,
                     'updated_at' => $empleado->updated_at,
@@ -462,8 +471,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             });
 
             return Inertia::render('settings/platform-data', [
-                'roles' => $roles,
-                'empleados' => $empleados
+                'roles'     => $roles,
+                'empleados' => $empleados,
             ]);
         })->name('platform-data');
 
@@ -475,7 +484,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 return response()->json([
                     'success' => true,
-                    'data' => $empleado
+                    'data'    => $empleado,
                 ]);
             });
 
@@ -484,19 +493,19 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $empleado = \App\Models\Employees::findOrFail($id);
 
                 $request->validate([
-                    'name' => 'nullable|string|max:255',
-                    'first_name' => 'nullable|string|max:255',
+                    'name'              => 'nullable|string|max:255',
+                    'first_name'        => 'nullable|string|max:255',
                     'paternal_lastname' => 'nullable|string|max:255',
                     'maternal_lastname' => 'nullable|string|max:255',
-                    'rut' => 'nullable|string|max:20',
-                    'phone' => 'nullable|string|max:20',
-                    'email' => 'nullable|email|max:255',
-                    'address' => 'nullable|string',
-                    'position' => 'nullable|string|max:255',
-                    'department' => 'nullable|string|max:255',
-                    'start_date' => 'nullable|date',
-                    'status' => 'nullable|in:activo,inactivo,vacaciones,licencia',
-                    'rol_id' => 'nullable|integer|exists:rols,id'
+                    'rut'               => 'nullable|string|max:20',
+                    'phone'             => 'nullable|string|max:20',
+                    'email'             => 'nullable|email|max:255',
+                    'address'           => 'nullable|string',
+                    'position'          => 'nullable|string|max:255',
+                    'department'        => 'nullable|string|max:255',
+                    'start_date'        => 'nullable|date',
+                    'status'            => 'nullable|in:activo,inactivo,vacaciones,licencia',
+                    'rol_id'            => 'nullable|integer|exists:rols,id',
                 ]);
 
                 $empleado->update($request->only([
@@ -512,7 +521,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     'department',
                     'start_date',
                     'status',
-                    'rol_id'
+                    'rol_id',
                 ]));
 
                 return redirect()->back()->with('success', 'Empleado actualizado correctamente');
@@ -524,30 +533,30 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Crear nuevo rol
             Route::post('/', function (Request $request) {
                 $request->validate([
-                    'nombre' => 'required|string|max:255|unique:rols,nombre'
+                    'nombre' => 'required|string|max:255|unique:rols,nombre',
                 ]);
 
                 \App\Models\Rol::create([
-                    'nombre' => $request->nombre,
+                    'nombre'         => $request->nombre,
                     'is_operational' => $request->input('is_operational', true), // Por defecto operativo
-                    'color' => $request->input('color', '#3B82F6') // Por defecto azul
+                    'color'          => $request->input('color', '#3B82F6'),     // Por defecto azul
                 ]);
 
                 return redirect()->back()->with('success', 'Rol creado correctamente');
             });
 
-                                    // Actualizar rol
+            // Actualizar rol
             Route::put('/{id}', function (Request $request, $id) {
                 $role = \App\Models\Rol::findOrFail($id);
 
                 $request->validate([
-                    'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id
+                    'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id,
                 ]);
 
                 $role->update([
-                    'nombre' => $request->nombre,
+                    'nombre'         => $request->nombre,
                     'is_operational' => $request->input('is_operational', $role->is_operational),
-                    'color' => $request->input('color', $role->color)
+                    'color'          => $request->input('color', $role->color),
                 ]);
 
                 return redirect()->back()->with('success', 'Rol actualizado correctamente');
