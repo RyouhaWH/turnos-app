@@ -218,14 +218,12 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Gestión de Turnos" />
 
-            <div className="bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+            <div className="h-full bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 {/* Main Content */}
                 <div className={isMobile ? "p-0" : "p-6"}>
-                    <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
+                    <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4 relative' : 'flex-col gap-6 xl:flex-row'}`}>
                         {/* Left Panel - Data Grid */}
-                        <div className="min-w-0 flex-1">
-
-
+                        <div className={`min-w-0 flex-1 ${isMobile ? 'pb-48' : ''}`}>
                             <ShiftsGrid {...shiftsGridProps} />
                         </div>
 
