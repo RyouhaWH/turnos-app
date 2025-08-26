@@ -47,6 +47,8 @@ export const ShiftsControls = memo(({
 }: ShiftsControlsProps) => {
     // Estado para mantener historial de empleados recientes
     const [recentEmployees, setRecentEmployees] = useState<TurnoData[]>([]);
+    // Estado para controlar si mostrar solo empleados en grid
+    const [showOnlyInGrid, setShowOnlyInGrid] = useState(false);
 
     // Función para obtener nombre de visualización
     const getDisplayName = (employee: TurnoData) => {
@@ -90,6 +92,19 @@ export const ShiftsControls = memo(({
         }
     };
 
+    // Función para manejar click en el input de búsqueda
+    const handleSearchInputClick = () => {
+        if (!showOnlyInGrid) {
+            setShowOnlyInGrid(true);
+        }
+    };
+
+    // Función para limpiar búsqueda y filtros
+    const handleClearSearch = () => {
+        setSearchTerm('');
+        setShowOnlyInGrid(false);
+    };
+
     // Combinar todos los empleados y determinar su estado
     const allEmployees = useMemo(() => {
         const employeeMap = new Map<string, TurnoData>();
@@ -115,16 +130,29 @@ export const ShiftsControls = memo(({
         });
     }, [availableEmployees, rowData, getEmployeeId]);
 
-    // Filtrar empleados según el término de búsqueda
+    // Filtrar empleados según el término de búsqueda y filtro de grid
     const filteredAllEmployees = useMemo(() => {
-        if (!searchTerm.trim()) return allEmployees;
+        let filtered = allEmployees;
 
-        return allEmployees.filter(employee => {
-            const displayName = getDisplayName(employee).toLowerCase();
-            const searchLower = searchTerm.toLowerCase();
-            return displayName.includes(searchLower);
-        });
-    }, [allEmployees, searchTerm]);
+        // Primero filtrar por estado en grid si está activado
+        if (showOnlyInGrid) {
+            filtered = filtered.filter(employee => {
+                const employeeId = getEmployeeId(employee);
+                return rowData.some(emp => getEmployeeId(emp) === employeeId);
+            });
+        }
+
+        // Luego filtrar por término de búsqueda
+        if (searchTerm.trim()) {
+            filtered = filtered.filter(employee => {
+                const displayName = getDisplayName(employee).toLowerCase();
+                const searchLower = searchTerm.toLowerCase();
+                return displayName.includes(searchLower);
+            });
+        }
+
+        return filtered;
+    }, [allEmployees, searchTerm, showOnlyInGrid, rowData, getEmployeeId]);
 
     return (
         <>
@@ -134,9 +162,10 @@ export const ShiftsControls = memo(({
                     <div className="relative flex-1">
                         <Input
                             type="text"
-                            placeholder="Buscar funcionarios en grid y disponibles..."
+                            placeholder={showOnlyInGrid ? "Buscar funcionarios en grid..." : "Buscar funcionarios en grid y disponibles..."}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
+                            onClick={handleSearchInputClick}
                             className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
                         />
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -144,11 +173,12 @@ export const ShiftsControls = memo(({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                             </svg>
                         </div>
-                        {searchTerm && (
+                        {(searchTerm || showOnlyInGrid) && (
                             <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
                                 <button
-                                    onClick={() => setSearchTerm('')}
+                                    onClick={handleClearSearch}
                                     className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                                    title="Limpiar búsqueda y filtros"
                                 >
                                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -159,7 +189,7 @@ export const ShiftsControls = memo(({
                     </div>
 
                     {/* Botón para agregar funcionario filtrado */}
-                    {searchTerm && filteredAvailableEmployees.length > 0 && (
+                    {searchTerm && filteredAvailableEmployees.length > 0 && !showOnlyInGrid && (
                         <button
                             onClick={handleQuickAdd}
                             className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
@@ -183,9 +213,14 @@ export const ShiftsControls = memo(({
                 {/* Contador y controles */}
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
+                        {showOnlyInGrid && (
+                            <span className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                                Solo en Grid
+                            </span>
+                        )}
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
+                                Mostrando {filteredAllEmployees.length} de {showOnlyInGrid ? rowData.length : allEmployees.length} funcionarios
                             </p>
                         )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
