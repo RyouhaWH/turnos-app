@@ -52,11 +52,9 @@ export const ShiftsControls = memo(({
             : employee.nombre;
     };
 
-    // Función para manejar click en empleado - limpia grid y agrega al empleado
+    // Función para manejar click en empleado - agrega al empleado sin limpiar grid
     const handleEmployeeClick = (employee: TurnoData) => {
-        // Limpiar grid primero
-        clearAllEmployees();
-        // Agregar el empleado seleccionado
+        // Agregar el empleado seleccionado sin limpiar grid
         addEmployeeToGrid(employee);
         // Limpiar búsqueda
         setSearchTerm('');
@@ -143,7 +141,7 @@ export const ShiftsControls = memo(({
                         <button
                             onClick={handleQuickAdd}
                             className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
-                            title={`Limpiar grid y agregar "${getDisplayName(filteredAvailableEmployees[0])}"`}
+                            title={`Agregar "${getDisplayName(filteredAvailableEmployees[0])}" al grid`}
                         >
                             <UserPlus className="h-4 w-4" />
                             <span className="hidden sm:inline">Agregar</span>
@@ -261,7 +259,7 @@ export const ShiftsControls = memo(({
                                                     ? 'text-red-600 dark:text-red-400'
                                                     : 'text-green-600 dark:text-green-400'
                                             }`}>
-                                                {isInGrid ? 'Quitar del grid' : 'Limpiar grid y agregar'}
+                                                {isInGrid ? 'Quitar del grid' : 'Agregar al grid'}
                                             </span>
                                         </div>
                                     );
