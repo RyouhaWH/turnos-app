@@ -66,7 +66,9 @@ export const ShiftsControls = memo(({
     const handleQuickAdd = () => {
         const firstAvailable = filteredAvailableEmployees[0];
         if (firstAvailable) {
-            handleEmployeeClick(firstAvailable);
+            // Agregar el empleado seleccionado sin limpiar grid
+            addEmployeeToGrid(firstAvailable);
+            // No limpiar búsqueda para mantener el filtrado en la grid
         }
     };
 
@@ -174,7 +176,7 @@ export const ShiftsControls = memo(({
                     <div className="flex items-center gap-4">
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                {showEmployeeSelector 
+                                {showEmployeeSelector
                                     ? `Buscando en gestión: ${filteredAllEmployees.length} de ${allEmployees.length} funcionarios`
                                     : `Mostrando ${filteredRowData.length} de ${rowData.length} funcionarios en grid`
                                 }
