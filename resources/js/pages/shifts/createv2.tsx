@@ -197,10 +197,10 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className={`flex h-[calc(100vh-120px)] ${isMobile ? 'flex-col gap-4' : 'flex-col gap-6 xl:flex-row'}`}>
                         {/* Left Panel - Data Grid */}
                         <div className="min-w-0 flex-1">
-                            <ShiftsGrid {...shiftsGridProps} />
-
                             {/* Controles de búsqueda y empleados */}
                             <ShiftsControls {...shiftsControlsProps} />
+
+                            <ShiftsGrid {...shiftsGridProps} />
                         </div>
 
                         {/* Right Panel - Controls & History */}

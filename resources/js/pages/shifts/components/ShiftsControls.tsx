@@ -1,6 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { Plus, Check } from 'lucide-react';
-import { memo } from 'react';
+import { Plus, Check, Users, UserPlus, UserMinus } from 'lucide-react';
+import { memo, useState } from 'react';
 
 interface TurnoData {
     id: string;
@@ -45,9 +45,27 @@ export const ShiftsControls = memo(({
     closeEmployeeSelector,
     isMobile = false,
 }: ShiftsControlsProps) => {
+    const [activeTab, setActiveTab] = useState<'grid' | 'available'>('grid');
+
+    // Función para obtener nombre de visualización
+    const getDisplayName = (employee: TurnoData) => {
+        return employee.first_name && employee.paternal_lastname
+            ? `${employee.first_name.split(' ')[0]} ${employee.paternal_lastname}`
+            : employee.nombre;
+    };
+
+    // Función para manejar click en empleado
+    const handleEmployeeClick = (employee: TurnoData, isInGrid: boolean) => {
+        if (isInGrid) {
+            removeEmployeeFromGrid(employee);
+        } else {
+            addEmployeeToGrid(employee);
+        }
+    };
+
     return (
         <>
-            {/* Barra de búsqueda y controles */}
+            {/* Barra de búsqueda unificada */}
             <div className={`mb-4 ${isMobile ? 'px-4' : 'px-2'}`}>
                 <div className="flex items-center gap-3 mb-3">
                     <div className="relative flex-1">
@@ -77,13 +95,13 @@ export const ShiftsControls = memo(({
                         )}
                     </div>
 
-                    {/* Botón para agregar funcionarios */}
+                    {/* Botón para mostrar/ocultar selector */}
                     <button
                         onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
                         className="flex items-center gap-2 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors duration-200"
                     >
-                        <Plus className="h-4 w-4" />
-                        <span className="hidden sm:inline">Agregar Funcionarios</span>
+                        <Users className="h-4 w-4" />
+                        <span className="hidden sm:inline">Gestionar Funcionarios</span>
                     </button>
                 </div>
 
@@ -92,7 +110,7 @@ export const ShiftsControls = memo(({
                     <div className="flex items-center gap-4">
                         {searchTerm && (
                             <p className="text-sm text-slate-600 dark:text-slate-400">
-                                Mostrando {filteredRowData.length} de {rowData.length} funcionarios
+                                Mostrando {filteredRowData.length} de {rowData.length} funcionarios en grid
                             </p>
                         )}
                         <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -119,16 +137,14 @@ export const ShiftsControls = memo(({
                 </div>
             </div>
 
-            {/* Selector de funcionarios */}
+            {/* Selector unificado de funcionarios */}
             {showEmployeeSelector && (
                 <div className={`mb-4 ${isMobile ? 'px-4' : 'px-2'}`}>
                     <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 shadow-lg">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-                                </svg>
-                                Seleccionar Funcionarios
+                                <Users className="h-5 w-5" />
+                                Gestionar Funcionarios
                             </h3>
                             <button
                                 onClick={closeEmployeeSelector}
@@ -140,63 +156,119 @@ export const ShiftsControls = memo(({
                             </button>
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
-                            {filteredAvailableEmployees.map((employee) => {
-                                const employeeId = getEmployeeId(employee);
-                                const isSelected = selectedEmployees.has(employeeId);
-                                const displayName = employee.first_name && employee.paternal_lastname
-                                    ? `${employee.first_name.split(' ')[0]} ${employee.paternal_lastname}`
-                                    : employee.nombre;
-
-                                return (
-                                    <div
-                                        key={employeeId}
-                                        className={`flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer transition-colors ${
-                                            isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                                        }`}
-                                        onClick={() => {
-                                            if (isSelected) {
-                                                removeEmployeeFromGrid(employee);
-                                            } else {
-                                                addEmployeeToGrid(employee);
-                                            }
-                                        }}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
-                                                isSelected
-                                                    ? 'bg-blue-600 border-blue-600'
-                                                    : 'border-slate-300 dark:border-slate-600'
-                                            }`}>
-                                                {isSelected && <Check className="h-3 w-3 text-white" />}
-                                            </div>
-                                            <span className="text-slate-900 dark:text-white">
-                                                {displayName}
-                                            </span>
-                                        </div>
-                                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                                            {isSelected ? 'En grid' : 'Agregar'}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                        {/* Tabs para navegar entre secciones */}
+                        <div className="flex border-b border-slate-200 dark:border-slate-700 mb-4">
+                            <button
+                                onClick={() => setActiveTab('grid')}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                    activeTab === 'grid'
+                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                                }`}
+                            >
+                                <UserMinus className="h-4 w-4" />
+                                En Grid ({filteredRowData.length})
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('available')}
+                                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                                    activeTab === 'available'
+                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                                }`}
+                            >
+                                <UserPlus className="h-4 w-4" />
+                                Disponibles ({filteredAvailableEmployees.length})
+                            </button>
                         </div>
 
-                        <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                        {/* Contenido de las tabs */}
+                        <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
+                            {activeTab === 'grid' ? (
+                                // Empleados en el grid
+                                filteredRowData.length > 0 ? (
+                                    filteredRowData.map((employee) => {
+                                        const employeeId = getEmployeeId(employee);
+                                        const displayName = getDisplayName(employee);
+
+                                        return (
+                                            <div
+                                                key={employeeId}
+                                                className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer transition-colors"
+                                                onClick={() => handleEmployeeClick(employee, true)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-4 h-4 rounded border-2 border-red-300 dark:border-red-600 flex items-center justify-center">
+                                                        <UserMinus className="h-3 w-3 text-red-600 dark:text-red-400" />
+                                                    </div>
+                                                    <span className="text-slate-900 dark:text-white">
+                                                        {displayName}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-red-600 dark:text-red-400 font-medium">
+                                                    Remover del grid
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                                        {searchTerm ? 'No se encontraron funcionarios en el grid' : 'No hay funcionarios en el grid'}
+                                    </div>
+                                )
+                            ) : (
+                                // Empleados disponibles
+                                filteredAvailableEmployees.length > 0 ? (
+                                    filteredAvailableEmployees.map((employee) => {
+                                        const employeeId = getEmployeeId(employee);
+                                        const displayName = getDisplayName(employee);
+
+                                        return (
+                                            <div
+                                                key={employeeId}
+                                                className="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 last:border-b-0 hover:bg-green-50 dark:hover:bg-green-900/20 cursor-pointer transition-colors"
+                                                onClick={() => handleEmployeeClick(employee, false)}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-4 h-4 rounded border-2 border-green-300 dark:border-green-600 flex items-center justify-center">
+                                                        <UserPlus className="h-3 w-3 text-green-600 dark:text-green-400" />
+                                                    </div>
+                                                    <span className="text-slate-900 dark:text-white">
+                                                        {displayName}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                                                    Agregar al grid
+                                                </span>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="p-4 text-center text-slate-500 dark:text-slate-400">
+                                        {searchTerm ? 'No se encontraron funcionarios disponibles' : 'No hay funcionarios disponibles'}
+                                    </div>
+                                )
+                            )}
+                        </div>
+
+                        {/* Controles de acción */}
+                        <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                             <span className="text-sm text-slate-600 dark:text-slate-400">
                                 {selectedEmployees.size} de {availableEmployees.length} funcionarios seleccionados
                             </span>
                             <div className="flex gap-2">
                                 <button
                                     onClick={addAllEmployees}
-                                    className="text-sm px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                    className="text-sm px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors flex items-center gap-1"
                                 >
+                                    <UserPlus className="h-3 w-3" />
                                     Agregar Todos
                                 </button>
                                 <button
                                     onClick={clearAllEmployees}
-                                    className="text-sm px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
+                                    className="text-sm px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors flex items-center gap-1"
                                 >
+                                    <UserMinus className="h-3 w-3" />
                                     Limpiar Grid
                                 </button>
                             </div>
