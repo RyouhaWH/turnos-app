@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface TurnoData {
     id: string;
@@ -67,13 +68,9 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-    // Búsqueda con debounce
+    // Búsqueda con debounce usando hook personalizado
     const [searchInputTerm, setSearchInputTerm] = useState('');
-    const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-    useEffect(() => {
-        const id = setTimeout(() => setDebouncedSearchTerm(searchInputTerm.trim()), 250);
-        return () => clearTimeout(id);
-    }, [searchInputTerm]);
+    const debouncedSearchTerm = useDebounce(searchInputTerm.trim(), 250);
 
     // Selección y disponibles
     const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
@@ -133,9 +130,9 @@ export const useShiftsManager = (employee_rol_id: number) => {
     );
 
     // Función para obtener ID único de empleado
-    const getEmployeeId = (employee: TurnoData): string => {
+    const getEmployeeId = useCallback((employee: TurnoData): string => {
         return employee.employee_id || employee.id || employee.rut || employee.nombre;
-    };
+    }, []);
 
     // Funciones para manejar empleados
     const addEmployeeToGrid = useCallback((employee: TurnoData) => {
@@ -156,7 +153,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             }
             return prev;
         });
-    }, []);
+    }, [getEmployeeId]);
 
     const removeEmployeeFromGrid = useCallback((employee: TurnoData) => {
         const employeeId = getEmployeeId(employee);
@@ -167,7 +164,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         });
 
         setRowData(prev => prev.filter(e => getEmployeeId(e) !== employeeId));
-    }, []);
+    }, [getEmployeeId]);
 
     const addMultipleEmployees = useCallback((employees: TurnoData[]) => {
         employees.forEach(employee => addEmployeeToGrid(employee));
@@ -181,14 +178,14 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const addAllEmployees = useCallback(() => {
         setSelectedEmployees(new Set(availableEmployees.map(e => getEmployeeId(e))));
         setRowData([...availableEmployees]);
-    }, [availableEmployees]);
+    }, [availableEmployees, getEmployeeId]);
 
     const closeEmployeeSelector = useCallback(() => {
         setShowEmployeeSelector(false);
     }, []);
 
     // Función para aplicar cambios pendientes
-    const aplicarCambiosPendientes = (turnosArray: TurnoData[], fechaActual: Date): TurnoData[] => {
+    const aplicarCambiosPendientes = useCallback((turnosArray: TurnoData[], fechaActual: Date): TurnoData[] => {
         if (listaCambios.length === 0 || !originalChangeDate) {
             return turnosArray;
         }
@@ -216,7 +213,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             console.error('Error al aplicar cambios pendientes:', error);
             return turnosArray;
         }
-    };
+    }, [listaCambios, originalChangeDate]);
 
     // Cargar turnos por mes
     const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
@@ -300,7 +297,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         } finally {
             setLoading(false);
         }
-    }, [listaCambios, originalChangeDate, employee_rol_id, comentario, resumen, isInitialLoad]);
+    }, [listaCambios, originalChangeDate, employee_rol_id, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
         setResumen(ResumenCambios);
@@ -311,7 +308,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [setData]);
 
     // Registrar cambio en historial (para deshacer)
-    const registerChange = (employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
+    const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
         if (originalChangeDate === null) {
             const currentMonth = selectedDate.getMonth();
             const currentYear = selectedDate.getFullYear();
@@ -335,10 +332,10 @@ export const useShiftsManager = (employee_rol_id: number) => {
         };
 
         setListaCambios((prev) => [...prev, change]);
-    };
+    }, [originalChangeDate, selectedDate, rowData]);
 
     // Deshacer último cambio: actualizar datos directamente
-    const undoLastChange = async () => {
+    const undoLastChange = useCallback(async () => {
         if (listaCambios.length === 0) return;
 
         setIsUndoing(true);
@@ -386,10 +383,10 @@ export const useShiftsManager = (employee_rol_id: number) => {
         });
 
         setTimeout(() => setIsUndoing(false), 100);
-    };
+    }, [listaCambios, resumen, setData]);
 
     // Deshacer cambio específico
-    const undoSpecificChange = async (changeId: string) => {
+    const undoSpecificChange = useCallback(async (changeId: string) => {
         const changeIndex = listaCambios.findIndex((c) => c.id === changeId);
         if (changeIndex === -1) return;
 
@@ -429,9 +426,9 @@ export const useShiftsManager = (employee_rol_id: number) => {
         });
 
         setTimeout(() => setIsUndoing(false), 100);
-    };
+    }, [listaCambios, resumen, setData]);
 
-    const limpiarTodosLosCambios = () => {
+    const limpiarTodosLosCambios = useCallback(() => {
         const confirmar = window.confirm('¿Estás seguro de que quieres descartar todos los cambios pendientes? Esta acción no se puede deshacer.');
         if (!confirmar) return;
 
@@ -445,17 +442,17 @@ export const useShiftsManager = (employee_rol_id: number) => {
             description: 'Todos los cambios pendientes han sido descartados.',
             duration: 3000,
         });
-    };
+    }, []);
 
-    const limpiarCambiosSinConfirmacion = () => {
+    const limpiarCambiosSinConfirmacion = useCallback(() => {
         setResumen({});
         setListaCambios([]);
         setOriginalChangeDate(null);
         setShowPendingChanges(false);
         setComentario('');
-    };
+    }, []);
 
-    const handleActualizarCambios = (comentarioNuevo: string) => {
+    const handleActualizarCambios = useCallback((comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
 
         const fechaParaCambios = originalChangeDate || selectedDate;
@@ -543,13 +540,13 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 });
             }
         });
-    };
+    }, [originalChangeDate, selectedDate, resumen, pendingDateChange, cargarTurnosPorMes]);
 
-    const getTotalEmployees = () => rowData.length;
+    const getTotalEmployees = useCallback(() => rowData.length, [rowData]);
 
     useEffect(() => {
         limpiarCambiosSinConfirmacion();
-    }, []);
+    }, [limpiarCambiosSinConfirmacion]);
 
     useEffect(() => {
         if (pendingDateChange && listaCambios.length === 0 && !isSaving) {
@@ -580,7 +577,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [listaCambios, resumen]);
+    }, [undoLastChange]);
 
     // Exponer searchTerm (input) y su setter, pero internamente usamos el debounced
     const searchTerm = searchInputTerm;
