@@ -95,6 +95,24 @@ export const ShiftsControls = memo(({
                         )}
                     </div>
 
+                    {/* Botón para agregar funcionario filtrado */}
+                    {searchTerm && filteredAvailableEmployees.length > 0 && (
+                        <button
+                            onClick={() => {
+                                const firstAvailable = filteredAvailableEmployees[0];
+                                if (firstAvailable) {
+                                    addEmployeeToGrid(firstAvailable);
+                                    setSearchTerm(''); // Limpiar búsqueda después de agregar
+                                }
+                            }}
+                            className="flex items-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors duration-200"
+                            title={`Agregar "${getDisplayName(filteredAvailableEmployees[0])}" al grid`}
+                        >
+                            <UserPlus className="h-4 w-4" />
+                            <span className="hidden sm:inline">Agregar</span>
+                        </button>
+                    )}
+
                     {/* Botón para mostrar/ocultar selector */}
                     <button
                         onClick={() => setShowEmployeeSelector(!showEmployeeSelector)}
