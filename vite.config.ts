@@ -50,16 +50,6 @@ export default defineConfig({
     define: {
         __DEV__: JSON.stringify(process.env.NODE_ENV === 'development'),
     },
-    css: {
-        postcss: {
-            plugins: [
-                require('autoprefixer'),
-                require('cssnano')({
-                    preset: 'default',
-                }),
-            ],
-        },
-    },
     ssr: {
         noExternal: ['@inertiajs/react', '@inertiajs/server'],
     },

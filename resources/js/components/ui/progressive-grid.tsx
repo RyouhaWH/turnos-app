@@ -147,7 +147,7 @@ export const ProgressiveGrid: React.FC<ProgressiveGridProps> = ({
                             Cargando datos... {Math.round((currentChunk * chunkSize / rowData.length) * 100)}%
                         </span>
                         <div className="w-32 bg-blue-200 rounded-full h-2">
-                            <div 
+                            <div
                                 className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${(currentChunk * chunkSize / rowData.length) * 100}%` }}
                             />
