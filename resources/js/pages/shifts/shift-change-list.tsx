@@ -61,6 +61,10 @@ const ListaCambios: React.FC<Props> = ({
     changeHistory = [],
 }) => {
 
+    // Debug: Log de los datos recibidos
+    console.log('📋 ListaCambios recibió cambios:', cambios);
+    console.log('📋 ListaCambios recibió changeHistory:', changeHistory);
+
     // Función para normalizar los datos del nuevo formato al formato esperado
     const normalizeCambios = (cambiosData: any): CambiosPorFuncionario => {
 

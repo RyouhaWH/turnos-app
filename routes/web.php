@@ -637,5 +637,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 });
 
+Route::get('/shifts/create-ssr', function () {
+    return Inertia::render('shifts/create-ssr', [
+        'turnos' => [],
+        'employee_rol_id' => 1,
+    ]);
+})->middleware(['auth', 'verified'])->name('shifts.create.ssr');
+
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';

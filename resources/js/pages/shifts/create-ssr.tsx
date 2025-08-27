@@ -4,19 +4,29 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useShiftsManager } from './hooks/useShiftsManager';
-import { ShiftsGrid } from './components/ShiftsGrid';
+import { ProgressiveGrid } from '@/components/ui/progressive-grid';
 import { ShiftsControls } from './components/ShiftsControls';
 import { RightPanel } from './components/RightPanel';
-import { useMemo } from 'react';
+import { useMemo, Suspense, lazy } from 'react';
+
+// Lazy loading para componentes pesados
+const ShiftsGrid = lazy(() => import('./components/ShiftsGrid').then(module => ({ default: module.ShiftsGrid })));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Crear Turnos',
-        href: '/shifts/create',
+        title: 'Crear Turnos (SSR)',
+        href: '/shifts/create-ssr',
     },
 ];
 
-export default function ShiftsManager({ turnos, employee_rol_id }: any) {
+// Componente de carga optimizado
+const LoadingSpinner = () => (
+    <div className="flex items-center justify-center h-32">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+);
+
+export default function ShiftsManagerSSR({ turnos, employee_rol_id }: any) {
     const isMobile = useIsMobile();
 
     const {
@@ -71,7 +81,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         filterAvailableEmployees,
     } = useShiftsManager(employee_rol_id);
 
-    // Memoizar props para ShiftsGrid
+    // Memoizar props para optimizar re-renders
     const shiftsGridProps = useMemo(() => ({
         employee_rol_id,
         currentMonthTitle,
@@ -112,7 +122,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         isMobile,
     ]);
 
-    // Memoizar props para ShiftsControls
     const shiftsControlsProps = useMemo(() => ({
         searchTerm,
         setSearchTerm,
@@ -149,7 +158,6 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         isMobile,
     ]);
 
-    // Memoizar props para RightPanel
     const rightPanelProps = useMemo(() => ({
         isChangesExpanded,
         setIsChangesExpanded,
@@ -210,7 +218,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Gestión de Turnos" />
+            <Head title="Gestión de Turnos (SSR Optimizado)" />
 
             <div className="h-full bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 {/* Main Content */}
@@ -218,7 +226,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className="flex h-[calc(100vh-120px)] flex-col gap-6 xl:flex-row">
                         {/* Left Panel - Data Grid */}
                         <div className="min-w-0 flex-1">
-                            <ShiftsGrid {...shiftsGridProps} />
+                            <Suspense fallback={<LoadingSpinner />}>
+                                <ShiftsGrid {...shiftsGridProps} />
+                            </Suspense>
                         </div>
 
                         {/* Right Panel - Controls & History */}

@@ -53,7 +53,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
     const [comentario, setComentario] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date());
-    
+
     // Derivar el título del mes en lugar de mantenerlo como estado
     const currentMonthTitle = useMemo(() => {
         return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
@@ -301,6 +301,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [listaCambios, originalChangeDate, employee_rol_id, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
+        console.log('🔄 handleResumenUpdate llamado con:', ResumenCambios);
         setResumen(ResumenCambios);
         setData((prev) => ({
             ...prev,
@@ -544,10 +545,6 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [originalChangeDate, selectedDate, resumen, pendingDateChange, cargarTurnosPorMes]);
 
     const getTotalEmployees = useCallback(() => rowData.length, [rowData]);
-
-    useEffect(() => {
-        limpiarCambiosSinConfirmacion();
-    }, [limpiarCambiosSinConfirmacion]);
 
     useEffect(() => {
         if (pendingDateChange && listaCambios.length === 0 && !isSaving) {

@@ -973,7 +973,7 @@ export default function DashboardV2() {
                     <div className="mb-6 px-6">
                         {isMobile ? (
                             /* Vista móvil */
-                            <div className="space-y-4 ">
+                            <div className="space-y-4">
                                 {/* Título */}
                                 <div className="text-center">
                                     <h2 className="text-lg font-semibold text-gray-700 dark:text-slate-200">Desglose de Personal</h2>

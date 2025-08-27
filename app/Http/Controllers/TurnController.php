@@ -149,7 +149,6 @@ class TurnController extends Controller
     public function getMonthlyShifts($year, $month, $rolId)
     {
         $data = $this->getShiftsfromDBByDate($year, $month, $rolId);
-
         return response()->json($data);
     }
 

@@ -22,6 +22,9 @@ interface TurnoData {
 interface CambioData {
     rut: string;
     nombre: string;
+    employee_id?: string | number;
+    first_name?: string;
+    paternal_lastname?: string;
     turnos: Record<string, string>;
 }
 
