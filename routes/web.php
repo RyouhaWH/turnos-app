@@ -117,12 +117,18 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $numerosAReportarCambios = [];
 
             //! Números base para notificaciones
+            //central, munuel verdugo y dayanna, paola carrasco, cesar soto
             $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
             $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
             $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
             $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
             $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-            $numeroCristianMontecinos  = "";
+            $numeroDayanaChavez        = "981841759";
+            $numeroCentral             = "964949887";
+            $numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone;
+            $numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone;
+            $numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone;
+            $numeroCristianMontecinos  = "975952121";
             $numeroInformacionesAmzoma = "985639782";
             $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
 
@@ -132,11 +138,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     $numeroInformacionesAmzoma,
                     $numeroJorgeWaltemath,
                     $numeroJulioSarmiento,
-                    // $numeroMarianelaHuequelef,
-                    // $numeroPriscilaEscobar,
-                    // $numeroJavierAlvarado,
-                    // $numeroEduardoEsparza,
-                    // $numeroCristianMontecinos,
+                    $numeroMarianelaHuequelef,
+                    $numeroPriscilaEscobar,
+                    $numeroJavierAlvarado,
+                    $numeroEduardoEsparza,
+                    $numeroDayanaChavez,
+                    $numeroCentral,
+                    $numeroMunuelVerdugo,
+                    $numeroPaolaCarrasco,
+                    $numeroCesarSoto,
+                    $numeroCristianMontecinos,
                 ];
 
             } else {
@@ -400,18 +411,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     }
 
                     // Enviar mensaje al funcionario si tiene teléfono
-                    // if ($datosFuncionario['telefono']) {
-                    //     $response = Http::post('http://localhost:3001/send-message', [
-                    //         'mensaje' => $mensaje,
-                    //         'numero'  => "56" . $numeroJorgeWaltemath,
-                    //     ]);
-                    // }
-
-                    // Enviar separador después de cada funcionario
-                    foreach ($numerosAReportarCambios as $numero) {
+                    if ($datosFuncionario['telefono']) {
                         $response = Http::post('http://localhost:3001/send-message', [
-                            'mensaje' => "-------------",
-                            'numero'  => "56" . $numero,
+                            'mensaje' => $mensaje,
+                            'numero'  => "56" . $datosFuncionario['telefono'],
                         ]);
                     }
                 }
