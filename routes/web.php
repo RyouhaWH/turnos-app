@@ -395,7 +395,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     }
 
                     // Construir mensaje consolidado
-                    $mensaje = "Se ha modificado el turno de: *{$datosFuncionario['nombre']}* los días:\n";
+                    $mensaje = "Se *Autoriza* el turno de: *{$datosFuncionario['nombre']}* _siendo modificado_ los días:\n";
 
                     foreach ($datosFuncionario['cambios'] as $cambio) {
                         $fechaFormateada = date('d/m/Y', strtotime($cambio['fecha']));
