@@ -22,6 +22,9 @@ interface TurnoData {
 interface CambioData {
     rut: string;
     nombre: string;
+    employee_id?: string | number;
+    first_name?: string;
+    paternal_lastname?: string;
     turnos: Record<string, string>;
 }
 
@@ -113,9 +116,11 @@ const contarTurnos = (datos: TurnoData[]): Record<string, number> => {
 
     for (const fila of datos) {
         for (const key in fila) {
-            if (key === 'nombre' || key === 'id') continue
+            if (key === 'nombre' || key === 'id' || key === 'employee_id' || key === 'rut') continue
 
-            const valor = (fila[key] || '').toUpperCase().trim()
+            // Convertir a string de forma segura antes de aplicar toUpperCase
+            const rawValue = fila[key]
+            const valor = String(rawValue || '').toUpperCase().trim()
             if (!valor) continue
 
             conteo[valor] = (conteo[valor] || 0) + 1
@@ -139,7 +144,7 @@ const DateHeaderComponent = (props: any) => {
 
     return (
         <div className={`
-            flex flex-col items-center justify-center h-full py-1 px-1 text-center relative
+            flex flex-col items-center justify-center h-full p-1 text-center
 
         `}>
             <div className="text-sm font-bold leading-tight">
@@ -152,27 +157,28 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
-        const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false, clearChanges = false }, ref) => {
+const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false, clearChanges = false }, ref) => {
 
     // Usar fecha actual si no se proporcionan month/year
-        const currentDate = new Date();
-        const activeMonth = month !== undefined ? month : currentDate.getMonth();
-        const activeYear = year !== undefined ? year : currentDate.getFullYear();
+    const currentDate = useMemo(() => new Date(), []);
+    const activeMonth = useMemo(() => month !== undefined ? month : currentDate.getMonth(), [month]);
+    const activeYear = useMemo(() => year !== undefined ? year : currentDate.getFullYear(), [year]);
 
-        // Extraer días de los datos
-        const daysInData = useMemo(() => extractDaysFromData(rowData), [rowData]);
+    // Extraer días de los datos
+    const daysInData = useMemo(() => extractDaysFromData(rowData), [rowData]);
 
-        // Generar información de cada día
-        const daysInfo = useMemo(() => {
-            return daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
-        }, [daysInData, activeMonth, activeYear]);
+    // Generar información de cada día
+    const daysInfo = useMemo(() => {
+        return daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
+    }, [daysInData, activeMonth, activeYear]);
 
-        const [cambios, setCambios] = useState<Record<string, CambioData>>({})
-        const gridRef = useRef<AgGridReact<TurnoData>>(null)
+    const [cambios, setCambios] = useState<Record<string, CambioData>>({})
+    const gridRef = useRef<AgGridReact<TurnoData>>(null)
 
-        // Debug logging mejorado
-        useEffect(() => {
-
+    // Debug logging mejorado
+    useEffect(() => {
+        // Solo cuando realmente necesites debug
+        if (process.env.NODE_ENV === 'development') {
             // También verificar algunos datos de muestra
             if (rowData.length > 0) {
 
@@ -182,78 +188,77 @@ const DateHeaderComponent = (props: any) => {
                     const fieldValue = sampleRow[dayInfo.day.toString()];
                 });
             }
-        }, [daysInfo, rowData]);
+        }
+    }, [daysInfo.length, rowData.length]); // Solo longitud, no objetos completos
 
-        // Efecto para reiniciar el grid cuando se solicita
-        useEffect(() => {
-            if (resetGrid) {
-                setCambios({});
+    // Efecto para reiniciar el grid cuando se solicita
+    useEffect(() => {
+        if (resetGrid) {
+            setCambios({});
 
-                // Forzar refresco del grid
-                if (gridRef.current?.api) {
-                    gridRef.current.api.refreshCells();
-                    gridRef.current.api.redrawRows();
+            // Forzar refresco del grid
+            if (gridRef.current?.api) {
+                gridRef.current.api.refreshCells();
+                gridRef.current.api.redrawRows();
+            }
+        }
+    }, [resetGrid]);
+
+    // Efecto para limpiar cambios internos cuando se solicita
+    useEffect(() => {
+        if (clearChanges) {
+            setCambios({});
+        }
+    }, [clearChanges]);
+
+
+
+    // Expose grid methods to parent component
+    useImperativeHandle(ref, () => ({
+        autoSizeColumns: (columns?: string[]) => {
+            const api = gridRef.current?.api
+            if (api) {
+                if (columns) {
+                    api.autoSizeColumns(columns)
+                } else {
+                    api.autoSizeAllColumns()
                 }
             }
-        }, [resetGrid]);
+        },
+        sizeColumnsToFit: () => {
+            gridRef.current?.api?.sizeColumnsToFit()
+        },
 
-        // Efecto para limpiar cambios internos cuando se solicita
-        useEffect(() => {
-            if (clearChanges) {
-                setCambios({});
-            }
-        }, [clearChanges]);
+        api: gridRef.current?.api
+    }))
 
+    // Define columns
+    const columnDefs = useMemo<ColDef[]>(() => {
 
-
-        // Expose grid methods to parent component
-        useImperativeHandle(ref, () => ({
-            autoSizeColumns: (columns?: string[]) => {
-                const api = gridRef.current?.api
-                if (api) {
-                    if (columns) {
-                        api.autoSizeColumns(columns)
-                    } else {
-                        api.autoSizeAllColumns()
-                    }
-                }
-            },
-            sizeColumnsToFit: () => {
-                gridRef.current?.api?.sizeColumnsToFit()
-            },
-
-            api: gridRef.current?.api
-        }))
-
-        // Define columns
-        const columnDefs = useMemo<ColDef[]>(() => {
-
-            const columns: ColDef[] = [
-                {
-                    headerName: 'Nombre',
-                    field: 'nombre',
-                    pinned: 'left',
-                    minWidth: 80,
-                    maxWidth: 150,
-                    flex: 0,
-                    suppressSizeToFit: true,
-                    autoHeight: true,
-                    suppressMenu: true,
-                    suppressMenuHide: true,
-                    suppressColumnMove: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    resizable: false,
-                    sortable: false,
-                    filter: false,
-                    cellStyle: {
-                        fontSize: '12px',
-                        padding: '4px 8px',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                    },
-                    valueGetter: (params) => {
+        const columns: ColDef[] = [
+            {
+                headerName: 'Nombre',
+                field: 'nombre',
+                pinned: 'left',
+                minWidth: 60,
+                maxWidth: 150,
+                flex: 0,
+                suppressSizeToFit: true,
+                autoHeight: true,
+                lockPosition: true,
+                suppressMovable: true,
+                resizable: true,
+                sortable: true,
+                filter: false,
+                cellStyle: {
+                    fontSize: '12px',
+                    padding: '0px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    textAlign: 'start'
+                },
+                valueGetter: (params) => {
                         // Si tiene first_name y paternal_lastname, usar esos
                         if (params.data?.first_name && params.data?.paternal_lastname) {
                             // Extraer solo el primer nombre del first_name
@@ -262,231 +267,172 @@ const DateHeaderComponent = (props: any) => {
                         }
                         // Si no, usar el nombre completo como fallback
                         return params.data?.nombre || '';
+                }
+            }
+        ];
+
+        // Agregar columnas para cada día
+        daysInfo.forEach((dayInfo, index) => {
+            const fieldName = dayInfo.day.toString();
+
+            columns.push({
+                headerName: fieldName,
+                field: fieldName, // Usar el número del día como field
+                headerComponent: DateHeaderComponent,
+                headerComponentParams: {
+                    dayInfo: dayInfo
+                },
+                editable: editable, // Usar la propiedad editable del componente
+                width: 50,
+                minWidth: 50,
+                maxWidth: 50,
+                flex: 0,
+                lockPosition: true,
+                suppressMovable: true,
+                resizable: false,
+                sortable: true,
+                filter: false,
+                headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
+                cellClass: (params) => {
+                    const classes = [];
+                    if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
+                    if (params.value) {
+                        const firstChar = String(params.value).toLowerCase().charAt(0);
+                        classes.push(`shift-${firstChar}`);
+                    }
+                    return classes.join(' ');
+                },
+                valueParser: (params: any) =>
+                    String(params.newValue || '').toUpperCase().slice(0, 2),
+            });
+        });
+        return columns;
+    }, [daysInfo, editable])
+
+    // Handle cell value changes
+    const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
+        if (!e || !e.data || !e.colDef?.field) return
+
+        const funcionario = e.data.nombre;
+        const rut = e.data.rut;
+        const employeeId = e.data.employee_id || e.data.id;
+        const dayField = e.colDef.field;
+
+        // Verificar que sea un día válido
+        if (dayField === 'nombre' || dayField === 'id' || dayField === 'employee_id' || dayField === 'rut') return;
+
+        const turno = e.value || '';
+        const valorAnterior = e.oldValue || '';
+
+        // No registrar cambios si estamos deshaciendo
+        if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
+            onRegisterChange(funcionario, rut, dayField, valorAnterior, turno);
+        }
+
+        // No actualizar el resumen si estamos deshaciendo
+        if (!isUndoing) {
+            setCambios(prev => {
+                const newCambios = { ...prev }
+
+                // Usar employee_id como clave en lugar del nombre normalizado
+                const clave = employeeId;
+                // const clave = rut;
+
+                if (!newCambios[clave]) {
+                    newCambios[clave] = {
+                        rut: rut,
+                        nombre: funcionario,
+                        employee_id: employeeId,
+                        first_name: e.data.first_name,
+                        paternal_lastname: e.data.paternal_lastname,
+                        turnos: {}
                     }
                 }
-            ];
 
-            // Agregar columnas para cada día
-            daysInfo.forEach((dayInfo, index) => {
-                const fieldName = dayInfo.day.toString();
+                // Verificar si realmente hay un cambio
+                const valorAnterior = e.oldValue || '';
+                const valorNuevo = turno || '';
 
-                columns.push({
-                    headerName: fieldName,
-                    field: fieldName, // Usar el número del día como field
-                    headerComponent: DateHeaderComponent,
-                    headerComponentParams: {
-                        dayInfo: dayInfo
-                    },
-                    editable: editable, // Usar la propiedad editable del componente
-                    width: 50,
-                    minWidth: 50,
-                    maxWidth: 50,
-                    flex: 0,
-                    suppressMenu: true,
-                    suppressMenuHide: true,
-                    suppressColumnMove: true,
-                    lockPosition: true,
-                    suppressMovable: true,
-                    resizable: false,
-                    sortable: false,
-                    filter: false,
-                    headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
-                    cellClass: (params) => {
-                        const classes = [];
-                        if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
-                        if (params.value) {
-                            const firstChar = params.value.toLowerCase().charAt(0);
-                            classes.push(`shift-${firstChar}`);
-                        }
-
-                        // Verificar si esta celda tiene un cambio pendiente
-                        if (showPendingChanges && pendingChanges && pendingChanges.length > 0 && originalChangeDate) {
-                            const employeeId = params.data?.employee_id || params.data?.id;
-                            const currentMonth = month !== undefined ? month : new Date().getMonth();
-                            const currentYear = year !== undefined ? year : new Date().getFullYear();
-
-                            // Crear fecha específica para esta celda
-                            const cellDate = new Date(currentYear, currentMonth, parseInt(fieldName));
-                            const cellDateString = cellDate.toISOString().split('T')[0];
-
-                            // Buscar cambios pendientes que coincidan con esta fecha específica
-                            const hasPendingChange = pendingChanges.some(change => {
-                                // Convertir el día del cambio a fecha completa
-                                const changeDate = new Date(originalChangeDate.getFullYear(), originalChangeDate.getMonth(), parseInt(change.day));
-                                const changeDateString = changeDate.toISOString().split('T')[0];
-
-                                const matches = changeDateString === cellDateString && (change.employeeId === employeeId);
-                                return matches;
-                            });
-
-                            if (hasPendingChange) {
-                                classes.push('pending-change');
-                            }
-                        }
-
-                        return classes.join(' ');
-                    },
-                    valueParser: (params: any) =>
-                        (params.newValue || '').toUpperCase().slice(0, 2),
-                    tooltipValueGetter: (params) => {
-                        const turno = params.value || 'Sin turno';
-                        let tooltip = `${params.data.nombre} - ${dayInfo.nombreCompleto} ${dayInfo.day}: ${turno}`;
-
-                        // Verificar si esta celda tiene un cambio pendiente
-                        if (showPendingChanges && pendingChanges && pendingChanges.length > 0 && originalChangeDate) {
-                            const employeeId = params.data?.employee_id || params.data?.id;
-                            const currentMonth = month !== undefined ? month : new Date().getMonth();
-                            const currentYear = year !== undefined ? year : new Date().getFullYear();
-
-                            // Crear fecha específica para esta celda
-                            const cellDate = new Date(currentYear, currentMonth, parseInt(fieldName));
-                            const cellDateString = cellDate.toISOString().split('T')[0];
-
-                            // Buscar cambios pendientes que coincidan con esta fecha específica
-                            const pendingChange = pendingChanges.find(change => {
-                                // Convertir el día del cambio a fecha completa
-                                const changeDate = new Date(originalChangeDate.getFullYear(), originalChangeDate.getMonth(), parseInt(change.day));
-                                const changeDateString = changeDate.toISOString().split('T')[0];
-
-                                return changeDateString === cellDateString &&
-                                       (change.employeeId === employeeId);
-                            });
-
-                            if (pendingChange) {
-                                tooltip += `\n⏳ Cambio pendiente: ${pendingChange.oldValue || 'Sin turno'} → ${pendingChange.newValue || 'Sin turno'}`;
-                            }
-                        }
-
-                        return tooltip;
-                    }
-                });
-            });
-            return columns;
-        }, [daysInfo, editable])
-
-        // Handle cell value changes
-        const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
-            if (!e || !e.data || !e.colDef?.field) return
-
-            const funcionario = e.data.nombre;
-            const rut = e.data.rut;
-            const employeeId = e.data.employee_id || e.data.id;
-            const dayField = e.colDef.field;
-
-            // Verificar que sea un día válido
-            if (dayField === 'nombre' || dayField === 'id' || dayField === 'employee_id' || dayField === 'rut') return;
-
-            const turno = e.value || '';
-            const valorAnterior = e.oldValue || '';
-
-            // No registrar cambios si estamos deshaciendo
-            if (onRegisterChange && valorAnterior !== turno && !isUndoing) {
-                onRegisterChange(funcionario, rut, dayField, valorAnterior, turno);
-            }
-
-            // No actualizar el resumen si estamos deshaciendo
-            if (!isUndoing) {
-                setCambios(prev => {
-                    const newCambios = { ...prev }
-
-                    // Usar employee_id como clave en lugar del nombre normalizado
-                    const clave = employeeId;
-                    // const clave = rut;
-
-                    if (!newCambios[clave]) {
-                        newCambios[clave] = {
-                            rut: rut,
-                            nombre: funcionario,
-                            employee_id: employeeId,
-                            first_name: e.data.first_name,
-                            paternal_lastname: e.data.paternal_lastname,
-                            turnos: {}
-                        }
-                    }
-
-                    // Verificar si realmente hay un cambio
-                    const valorAnterior = e.oldValue || '';
-                    const valorNuevo = turno || '';
-
-                    // Solo agregar al resumen si hay un cambio real
-                    if (valorAnterior !== valorNuevo) {
-                        if (turno) {
-                            newCambios[clave].turnos[dayField] = turno
-                        } else {
-                            // Enviar valor vacío explícitamente para indicar eliminación
-                            newCambios[clave].turnos[dayField] = ''
-                        }
+                // Solo agregar al resumen si hay un cambio real
+                if (valorAnterior !== valorNuevo) {
+                    if (turno) {
+                        newCambios[clave].turnos[dayField] = turno
                     } else {
-                        // Si no hay cambio, remover del resumen
-                        delete newCambios[clave].turnos[dayField]
-
-                        // Limpiar objetos vacíos
-                        if (Object.keys(newCambios[clave].turnos).length === 0) {
-                            delete newCambios[clave]
-                        }
+                        // Enviar valor vacío explícitamente para indicar eliminación
+                        newCambios[clave].turnos[dayField] = ''
                     }
-                    onResumenChange(newCambios)
-                    return newCambios
+                } else {
+                    // Si no hay cambio, remover del resumen
+                    delete newCambios[clave].turnos[dayField]
+
+                    // Limpiar objetos vacíos
+                    if (Object.keys(newCambios[clave].turnos).length === 0) {
+                        delete newCambios[clave]
+                    }
+                }
+                onResumenChange(newCambios)
+                return newCambios
+            })
+        }
+
+        // Log del resumen de turnos
+        if (gridRef.current?.api) {
+            const allData: TurnoData[] = []
+            gridRef.current.api.forEachNode(node => {
+                if (node.data) allData.push(node.data)
+            })
+            const resumen = contarTurnos(allData)
+        }
+    }, [onResumenChange, onRegisterChange, isUndoing])
+
+    // Handle grid ready event
+    const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
+        requestAnimationFrame(() => {
+            if (params.api) {
+                params.api.autoSizeColumns(['nombre'])
+                requestAnimationFrame(() => {
+                    params.api.sizeColumnsToFit()
                 })
             }
+        })
+    }, [])
 
-            // Log del resumen de turnos
-            if (gridRef.current?.api) {
-                const allData: TurnoData[] = []
-                gridRef.current.api.forEachNode(node => {
-                    if (node.data) allData.push(node.data)
-                })
-                const resumen = contarTurnos(allData)
+    // Handle cell clicks
+    const onCellClicked = useCallback((event: CellClickedEvent<TurnoData>) => {
+        if (event.colDef?.field === 'nombre') return
+
+        const dayField = event.colDef?.field
+        const funcionario = event.data?.nombre
+        const turno = event.value
+
+        if (dayField && funcionario) {
+            const dayInfo = daysInfo.find(d => d.day.toString() === dayField);
+            if (dayInfo) {
             }
-        }, [onResumenChange, onRegisterChange, isUndoing])
+        }
+    }, [daysInfo])
 
-        // Handle grid ready event
-        const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
+    // Resize columns when data changes
+    useEffect(() => {
+        if (gridRef.current?.api && rowData.length > 0) {
             requestAnimationFrame(() => {
-                if (params.api) {
-                    params.api.autoSizeColumns(['nombre'])
+                const api = gridRef.current?.api
+                if (api) {
+                    api.autoSizeColumns(['nombre'])
                     requestAnimationFrame(() => {
-                        params.api.sizeColumnsToFit()
+                        api.sizeColumnsToFit()
                     })
                 }
             })
-        }, [])
+        }
+    }, [rowData])
 
-        // Handle cell clicks
-        const onCellClicked = useCallback((event: CellClickedEvent<TurnoData>) => {
-            if (event.colDef?.field === 'nombre') return
 
-            const dayField = event.colDef?.field
-            const funcionario = event.data?.nombre
-            const turno = event.value
+    return (
+        <div className="w-full h-full">
+            {/* Estilos CSS simples desde cero */}
 
-            if (dayField && funcionario) {
-                const dayInfo = daysInfo.find(d => d.day.toString() === dayField);
-                if (dayInfo) {
-                }
-            }
-        }, [daysInfo])
-
-        // Resize columns when data changes
-        useEffect(() => {
-            if (gridRef.current?.api && rowData.length > 0) {
-                requestAnimationFrame(() => {
-                    const api = gridRef.current?.api
-                    if (api) {
-                        api.autoSizeColumns(['nombre'])
-                        requestAnimationFrame(() => {
-                            api.sizeColumnsToFit()
-                        })
-                    }
-                })
-            }
-        }, [rowData])
-
-        return (
-            <div className="w-full h-full">
-                {/* Estilos CSS simples desde cero */}
-
-                <style>{`
+            <style>{`
                     /* Texto centrado y en negrita para todas las celdas de datos */
                     .ag-theme-alpine .ag-cell {
                         text-align: center !important;
@@ -574,42 +520,31 @@ const DateHeaderComponent = (props: any) => {
 
                 `}</style>
 
-                <AgGridReact
-                    ref={gridRef}
-                    rowData={rowData}
-                    columnDefs={columnDefs}
-                    defaultColDef={{
-                        resizable: false,
-                        sortable: false,
-                        filter: false,
-                        suppressMenu: true,
-                        suppressMenuHide: true,
-                        suppressColumnMove: true,
-                        lockPosition: true,
-                        suppressMovable: true
-                    }}
-                    onCellClicked={onCellClicked}
-                    onCellValueChanged={handleCellChange}
-                    onGridReady={handleGridReady}
-                    onRowClicked={onRowClicked}
-                    rowHeight={32}
-                    headerHeight={50}
-                    suppressColumnVirtualisation={true}
-                    suppressRowVirtualisation={true}
-                    suppressLoadingOverlay={true}
-                    suppressNoRowsOverlay={true}
-                    animateRows={false}
-                    maintainColumnOrder={true}
-                    suppressColumnMenu={true}
-                    suppressContextMenu={true}
-                    suppressColumnMove={true}
-                    suppressMovableColumns={true}
-                    allowDragFromColumnsToolPanel={false}
-                    allowDragFromColumnsHeader={false}
-                />
-            </div>
-        )
-    }
+            <AgGridReact
+                ref={gridRef}
+                rowData={rowData}
+                columnDefs={columnDefs}
+                defaultColDef={{
+                    resizable: false,
+                    sortable: false,
+                    filter: false
+                }}
+                onCellClicked={onCellClicked}
+                onCellValueChanged={handleCellChange}
+                onGridReady={handleGridReady}
+                onRowClicked={onRowClicked}
+                rowHeight={32}
+                headerHeight={50}
+                suppressColumnVirtualisation={false}
+                suppressRowVirtualisation={false}
+                suppressLoadingOverlay={true}
+                suppressNoRowsOverlay={true}
+                animateRows={false}
+                suppressContextMenu={true}
+            />
+        </div>
+    )
+}
 )
 
 export default AgGridHorizontal

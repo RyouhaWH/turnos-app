@@ -1,9 +1,30 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileSpreadsheet } from 'lucide-react';
+import { FileSpreadsheet, Loader2 } from 'lucide-react';
 import AgGridHorizontal from '@/components/ui/excel-shift-horizontal';
 import { MonthYearPicker } from '@/components/month-year-picker';
 import { useRef, useEffect, memo } from 'react';
+
+// Componente de loading optimizado
+const LoadingGrid = () => (
+    <div className="flex h-full min-h-[400px] items-center justify-center bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+        <div className="flex flex-col items-center space-y-4">
+            <div className="relative">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                <div className="absolute inset-0 animate-ping rounded-full bg-blue-400 opacity-25"></div>
+            </div>
+            <div className="text-center">
+                <h3 className="text-lg font-medium text-slate-900 dark:text-white">Cargando turnos...</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Preparando la información más reciente</p>
+            </div>
+            <div className="flex space-x-1">
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.3s]"></div>
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.15s]"></div>
+                <div className="h-2 w-2 animate-bounce rounded-full bg-blue-600"></div>
+            </div>
+        </div>
+    </div>
+);
 
 interface TurnoData {
     id: string;
@@ -148,21 +169,25 @@ export const ShiftsGrid = memo(({
                         </div>
                     )}
                     <div className="ag-theme-alpine h-full max-h-[57vh] overflow-hidden border-0 shadow-xl rounded-sm mx-4 transition-all duration-300 ease-in-out">
-                        <AgGridHorizontal
-                            ref={gridRef}
-                            rowData={filteredRowData}
-                            onResumenChange={handleResumenUpdate}
-                            editable={hasEditPermissions}
-                            resetGrid={resetGrid}
-                            onRegisterChange={registerChange}
-                            isUndoing={isUndoing}
-                            pendingChanges={listaCambios}
-                            originalChangeDate={originalChangeDate}
-                            month={selectedDate.getMonth()}
-                            year={selectedDate.getFullYear()}
-                            showPendingChanges={showPendingChanges}
-                            clearChanges={clearChanges}
-                        />
+                        {loading ? (
+                            <LoadingGrid />
+                        ) : (
+                            <AgGridHorizontal
+                                ref={gridRef}
+                                rowData={filteredRowData}
+                                onResumenChange={handleResumenUpdate}
+                                editable={hasEditPermissions}
+                                resetGrid={resetGrid}
+                                onRegisterChange={registerChange}
+                                isUndoing={isUndoing}
+                                pendingChanges={listaCambios}
+                                originalChangeDate={originalChangeDate}
+                                month={selectedDate.getMonth()}
+                                year={selectedDate.getFullYear()}
+                                showPendingChanges={showPendingChanges}
+                                clearChanges={clearChanges}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
@@ -233,21 +258,25 @@ export const ShiftsGrid = memo(({
                 )}
 
                 <div className="ag-theme-alpine h-full min-h-[400px] flex-1 overflow-hidden rounded-b-lg border-0 mt-4">
-                    <AgGridHorizontal
-                        ref={gridRef}
-                        rowData={filteredRowData}
-                        onResumenChange={handleResumenUpdate}
-                        editable={hasEditPermissions}
-                        resetGrid={resetGrid}
-                        onRegisterChange={registerChange}
-                        isUndoing={isUndoing}
-                        pendingChanges={listaCambios}
-                        originalChangeDate={originalChangeDate}
-                        month={selectedDate.getMonth()}
-                        year={selectedDate.getFullYear()}
-                        showPendingChanges={showPendingChanges}
-                        clearChanges={clearChanges}
-                    />
+                    {loading ? (
+                        <LoadingGrid />
+                    ) : (
+                        <AgGridHorizontal
+                            ref={gridRef}
+                            rowData={filteredRowData}
+                            onResumenChange={handleResumenUpdate}
+                            editable={hasEditPermissions}
+                            resetGrid={resetGrid}
+                            onRegisterChange={registerChange}
+                            isUndoing={isUndoing}
+                            pendingChanges={listaCambios}
+                            originalChangeDate={originalChangeDate}
+                            month={selectedDate.getMonth()}
+                            year={selectedDate.getFullYear()}
+                            showPendingChanges={showPendingChanges}
+                            clearChanges={clearChanges}
+                        />
+                    )}
                 </div>
             </CardContent>
         </Card>

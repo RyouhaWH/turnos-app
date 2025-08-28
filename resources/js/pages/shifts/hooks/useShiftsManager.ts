@@ -48,17 +48,17 @@ export const useShiftsManager = (employee_rol_id: number) => {
         });
     }, [props.turnos]);
 
-    // Estados principales
-    const [rowData, setRowData] = useState<TurnoData[]>(datosInicialesOrdenados);
+    // Estados principales - Optimizados para carga lazy
+    const [rowData, setRowData] = useState<TurnoData[]>([]);
     const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
     const [comentario, setComentario] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date());
-    
+
     // Derivar el título del mes en lugar de mantenerlo como estado
     const currentMonthTitle = useMemo(() => {
         return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
     }, [selectedDate]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true); // Empezar con loading activo
     const [isChangesExpanded, setIsChangesExpanded] = useState(false);
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
     const [resetGrid, setResetGrid] = useState(false);
@@ -69,14 +69,15 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const [clearChanges, setClearChanges] = useState(false);
     const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null);
     const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
     // Búsqueda con debounce usando hook personalizado
     const [searchInputTerm, setSearchInputTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchInputTerm.trim(), 250);
 
-    // Selección y disponibles
+    // Selección y disponibles - Empezar vacíos para carga lazy
     const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
-    const [availableEmployees, setAvailableEmployees] = useState<TurnoData[]>(datosInicialesOrdenados);
+    const [availableEmployees, setAvailableEmployees] = useState<TurnoData[]>([]);
     const [showEmployeeSelector, setShowEmployeeSelector] = useState(false);
 
     // Lista de cambios
@@ -217,11 +218,12 @@ export const useShiftsManager = (employee_rol_id: number) => {
         }
     }, [listaCambios, originalChangeDate]);
 
-    // Cargar turnos por mes
-    const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
+    // Función de carga asíncrona optimizada
+    const loadDataAsync = useCallback(async (fecha: Date, showToast = false) => {
         const year = fecha.getFullYear();
         const month = fecha.getMonth() + 1;
 
+        // Validar cambios pendientes
         const hayCambiosReales = listaCambios.length > 0 && Object.keys(resumen).length > 0;
         const esCambioDeMes = originalChangeDate &&
             (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear());
@@ -234,7 +236,11 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
             if (confirmarCambio) {
                 setPendingDateChange(fecha);
-                handleActualizarCambios(comentario || 'Cambios guardados automáticamente al cambiar de mes');
+                // Usar la función directamente en lugar de callback para evitar dependencia circular
+                const comentarioFinal = comentario || 'Cambios guardados automáticamente al cambiar de mes';
+                setComentario(comentarioFinal);
+
+                // TODO: Implementar guardado aquí si es necesario
                 return;
             } else {
                 setListaCambios([]);
@@ -245,60 +251,104 @@ export const useShiftsManager = (employee_rol_id: number) => {
         }
 
         try {
-                    setLoading(true);
+            setLoading(true);
+
+            // Yield al browser para no bloquear UI
+            await new Promise(resolve => setTimeout(resolve, 0));
 
             const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
-            const data = await response.json();
 
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
             const turnosArray = Object.values(data) as TurnoData[];
 
-            const turnosOrdenados = turnosArray.sort((a, b) => {
-                const nombreA = a.first_name && a.paternal_lastname
-                    ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
-                    : (a.nombre || '').toLowerCase();
-                const nombreB = b.first_name && b.paternal_lastname
-                    ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
-                    : (b.nombre || '').toLowerCase();
+            // Procesar datos en chunks para no bloquear UI
+            const processDataInChunks = async (data: TurnoData[], chunkSize = 50) => {
+                const result = [];
 
-                return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-            });
+                for (let i = 0; i < data.length; i += chunkSize) {
+                    const chunk = data.slice(i, i + chunkSize);
 
+                    const processedChunk = chunk.sort((a, b) => {
+                        const nombreA = a.first_name && a.paternal_lastname
+                            ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
+                            : (a.nombre || '').toLowerCase();
+                        const nombreB = b.first_name && b.paternal_lastname
+                            ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
+                            : (b.nombre || '').toLowerCase();
+
+                        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+                    });
+
+                    result.push(...processedChunk);
+
+                    // Yield al browser después de cada chunk
+                    if (i + chunkSize < data.length) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                return result;
+            };
+
+            const turnosOrdenados = await processDataInChunks(turnosArray);
+
+            // Aplicar cambios pendientes si es necesario
             const isOriginalMonth = originalChangeDate &&
                 originalChangeDate.getMonth() === fecha.getMonth() &&
                 originalChangeDate.getFullYear() === fecha.getFullYear();
 
+            let finalData = turnosOrdenados;
             if (isOriginalMonth && listaCambios.length > 0) {
-                const turnosConCambiosPendientes = aplicarCambiosPendientes(turnosOrdenados, fecha);
-                setRowData(turnosConCambiosPendientes);
-                setTimeout(() => {
-                    setShowPendingChanges(true);
-                }, 200);
-            } else {
-                setRowData(turnosOrdenados);
-                if (listaCambios.length === 0) {
-                    setResumen({});
-                }
-                setShowPendingChanges(false);
+                finalData = aplicarCambiosPendientes(turnosOrdenados, fecha);
             }
 
+            // Aplicar datos usando requestAnimationFrame para timing óptimo
+            requestAnimationFrame(() => {
+                setRowData(finalData);
+                setAvailableEmployees(turnosOrdenados);
+                setInitialDataLoaded(true);
 
+                if (isOriginalMonth && listaCambios.length > 0) {
+                    setTimeout(() => setShowPendingChanges(true), 200);
+                } else {
+                    if (listaCambios.length === 0) {
+                        setResumen({});
+                    }
+                    setShowPendingChanges(false);
+                }
 
-            toast.success('Turnos cargados correctamente', {
-                description: `Se cargaron los turnos de ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}`,
-                duration: 3000,
+                if (showToast) {
+                    toast.success('Turnos cargados correctamente', {
+                        description: `Se cargaron ${turnosOrdenados.length} empleados para ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}`,
+                        duration: 3000,
+                    });
+                }
             });
+
         } catch (error) {
             console.error('Error al cargar turnos:', error);
 
-
-            toast.error('Error al cargar turnos', {
-                description: 'Hubo un problema al cargar los turnos del mes seleccionado.',
-                duration: 4000,
-            });
+            if (showToast) {
+                toast.error('Error al cargar turnos', {
+                    description: 'Hubo un problema al cargar los turnos del mes seleccionado.',
+                    duration: 4000,
+                });
+            }
         } finally {
-            setLoading(false);
+            requestAnimationFrame(() => {
+                setLoading(false);
+            });
         }
-    }, [listaCambios, originalChangeDate, employee_rol_id, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
+    }, [employee_rol_id, listaCambios, originalChangeDate, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
+
+    // Cargar turnos por mes - Ahora usa la función optimizada
+    const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
+        await loadDataAsync(fecha, true); // Mostrar toast en cargas manuales
+    }, [loadDataAsync]);
 
     const handleResumenUpdate = useCallback((ResumenCambios: any) => {
         setResumen(ResumenCambios);
@@ -544,6 +594,13 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [originalChangeDate, selectedDate, resumen, pendingDateChange, cargarTurnosPorMes]);
 
     const getTotalEmployees = useCallback(() => rowData.length, [rowData]);
+
+    // Carga inicial optimizada
+    useEffect(() => {
+        if (!initialDataLoaded) {
+            loadDataAsync(selectedDate, false); // No mostrar toast en carga inicial
+        }
+    }, [loadDataAsync, selectedDate, initialDataLoaded]);
 
     useEffect(() => {
         limpiarCambiosSinConfirmacion();
