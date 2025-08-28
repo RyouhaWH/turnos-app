@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, Shield, AlertCircle, CheckCircle } from 'lucide-react';
+import { Users, Shield, AlertCircle, CheckCircle, Key } from 'lucide-react';
+import ChangePasswordForm from '@/components/ChangePasswordForm';
 
 interface User {
     id: number;
@@ -39,6 +40,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
     const [isUpdating, setIsUpdating] = useState<Record<number, boolean>>({});
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [passwordDialogUser, setPasswordDialogUser] = useState<User | null>(null);
 
     const handleRoleChange = (userId: number, roleName: string) => {
         setSelectedRoles(prev => ({
@@ -215,15 +217,26 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                     </SelectContent>
                                                 </Select>
 
-                                                {hasChanges && (
+                                                <div className="flex gap-2">
+                                                    {hasChanges && (
+                                                        <Button
+                                                            onClick={() => updateUserRoles(user.id)}
+                                                            disabled={isUpdating[user.id]}
+                                                            size="sm"
+                                                        >
+                                                            {isUpdating[user.id] ? 'Guardando...' : 'Guardar Cambios'}
+                                                        </Button>
+                                                    )}
                                                     <Button
-                                                        onClick={() => updateUserRoles(user.id)}
-                                                        disabled={isUpdating[user.id]}
+                                                        variant="outline"
                                                         size="sm"
+                                                        onClick={() => setPasswordDialogUser(user)}
+                                                        className="flex items-center gap-2"
                                                     >
-                                                        {isUpdating[user.id] ? 'Guardando...' : 'Guardar Cambios'}
+                                                        <Key className="h-4 w-4" />
+                                                        Cambiar Contraseña
                                                     </Button>
-                                                )}
+                                                </div>
                                             </div>
 
                                             <div className="text-xs text-muted-foreground mt-2">
@@ -237,6 +250,15 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Diálogo para cambiar contraseña */}
+            {passwordDialogUser && (
+                <ChangePasswordForm
+                    user={passwordDialogUser}
+                    isOpen={true}
+                    onClose={() => setPasswordDialogUser(null)}
+                />
+            )}
         </div>
     );
 }

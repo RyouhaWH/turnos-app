@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Spatie\Permission\Models\Role;
 
@@ -54,5 +56,22 @@ class AdministrationController extends Controller
                 ]
             ]
         ]);
+    }
+
+    /**
+     * Cambiar la contraseña de un usuario
+     */
+    public function changePassword(Request $request, User $user)
+    {
+        $request->validate([
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        // Actualizar la contraseña
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        return back()->with('success', 'Contraseña actualizada correctamente para ' . $user->name);
     }
 }

@@ -22,4 +22,8 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/administration', [App\Http\Controllers\AdministrationController::class, 'index'])
         ->name('administration.edit')
         ->middleware('admin');
+    
+    Route::put('settings/administration/users/{user}/password', [App\Http\Controllers\AdministrationController::class, 'changePassword'])
+        ->name('administration.users.change-password')
+        ->middleware('admin');
 });
