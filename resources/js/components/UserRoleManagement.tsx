@@ -5,8 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Users, Shield, AlertCircle, CheckCircle, Key } from 'lucide-react';
+import { Users, Shield, AlertCircle, CheckCircle, Key, Mail } from 'lucide-react';
 import ChangePasswordForm from '@/components/ChangePasswordForm';
+import ChangeEmailForm from '@/components/ChangeEmailForm';
 
 interface User {
     id: number;
@@ -41,6 +42,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [passwordDialogUser, setPasswordDialogUser] = useState<User | null>(null);
+    const [emailDialogUser, setEmailDialogUser] = useState<User | null>(null);
 
     const handleRoleChange = (userId: number, roleName: string) => {
         setSelectedRoles(prev => ({
@@ -236,6 +238,15 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                                                         <Key className="h-4 w-4" />
                                                         Cambiar Contraseña
                                                     </Button>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => setEmailDialogUser(user)}
+                                                        className="flex items-center gap-2"
+                                                    >
+                                                        <Mail className="h-4 w-4" />
+                                                        Cambiar Email
+                                                    </Button>
                                                 </div>
                                             </div>
 
@@ -257,6 +268,15 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                     user={passwordDialogUser}
                     isOpen={true}
                     onClose={() => setPasswordDialogUser(null)}
+                />
+            )}
+
+            {/* Diálogo para cambiar email */}
+            {emailDialogUser && (
+                <ChangeEmailForm
+                    user={emailDialogUser}
+                    isOpen={true}
+                    onClose={() => setEmailDialogUser(null)}
                 />
             )}
         </div>

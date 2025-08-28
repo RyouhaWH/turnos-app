@@ -74,4 +74,21 @@ class AdministrationController extends Controller
 
         return back()->with('success', 'Contraseña actualizada correctamente para ' . $user->name);
     }
+
+    /**
+     * Cambiar el email de un usuario
+     */
+    public function changeEmail(Request $request, User $user)
+    {
+        $request->validate([
+            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
+        ]);
+
+        // Actualizar el email
+        $user->update([
+            'email' => $request->email,
+        ]);
+
+        return back()->with('success', 'Email actualizado correctamente para ' . $user->name);
+    }
 }
