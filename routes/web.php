@@ -410,7 +410,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
                         ]);
                     }
 
-                    // Enviar mensaje al funcionario si tiene teléfono
                     if ($datosFuncionario['telefono']) {
                         $response = Http::post('http://localhost:3001/send-message', [
                             'mensaje' => $mensaje,
