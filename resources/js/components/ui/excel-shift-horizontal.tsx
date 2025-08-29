@@ -16,7 +16,13 @@ ModuleRegistry.registerModules([AllCommunityModule]);
 interface TurnoData {
     id: string
     nombre: string
-    [key: string]: string
+    amzoma?: boolean | string | number
+    first_name?: string
+    paternal_lastname?: string
+    isSeparator?: boolean
+    isGroupHeader?: boolean
+    groupType?: 'amzoma' | 'municipal'
+    [key: string]: string | boolean | number | undefined
 }
 
 interface CambioData {
@@ -157,6 +163,70 @@ const DateHeaderComponent = (props: any) => {
     );
 };
 
+// Función para agregar separadores entre Amzoma y Municipal con funcionalidad de grupos
+const addSeparatorRow = (data: TurnoData[]): TurnoData[] => {
+    if (!data || data.length === 0) return data;
+
+    const result: TurnoData[] = [];
+    let amzomaHeaderAdded = false;
+    let municipalHeaderAdded = false;
+    let hasAmzoma = false;
+    let hasNonAmzoma = false;
+
+    // Verificar si hay empleados de ambos tipos
+    data.forEach(item => {
+        const isAmzoma = item.amzoma === true || item.amzoma === 'true' || item.amzoma === 1;
+        if (isAmzoma) hasAmzoma = true;
+        else hasNonAmzoma = true;
+    });
+
+    // Solo agregar separadores si hay empleados de ambos tipos
+    if (!hasAmzoma || !hasNonAmzoma) return data;
+
+    // Función para crear fila separadora con funcionalidad de grupo
+    const createGroupHeaderRow = (id: string, text: string, groupType: 'amzoma' | 'municipal'): TurnoData => {
+        const separatorRow: TurnoData = {
+            id: id,
+            nombre: text,
+            isSeparator: true,
+            isGroupHeader: true,
+            groupType: groupType,
+        };
+
+        // Agregar campos de días con valores vacíos
+        const sampleRow = data[0];
+        Object.keys(sampleRow).forEach(key => {
+            if (key !== 'id' && key !== 'nombre' && key !== 'amzoma' && key !== 'first_name' && key !== 'paternal_lastname' && key !== 'isSeparator' && key !== 'isGroupHeader' && key !== 'groupType') {
+                (separatorRow as any)[key] = '';
+            }
+        });
+
+        return separatorRow;
+    };
+
+    data.forEach((item, index) => {
+        const isAmzoma = item.amzoma === true || item.amzoma === 'true' || item.amzoma === 1;
+        const nextItem = data[index + 1];
+        const nextIsAmzoma = nextItem ? (nextItem.amzoma === true || nextItem.amzoma === 'true' || nextItem.amzoma === 1) : false;
+
+                // Agregar header "MUNICIPAL" antes del primer empleado municipal
+        if (!isAmzoma && !municipalHeaderAdded) {
+            result.push(createGroupHeaderRow('municipal-header', '▶ MUNICIPAL', 'municipal'));
+            municipalHeaderAdded = true;
+        }
+
+        // Agregar header "AMZOMA" antes del primer empleado de Amzoma
+        if (isAmzoma && !amzomaHeaderAdded) {
+            result.push(createGroupHeaderRow('amzoma-header', '▶ AMZOMA', 'amzoma'));
+            amzomaHeaderAdded = true;
+        }
+
+        result.push(item);
+    });
+
+    return result;
+};
+
 const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onResumenChange, onRowClicked, editable = true, resetGrid = false, onRegisterChange, isUndoing = false, month, year, pendingChanges = [], originalChangeDate, showPendingChanges = false, clearChanges = false }, ref) => {
 
     // Usar fecha actual si no se proporcionan month/year
@@ -164,8 +234,41 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
     const activeMonth = useMemo(() => month !== undefined ? month : currentDate.getMonth(), [month]);
     const activeYear = useMemo(() => year !== undefined ? year : currentDate.getFullYear(), [year]);
 
+    // Estado para grupos colapsados
+    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+
+    // Procesar datos para agregar separador y manejar grupos colapsados
+    const processedRowData = useMemo(() => {
+        const dataWithSeparators = addSeparatorRow(rowData);
+
+        // Filtrar filas basado en grupos colapsados
+        if (collapsedGroups.size === 0) return dataWithSeparators;
+
+        const filteredData: TurnoData[] = [];
+        let skipUntilNextGroup = false;
+        let currentGroup: string | null = null;
+
+        dataWithSeparators.forEach((row) => {
+            if (row.isGroupHeader) {
+                currentGroup = row.groupType || null;
+                if (currentGroup && collapsedGroups.has(currentGroup)) {
+                    skipUntilNextGroup = true;
+                    // Incluir solo el header
+                    filteredData.push(row);
+                } else {
+                    skipUntilNextGroup = false;
+                    filteredData.push(row);
+                }
+            } else if (!skipUntilNextGroup) {
+                filteredData.push(row);
+            }
+        });
+
+        return filteredData;
+    }, [rowData, collapsedGroups]);
+
     // Extraer días de los datos
-    const daysInData = useMemo(() => extractDaysFromData(rowData), [rowData]);
+    const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
 
     // Generar información de cada día
     const daysInfo = useMemo(() => {
@@ -250,15 +353,54 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 resizable: true,
                 sortable: true,
                 filter: false,
-                cellStyle: {
-                    fontSize: '12px',
-                    padding: '0px',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    textAlign: 'start'
+                cellClass: (params) => {
+                    if (params.data?.isSeparator) {
+                        return 'separator-name-cell';
+                    }
+                    return '';
                 },
-                valueGetter: (params) => {
+                cellStyle: (params) => {
+                    if (params.data?.isSeparator) {
+                        return {
+                            fontSize: '11px',
+                            padding: '0px',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            textAlign: 'center',
+                            fontWeight: '600',
+                            backgroundColor: '#f9fafb',
+                            color: '#4b5563',
+                            borderTop: '1px solid #e5e7eb',
+                            borderBottom: '1px solid #e5e7eb',
+                            height: '24px',
+                            cursor: params.data?.isGroupHeader ? 'pointer' : 'default'
+                        } as any;
+                    }
+                    return {
+                        fontSize: '12px',
+                        padding: '0px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        textAlign: 'start'
+                    } as any;
+                },
+                                valueGetter: (params) => {
+                        // Si es header de grupo, mostrar con ícono de expandir/colapsar
+                        if (params.data?.isGroupHeader) {
+                            const groupType = params.data.groupType;
+                            const isCollapsed = collapsedGroups.has(groupType || '');
+                            const icon = isCollapsed ? '▶' : '▼';
+                            const text = params.data.nombre.replace(/^[▶▼]\s*/, '');
+                            return `${icon} ${text}`;
+                        }
+
+                        // Si es fila separadora, mostrar el texto tal como está
+                        if (params.data?.isSeparator) {
+                            return params.data.nombre;
+                        }
+
                         // Si tiene first_name y paternal_lastname, usar esos
                         if (params.data?.first_name && params.data?.paternal_lastname) {
                             // Extraer solo el primer nombre del first_name
@@ -282,7 +424,11 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 headerComponentParams: {
                     dayInfo: dayInfo
                 },
-                editable: editable, // Usar la propiedad editable del componente
+                editable: (params) => {
+                    // No permitir edición en filas separadoras
+                    if (params.data?.isSeparator) return false;
+                    return editable;
+                },
                 width: 50,
                 minWidth: 50,
                 maxWidth: 50,
@@ -295,6 +441,13 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
                 cellClass: (params) => {
                     const classes = [];
+
+                    // Estilo especial para filas separadoras
+                    if (params.data?.isSeparator) {
+                        classes.push('separator-cell');
+                        return classes.join(' ');
+                    }
+
                     if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
                     if (params.value) {
                         const firstChar = String(params.value).toLowerCase().charAt(0);
@@ -313,9 +466,12 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
     const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
         if (!e || !e.data || !e.colDef?.field) return
 
-        const funcionario = e.data.nombre;
-        const rut = e.data.rut;
-        const employeeId = e.data.employee_id || e.data.id;
+        // Ignorar cambios en filas separadoras
+        if (e.data.isSeparator) return;
+
+        const funcionario = String(e.data.nombre);
+        const rut = String(e.data.rut || '');
+        const employeeId = String(e.data.employee_id || e.data.id || '');
         const dayField = e.colDef.field;
 
         // Verificar que sea un día válido
@@ -399,6 +555,23 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
     // Handle cell clicks
     const onCellClicked = useCallback((event: CellClickedEvent<TurnoData>) => {
+        // Manejar click en headers de grupo
+        if (event.data?.isGroupHeader && event.colDef?.field === 'nombre') {
+            const groupType = event.data.groupType;
+            if (groupType) {
+                setCollapsedGroups(prev => {
+                    const newSet = new Set(prev);
+                    if (newSet.has(groupType)) {
+                        newSet.delete(groupType);
+                    } else {
+                        newSet.add(groupType);
+                    }
+                    return newSet;
+                });
+                return;
+            }
+        }
+
         if (event.colDef?.field === 'nombre') return
 
         const dayField = event.colDef?.field
@@ -517,12 +690,40 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                         line-height: 1 !important;
                     }
 
+                    /* Estilos para filas separadoras - más delgadas */
+                    .ag-theme-alpine .separator-cell {
+                        background-color: #f9fafb !important;
+                        border-top: 1px solid #e5e7eb !important;
+                        border-bottom: 1px solid #e5e7eb !important;
+                        color: #4b5563 !important;
+                        font-weight: 600 !important;
+                        font-size: 11px !important;
+                        pointer-events: none !important;
+                        height: 24px !important;
+                    }
+
+                    .ag-theme-alpine .separator-name-cell {
+                        background-color: #f9fafb !important;
+                        border-top: 1px solid #e5e7eb !important;
+                        border-bottom: 1px solid #e5e7eb !important;
+                        color: #4b5563 !important;
+                        font-weight: 600 !important;
+                        font-size: 11px !important;
+                        pointer-events: auto !important;
+                        height: 24px !important;
+                        cursor: pointer !important;
+                    }
+
+                    .ag-theme-alpine .separator-name-cell:hover {
+                        background-color: #f3f4f6 !important;
+                        color: #374151 !important;
+                    }
 
                 `}</style>
 
             <AgGridReact
                 ref={gridRef}
-                rowData={rowData}
+                rowData={processedRowData}
                 columnDefs={columnDefs}
                 defaultColDef={{
                     resizable: false,
@@ -533,7 +734,13 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 onCellValueChanged={handleCellChange}
                 onGridReady={handleGridReady}
                 onRowClicked={onRowClicked}
-                rowHeight={32}
+                getRowHeight={(params) => {
+                    // Altura más pequeña para separadores
+                    if (params.data?.isSeparator) {
+                        return 24;
+                    }
+                    return 32;
+                }}
                 headerHeight={50}
                 suppressColumnVirtualisation={false}
                 suppressRowVirtualisation={false}

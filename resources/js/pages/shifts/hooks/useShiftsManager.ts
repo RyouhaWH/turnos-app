@@ -6,7 +6,10 @@ import { useDebounce } from '@/hooks/useDebounce';
 interface TurnoData {
     id: string;
     nombre: string;
-    [key: string]: string;
+    amzoma?: boolean | string | number;
+    first_name?: string;
+    paternal_lastname?: string;
+    [key: string]: string | boolean | number | undefined;
 }
 
 interface ChangeItem {
@@ -34,9 +37,17 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const user = props.auth?.user;
     const hasEditPermissions = user?.roles?.some((role: any) => role.name === 'Supervisor' || role.name === 'Administrador') || false;
 
-    // Ordenar datos iniciales alfabéticamente
+        // Ordenar datos iniciales: primero Amzoma, luego no-Amzoma, ambos alfabéticamente
     const datosInicialesOrdenados = useMemo(() => {
-        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
+                        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
+            // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
+            const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
+            const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
+
+            if (!isAmzomaA && isAmzomaB) return -1;
+            if (isAmzomaA && !isAmzomaB) return 1;
+
+            // Si ambos tienen el mismo estado de amzoma, ordenar alfabéticamente
             const nombreA = a.first_name && a.paternal_lastname
                 ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
                 : (a.nombre || '').toLowerCase();
@@ -92,13 +103,13 @@ export const useShiftsManager = (employee_rol_id: number) => {
             if (nombreCompleto.includes(term.toLowerCase())) return true;
 
             if (item.first_name && item.paternal_lastname) {
-                const nombreFormateado = `${item.first_name} ${item.paternal_lastname}`.toLowerCase();
+                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
                 if (nombreFormateado.includes(term.toLowerCase())) return true;
             }
 
-            if (item.first_name && item.first_name.toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.paternal_lastname && item.paternal_lastname.toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.maternal_lastname && item.maternal_lastname.toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
 
             return false;
         });
@@ -115,13 +126,13 @@ export const useShiftsManager = (employee_rol_id: number) => {
             if (nombreCompleto.includes(term.toLowerCase())) return true;
 
             if (item.first_name && item.paternal_lastname) {
-                const nombreFormateado = `${item.first_name} ${item.paternal_lastname}`.toLowerCase();
+                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
                 if (nombreFormateado.includes(term.toLowerCase())) return true;
             }
 
-            if (item.first_name && item.first_name.toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.paternal_lastname && item.paternal_lastname.toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.maternal_lastname && item.maternal_lastname.toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
 
             return false;
         });
@@ -134,7 +145,27 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
     // Función para obtener ID único de empleado
     const getEmployeeId = useCallback((employee: TurnoData): string => {
-        return employee.employee_id || employee.id || employee.rut || employee.nombre;
+        return String(employee.employee_id || employee.id || employee.rut || employee.nombre);
+    }, []);
+
+        // Función de ordenamiento por Amzoma y alfabético
+    const sortByAmzomaAndName = useCallback((a: TurnoData, b: TurnoData) => {
+        // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
+        const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
+        const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
+
+        if (!isAmzomaA && isAmzomaB) return -1;
+        if (isAmzomaA && !isAmzomaB) return 1;
+
+        // Si ambos tienen el mismo estado de amzoma, ordenar alfabéticamente
+        const nombreA = a.first_name && a.paternal_lastname
+            ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
+            : (a.nombre || '').toLowerCase();
+        const nombreB = b.first_name && b.paternal_lastname
+            ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
+            : (b.nombre || '').toLowerCase();
+
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
     }, []);
 
     // Funciones para manejar empleados
@@ -144,19 +175,11 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
         setRowData(prev => {
             if (!prev.find(e => getEmployeeId(e) === employeeId)) {
-                return [...prev, employee].sort((a, b) => {
-                    const nombreA = a.first_name && a.paternal_lastname
-                        ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
-                        : (a.nombre || '').toLowerCase();
-                    const nombreB = b.first_name && b.paternal_lastname
-                        ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
-                        : (b.nombre || '').toLowerCase();
-                    return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-                });
+                return [...prev, employee].sort(sortByAmzomaAndName);
             }
             return prev;
         });
-    }, [getEmployeeId]);
+    }, [getEmployeeId, sortByAmzomaAndName]);
 
     const removeEmployeeFromGrid = useCallback((employee: TurnoData) => {
         const employeeId = getEmployeeId(employee);
@@ -180,8 +203,8 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
     const addAllEmployees = useCallback(() => {
         setSelectedEmployees(new Set(availableEmployees.map(e => getEmployeeId(e))));
-        setRowData([...availableEmployees]);
-    }, [availableEmployees, getEmployeeId]);
+        setRowData([...availableEmployees].sort(sortByAmzomaAndName));
+    }, [availableEmployees, getEmployeeId, sortByAmzomaAndName]);
 
     const closeEmployeeSelector = useCallback(() => {
         setShowEmployeeSelector(false);
@@ -271,19 +294,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
                 for (let i = 0; i < data.length; i += chunkSize) {
                     const chunk = data.slice(i, i + chunkSize);
-
-                    const processedChunk = chunk.sort((a, b) => {
-                        const nombreA = a.first_name && a.paternal_lastname
-                            ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
-                            : (a.nombre || '').toLowerCase();
-                        const nombreB = b.first_name && b.paternal_lastname
-                            ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
-                            : (b.nombre || '').toLowerCase();
-
-                        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
-                    });
-
-                    result.push(...processedChunk);
+                    result.push(...chunk);
 
                     // Yield al browser después de cada chunk
                     if (i + chunkSize < data.length) {
@@ -291,7 +302,8 @@ export const useShiftsManager = (employee_rol_id: number) => {
                     }
                 }
 
-                return result;
+                // Ordenar todo al final para mantener el orden correcto por Amzoma
+                return result.sort(sortByAmzomaAndName);
             };
 
             const turnosOrdenados = await processDataInChunks(turnosArray);
@@ -306,10 +318,13 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 finalData = aplicarCambiosPendientes(turnosOrdenados, fecha);
             }
 
+            // Asegurar orden correcto por Amzoma antes de asignar
+            finalData = finalData.sort(sortByAmzomaAndName);
+
             // Aplicar datos usando requestAnimationFrame para timing óptimo
             requestAnimationFrame(() => {
                 setRowData(finalData);
-                setAvailableEmployees(turnosOrdenados);
+                setAvailableEmployees(turnosOrdenados.sort(sortByAmzomaAndName));
                 setInitialDataLoaded(true);
 
                 if (isOriginalMonth && listaCambios.length > 0) {
@@ -368,7 +383,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         }
 
         const employeeData = rowData.find((row) => row.nombre === employee);
-        const employeeId = employeeData?.employee_id || employeeData?.id;
+        const employeeId = String(employeeData?.employee_id || employeeData?.id || '');
         if (!employeeId) return;
 
         const change: ChangeItem = {

@@ -91,4 +91,51 @@ class AdministrationController extends Controller
 
         return back()->with('success', 'Email actualizado correctamente para ' . $user->name);
     }
+
+    /**
+     * Crear un nuevo usuario
+     */
+    public function createUser(Request $request)
+    {
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'role' => 'required|exists:roles,id'
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Asignar el rol de aplicación usando Spatie Permission
+        $role = Role::find($request->role);
+        if ($role) {
+            $user->assignRole($role);
+        }
+
+        return back()->with('success', 'Usuario creado exitosamente');
+    }
+
+    /**
+     * Actualizar los roles de un usuario
+     */
+    public function updateUserRole(Request $request, User $user)
+    {
+        $request->validate([
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,id'
+        ]);
+
+        // Obtener los roles de aplicación seleccionados
+        $roleIds = $request->roles;
+        $roles = Role::whereIn('id', $roleIds)->get();
+
+        // Sincronizar roles (reemplaza todos los roles existentes)
+        $user->syncRoles($roles);
+
+        return back()->with('success', 'Rol actualizado exitosamente');
+    }
 }

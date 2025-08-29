@@ -37,7 +37,7 @@ class UserManagementController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'role' => 'required|exists:rols,id'
+            'role' => 'required|exists:roles,id'
         ]);
 
         $user = User::create([
@@ -46,12 +46,10 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
-        // Asignar el rol operativo
-        $role = \App\Models\Rol::find($request->role);
+        // Asignar el rol de aplicación usando Spatie Permission
+        $role = Role::find($request->role);
         if ($role) {
-            // Crear o encontrar el rol de Spatie Permission correspondiente
-            $spatieRole = Role::firstOrCreate(['name' => $role->nombre]);
-            $user->assignRole($spatieRole);
+            $user->assignRole($role);
         }
 
         return back()->with('success', 'Usuario creado exitosamente');
@@ -63,19 +61,16 @@ class UserManagementController extends Controller
     public function updateRole(Request $request, User $user)
     {
         $request->validate([
-            'role' => 'required|exists:rols,id'
+            'roles' => 'required|array',
+            'roles.*' => 'exists:roles,id'
         ]);
 
-        // Obtener el rol operativo seleccionado
-        $operationalRole = \App\Models\Rol::find($request->role);
+        // Obtener los roles de aplicación seleccionados
+        $roleIds = $request->roles;
+        $roles = Role::whereIn('id', $roleIds)->get();
 
-        if ($operationalRole) {
-            // Crear o encontrar el rol de Spatie Permission correspondiente
-            $spatieRole = Role::firstOrCreate(['name' => $operationalRole->nombre]);
-
-            // Sincronizar roles (reemplaza todos los roles existentes)
-            $user->syncRoles([$spatieRole]);
-        }
+        // Sincronizar roles (reemplaza todos los roles existentes)
+        $user->syncRoles($roles);
 
         return back()->with('success', 'Rol actualizado exitosamente');
     }

@@ -71,11 +71,7 @@ export default function Administration({ users = [], roles = [], error, auth }: 
                             </p>
                         </div>
                         <CreateUser
-                            roles={[
-                                { id: 1, name: 'Administrador' },
-                                { id: 2, name: 'Supervisor' },
-                                { id: 3, name: 'Usuario' }
-                            ]}
+                            roles={roles}
                         />
                     </div>
 

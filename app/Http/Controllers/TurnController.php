@@ -185,6 +185,7 @@ class TurnController extends Controller
                     'paternal_lastname' => $employee->paternal_lastname,
                     'maternal_lastname' => $employee->maternal_lastname,
                     'rut' => $employee->rut,
+                    'amzoma' => $employee->amzoma, // Agregar campo amzoma
                 ], $days);
                 }
             }
@@ -211,6 +212,7 @@ class TurnController extends Controller
                     'paternal_lastname' => $shift['employee']['paternal_lastname'],
                     'maternal_lastname' => $shift['employee']['maternal_lastname'],
                     'rut' => $shift['employee']['rut'],
+                    'amzoma' => $shift['employee']['amzoma'], // Agregar campo amzoma
                 ];
                 }
                 $agrupados[$nombre][strval($dia)] = $turno;

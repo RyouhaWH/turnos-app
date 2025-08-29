@@ -3,7 +3,10 @@ import { memo } from 'react';
 interface TurnoData {
     id: string;
     nombre: string;
-    [key: string]: string;
+    amzoma?: boolean | string | number;
+    first_name?: string;
+    paternal_lastname?: string;
+    [key: string]: string | boolean | number | undefined;
 }
 
 interface ShiftsControlsProps {

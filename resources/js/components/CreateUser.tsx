@@ -75,7 +75,7 @@ export default function CreateUser({ roles = [] }: CreateUserProps) {
     setSuccess(false);
 
     try {
-      await router.post('/admin/users', formData, {
+      await router.post('/settings/administration/users', formData, {
         onSuccess: () => {
           setSuccess(true);
           setFormData({

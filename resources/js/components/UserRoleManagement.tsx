@@ -66,7 +66,7 @@ export default function UserRoleManagement({ users, roles }: UserRoleManagementP
                 .filter(role => roleNamesToAssign.includes(role.name))
                 .map(role => role.id);
 
-            await router.patch(`/admin/users/${userId}/role`, {
+            await router.patch(`/settings/administration/users/${userId}/role`, {
                 roles: roleIds
             }, {
                 onSuccess: () => {

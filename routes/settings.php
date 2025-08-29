@@ -22,12 +22,20 @@ Route::middleware('auth')->group(function () {
     Route::get('settings/administration', [App\Http\Controllers\AdministrationController::class, 'index'])
         ->name('administration.edit')
         ->middleware('admin');
-    
+
     Route::put('settings/administration/users/{user}/password', [App\Http\Controllers\AdministrationController::class, 'changePassword'])
         ->name('administration.users.change-password')
         ->middleware('admin');
-    
+
     Route::put('settings/administration/users/{user}/email', [App\Http\Controllers\AdministrationController::class, 'changeEmail'])
         ->name('administration.users.change-email')
+        ->middleware('admin');
+
+    Route::post('settings/administration/users', [App\Http\Controllers\AdministrationController::class, 'createUser'])
+        ->name('administration.users.create')
+        ->middleware('admin');
+
+    Route::patch('settings/administration/users/{user}/role', [App\Http\Controllers\AdministrationController::class, 'updateUserRole'])
+        ->name('administration.users.update-role')
         ->middleware('admin');
 });
