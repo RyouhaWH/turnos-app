@@ -57,4 +57,9 @@ class User extends Authenticatable
         return $this->belongsTo(shifts::class);
     }
 
+    public function employee()
+    {
+        return $this->hasOne(Employees::class);
+    }
+
 }

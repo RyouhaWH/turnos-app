@@ -22,7 +22,12 @@ import {
     UserCheck,
     Search,
     ChevronDown,
-    ChevronUp
+    ChevronUp,
+    Link,
+    Unlink,
+    RefreshCw,
+    AlertCircle,
+    CheckCircle
 } from 'lucide-react';
 
 interface Rol {
@@ -54,6 +59,68 @@ interface Empleado {
     updated_at: string;
 }
 
+interface UnlinkedEmployee {
+    id: number;
+    name: string;
+    first_name?: string;
+    paternal_lastname?: string;
+    maternal_lastname?: string;
+    rut?: string;
+    phone?: string;
+    email?: string;
+    rol_nombre: string;
+    amzoma: boolean;
+}
+
+interface AvailableUser {
+    id: number;
+    name: string;
+    email: string;
+    roles: Array<{ name: string }>;
+}
+
+interface LinkingData {
+    unlinked_employees: UnlinkedEmployee[];
+    available_users: AvailableUser[];
+}
+
+interface EmployeeWithMissingData {
+    id: number;
+    name: string;
+    first_name?: string;
+    paternal_lastname?: string;
+    maternal_lastname?: string;
+    rut?: string;
+    phone?: string;
+    email?: string;
+    rol_nombre: string;
+    amzoma: boolean;
+    missing_fields: string[];
+}
+
+interface MissingDataCategories {
+    missing_email: EmployeeWithMissingData[];
+    missing_rut: EmployeeWithMissingData[];
+    missing_phone: EmployeeWithMissingData[];
+    missing_multiple: EmployeeWithMissingData[];
+    complete_data: EmployeeWithMissingData[];
+}
+
+interface MissingDataStats {
+    total_employees: number;
+    complete_data: number;
+    missing_email: number;
+    missing_rut: number;
+    missing_phone: number;
+    missing_multiple: number;
+    completion_percentage: number;
+}
+
+interface MissingDataResponse {
+    categories: MissingDataCategories;
+    stats: MissingDataStats;
+}
+
 interface PlatformData {
     roles: Rol[];
     empleados: Empleado[];
@@ -76,6 +143,20 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
     const [loadingEmployee, setLoadingEmployee] = useState(false);
     const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null);
+
+    // Estados para vinculación
+    const [linkingData, setLinkingData] = useState<LinkingData>({ unlinked_employees: [], available_users: [] });
+    const [loadingLinking, setLoadingLinking] = useState(false);
+    const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
+    const [selectedUser, setSelectedUser] = useState<number | null>(null);
+    const [searchUnlinked, setSearchUnlinked] = useState('');
+    const [searchUsers, setSearchUsers] = useState('');
+
+    // Estados para datos faltantes
+    const [missingDataResponse, setMissingDataResponse] = useState<MissingDataResponse | null>(null);
+    const [loadingMissingData, setLoadingMissingData] = useState(false);
+    const [selectedCategory, setSelectedCategory] = useState<keyof MissingDataCategories | 'all'>('all');
+    const [searchMissingData, setSearchMissingData] = useState('');
 
     // Función para obtener el color del rol
     const getRoleColor = (roleName: string) => {
@@ -357,6 +438,177 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         }
     }, [editingEmployeeData.first_name, editingEmployeeData.paternal_lastname, editingEmployeeData.maternal_lastname]);
 
+    // Funciones para vinculación
+    const loadLinkingData = async () => {
+        setLoadingLinking(true);
+        try {
+            const response = await fetch('/platform-data/employees/unlinked');
+            const result = await response.json();
+            if (result.success) {
+                setLinkingData(result.data);
+            }
+        } catch (error) {
+            console.error('Error loading linking data:', error);
+            toast.error('Error al cargar datos de vinculación');
+        } finally {
+            setLoadingLinking(false);
+        }
+    };
+
+    const linkEmployeeToUser = async () => {
+        if (!selectedEmployee || !selectedUser) {
+            toast.error('Selecciona un funcionario y un usuario');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/platform-data/employees/${selectedEmployee}/link-user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+                body: JSON.stringify({ user_id: selectedUser }),
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success(result.message);
+                setSelectedEmployee(null);
+                setSelectedUser(null);
+                loadLinkingData(); // Recargar datos
+            } else {
+                toast.error(result.message);
+            }
+        } catch (error) {
+            console.error('Error linking employee to user:', error);
+            toast.error('Error al vincular funcionario con usuario');
+        }
+    };
+
+    const unlinkEmployee = async (employeeId: number) => {
+        if (!confirm('¿Estás seguro de que quieres desvincular este funcionario?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/platform-data/employees/${employeeId}/unlink-user`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                },
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success(result.message);
+                loadLinkingData(); // Recargar datos
+            } else {
+                toast.error(result.message);
+            }
+        } catch (error) {
+            console.error('Error unlinking employee:', error);
+            toast.error('Error al desvincular funcionario');
+        }
+    };
+
+    // Funciones para datos faltantes
+    const loadMissingData = async () => {
+        setLoadingMissingData(true);
+        try {
+            console.log('Fetching missing data from: /platform-data/employees/missing-data');
+
+            // Usar axios que maneja automáticamente CSRF y cookies en Laravel
+            const response = await window.axios.get('/platform-data/employees/missing-data');
+
+            console.log('Response status:', response.status);
+            console.log('Response data:', response.data);
+
+            if (response.data.success) {
+                setMissingDataResponse(response.data.data);
+                toast.success('Datos cargados correctamente');
+            } else {
+                throw new Error(response.data.message || 'Error en la respuesta del servidor');
+            }
+        } catch (error) {
+            console.error('Error loading missing data:', error);
+
+            if (error.response) {
+                // Error de respuesta del servidor
+                const status = error.response.status;
+                if (status === 403) {
+                    toast.error('No tienes permisos para acceder a esta funcionalidad. Necesitas ser administrador.');
+                } else if (status === 401) {
+                    toast.error('No estás autenticado. Por favor, inicia sesión.');
+                } else if (status === 404) {
+                    toast.error('Endpoint no encontrado. Verifica la configuración de rutas.');
+                } else {
+                    toast.error(`Error del servidor (${status}): ${error.response.data.message || 'Error desconocido'}`);
+                }
+            } else if (error.request) {
+                // Error de red
+                toast.error('Error de conexión. Verifica tu conexión a internet.');
+            } else {
+                // Error de configuración
+                toast.error(`Error al cargar datos faltantes: ${error.message}`);
+            }
+        } finally {
+            setLoadingMissingData(false);
+        }
+    };
+
+    const getMissingFieldIcon = (field: string) => {
+        switch (field) {
+            case 'email': return '📧';
+            case 'rut': return '🆔';
+            case 'phone': return '📱';
+            default: return '❓';
+        }
+    };
+
+    const getMissingFieldLabel = (field: string) => {
+        switch (field) {
+            case 'email': return 'Email';
+            case 'rut': return 'RUT';
+            case 'phone': return 'Teléfono';
+            default: return field;
+        }
+    };
+
+    const getCategoryEmployees = (): EmployeeWithMissingData[] => {
+        if (!missingDataResponse) return [];
+
+        if (selectedCategory === 'all') {
+            return [
+                ...missingDataResponse.categories.missing_email,
+                ...missingDataResponse.categories.missing_rut,
+                ...missingDataResponse.categories.missing_phone,
+                ...missingDataResponse.categories.missing_multiple,
+            ];
+        }
+
+        return missingDataResponse.categories[selectedCategory];
+    };
+
+    // Filtros para vinculación
+    const filteredUnlinkedEmployees = linkingData.unlinked_employees.filter(emp =>
+        emp.name.toLowerCase().includes(searchUnlinked.toLowerCase()) ||
+        (emp.rut && emp.rut.includes(searchUnlinked))
+    );
+
+    const filteredAvailableUsers = linkingData.available_users.filter(user =>
+        user.name.toLowerCase().includes(searchUsers.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchUsers.toLowerCase())
+    );
+
+    // Filtros para datos faltantes
+    const filteredMissingDataEmployees = getCategoryEmployees().filter(emp =>
+        emp.name.toLowerCase().includes(searchMissingData.toLowerCase()) ||
+        (emp.rut && emp.rut.includes(searchMissingData))
+    );
+
     // Inicializar configuración de roles operativos
 
 
@@ -389,7 +641,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
                 {/* Tabs */}
                 <Tabs defaultValue="roles" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
+                    <TabsList className="grid w-full grid-cols-5 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
                         <TabsTrigger value="roles" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <Users className="h-4 w-4" />
                             Roles
@@ -397,6 +649,14 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                         <TabsTrigger value="employees" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <UserCheck className="h-4 w-4" />
                             Empleados
+                        </TabsTrigger>
+                        <TabsTrigger value="missing-data" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300" onClick={loadMissingData}>
+                            <AlertCircle className="h-4 w-4" />
+                            Datos Faltantes
+                        </TabsTrigger>
+                        <TabsTrigger value="user-linking" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300" onClick={loadLinkingData}>
+                            <Link className="h-4 w-4" />
+                            Vinculación
                         </TabsTrigger>
                         <TabsTrigger value="departments" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300">
                             <Building2 className="h-4 w-4" />
@@ -430,7 +690,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <CardContent>
                                                                 {/* Agregar nuevo rol */}
                                 {isAddingRole && (
-                                    <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20 bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm">
+                                    <Card className="mb-6 border-2 border-dashed border-blue-200 bg-blue-50/50 dark:border-blue-800 dark:bg-blue-900/20 backdrop-blur-sm">
                                         <CardContent className="pt-6">
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
@@ -976,6 +1236,455 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                         </div>
                                     )}
                                 </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Missing Data Tab */}
+                    <TabsContent value="missing-data" className="space-y-6">
+                        <Card className="bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <AlertCircle className="h-5 w-5" />
+                                            Datos Faltantes de Funcionarios
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Revisa y completa la información faltante de email, RUT y teléfono de los funcionarios
+                                        </CardDescription>
+                                    </div>
+                                    <Button
+                                        onClick={loadMissingData}
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                        disabled={loadingMissingData}
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${loadingMissingData ? 'animate-spin' : ''}`} />
+                                        Actualizar
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingMissingData ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                                    </div>
+                                ) : missingDataResponse ? (
+                                    <div className="space-y-6">
+                                        {/* Estadísticas de completitud */}
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                                            <Card className="border-2 border-green-200 dark:border-green-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-2xl font-bold text-green-600">
+                                                        {missingDataResponse.stats.completion_percentage}%
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Completitud</div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="border-2 border-blue-200 dark:border-blue-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-2xl font-bold text-blue-600">
+                                                        {missingDataResponse.stats.complete_data}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Completos</div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="border-2 border-orange-200 dark:border-orange-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-xl font-bold text-orange-600">
+                                                        📧 {missingDataResponse.stats.missing_email}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Sin Email</div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="border-2 border-orange-200 dark:border-orange-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-xl font-bold text-orange-600">
+                                                        🆔 {missingDataResponse.stats.missing_rut}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Sin RUT</div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="border-2 border-orange-200 dark:border-orange-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-xl font-bold text-orange-600">
+                                                        📱 {missingDataResponse.stats.missing_phone}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Sin Teléfono</div>
+                                                </CardContent>
+                                            </Card>
+                                            <Card className="border-2 border-red-200 dark:border-red-800">
+                                                <CardContent className="pt-4 pb-4 text-center">
+                                                    <div className="text-xl font-bold text-red-600">
+                                                        ⚠️ {missingDataResponse.stats.missing_multiple}
+                                                    </div>
+                                                    <div className="text-xs text-gray-600">Múltiples</div>
+                                                </CardContent>
+                                            </Card>
+                                        </div>
+
+                                        {/* Filtros de categoría */}
+                                        <div className="flex flex-wrap gap-2">
+                                            <Button
+                                                variant={selectedCategory === 'all' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setSelectedCategory('all')}
+                                            >
+                                                Todos ({
+                                                    missingDataResponse.stats.missing_email +
+                                                    missingDataResponse.stats.missing_rut +
+                                                    missingDataResponse.stats.missing_phone +
+                                                    missingDataResponse.stats.missing_multiple
+                                                })
+                                            </Button>
+                                            <Button
+                                                variant={selectedCategory === 'missing_email' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setSelectedCategory('missing_email')}
+                                                className="flex items-center gap-1"
+                                            >
+                                                📧 Sin Email ({missingDataResponse.stats.missing_email})
+                                            </Button>
+                                            <Button
+                                                variant={selectedCategory === 'missing_rut' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setSelectedCategory('missing_rut')}
+                                                className="flex items-center gap-1"
+                                            >
+                                                🆔 Sin RUT ({missingDataResponse.stats.missing_rut})
+                                            </Button>
+                                            <Button
+                                                variant={selectedCategory === 'missing_phone' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setSelectedCategory('missing_phone')}
+                                                className="flex items-center gap-1"
+                                            >
+                                                📱 Sin Teléfono ({missingDataResponse.stats.missing_phone})
+                                            </Button>
+                                            <Button
+                                                variant={selectedCategory === 'missing_multiple' ? 'default' : 'outline'}
+                                                size="sm"
+                                                onClick={() => setSelectedCategory('missing_multiple')}
+                                                className="flex items-center gap-1"
+                                            >
+                                                ⚠️ Múltiples Faltantes ({missingDataResponse.stats.missing_multiple})
+                                            </Button>
+                                        </div>
+
+                                        {/* Buscador */}
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                            <Input
+                                                placeholder="Buscar funcionario..."
+                                                value={searchMissingData}
+                                                onChange={(e) => setSearchMissingData(e.target.value)}
+                                                className="pl-10"
+                                            />
+                                        </div>
+
+                                        {/* Lista de funcionarios con datos faltantes */}
+                                        <div className="space-y-3">
+                                            {filteredMissingDataEmployees.length === 0 ? (
+                                                <div className="text-center py-8 text-gray-500">
+                                                    <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                                    <p>
+                                                        {getCategoryEmployees().length === 0
+                                                            ? '¡Todos los funcionarios tienen datos completos!'
+                                                            : 'No se encontraron funcionarios con ese término de búsqueda'
+                                                        }
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                filteredMissingDataEmployees.map((employee) => (
+                                                    <Card key={employee.id} className="border-l-4" style={{ borderLeftColor: employee.missing_fields.length > 1 ? '#ef4444' : '#f59e0b' }}>
+                                                        <CardContent className="pt-4 pb-4">
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex-1">
+                                                                    <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                                                                        {employee.name}
+                                                                    </h3>
+                                                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                                        {employee.rut && <span>RUT: {employee.rut}</span>}
+                                                                        {employee.phone && (
+                                                                            <>
+                                                                                {employee.rut && <span>•</span>}
+                                                                                <span>Tel: {employee.phone}</span>
+                                                                            </>
+                                                                        )}
+                                                                        {employee.email && (
+                                                                            <>
+                                                                                {(employee.rut || employee.phone) && <span>•</span>}
+                                                                                <span>Email: {employee.email}</span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-wrap items-center gap-2">
+                                                                        <Badge variant="outline" className="text-xs">
+                                                                            {employee.rol_nombre}
+                                                                        </Badge>
+                                                                        <Badge variant="secondary" className="text-xs">
+                                                                            {employee.amzoma ? 'Amzoma' : 'Temuco'}
+                                                                        </Badge>
+                                                                        <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="ml-4">
+                                                                    <div className="flex flex-col gap-1">
+                                                                        {employee.missing_fields.map((field) => (
+                                                                            <Badge
+                                                                                key={field}
+                                                                                variant="outline"
+                                                                                className="text-xs text-red-600 border-red-300 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
+                                                                            >
+                                                                                {getMissingFieldIcon(field)} Falta {getMissingFieldLabel(field)}
+                                                                            </Badge>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        {/* Resumen final */}
+                                        <Card className="border-2 border-dashed border-blue-300 dark:border-blue-700">
+                                            <CardContent className="pt-6 text-center">
+                                                <h3 className="text-lg font-semibold mb-2">📊 Resumen de Datos</h3>
+                                                <div className="text-sm text-gray-600 space-y-1">
+                                                    <p><strong>{missingDataResponse.stats.total_employees}</strong> funcionarios en total</p>
+                                                    <p><strong>{missingDataResponse.stats.complete_data}</strong> con datos completos</p>
+                                                    <p><strong>{missingDataResponse.stats.total_employees - missingDataResponse.stats.complete_data}</strong> requieren completar información</p>
+                                                    <p className="text-lg font-bold text-blue-600">
+                                                        Completitud: {missingDataResponse.stats.completion_percentage}%
+                                                    </p>
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-gray-500">
+                                        <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                                        <p>Haz clic en "Actualizar" para cargar los datos</p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* User Linking Tab */}
+                    <TabsContent value="user-linking" className="space-y-6">
+                        <Card className="bg-white/90 dark:bg-slate-800/40 backdrop-blur-sm border-slate-200/50 dark:border-slate-600/30">
+                            <CardHeader>
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <CardTitle className="flex items-center gap-2">
+                                            <Link className="h-5 w-5" />
+                                            Vinculación Funcionario-Usuario
+                                        </CardTitle>
+                                        <CardDescription>
+                                            Vincula funcionarios sin cuenta de usuario o usuarios sin funcionario asociado
+                                        </CardDescription>
+                                    </div>
+                                    <Button
+                                        onClick={loadLinkingData}
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                        disabled={loadingLinking}
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${loadingLinking ? 'animate-spin' : ''}`} />
+                                        Actualizar
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                {loadingLinking ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Funcionarios sin vincular */}
+                                        <Card className="border-2 border-orange-200 dark:border-orange-800">
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                                                    <AlertCircle className="h-5 w-5" />
+                                                    Funcionarios sin Usuario ({filteredUnlinkedEmployees.length})
+                                                </CardTitle>
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                    <Input
+                                                        placeholder="Buscar funcionario..."
+                                                        value={searchUnlinked}
+                                                        onChange={(e) => setSearchUnlinked(e.target.value)}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="max-h-96 overflow-y-auto space-y-2">
+                                                {filteredUnlinkedEmployees.map((employee) => (
+                                                    <div
+                                                        key={employee.id}
+                                                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                                                            selectedEmployee === employee.id
+                                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                                : 'border-gray-200 hover:border-gray-300 dark:border-gray-600'
+                                                        }`}
+                                                        onClick={() => setSelectedEmployee(employee.id)}
+                                                    >
+                                                        <div className="font-medium">{employee.name}</div>
+                                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                            {employee.rut && <span>RUT: {employee.rut}</span>}
+                                                            {employee.rut && employee.phone && <span> • </span>}
+                                                            {employee.phone && <span>Tel: {employee.phone}</span>}
+                                                        </div>
+                                                        <div className="flex items-center gap-2 mt-1">
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {employee.rol_nombre}
+                                                            </Badge>
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                {employee.amzoma ? 'Amzoma' : 'Temuco'}
+                                                            </Badge>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {filteredUnlinkedEmployees.length === 0 && (
+                                                    <div className="text-center py-8 text-gray-500">
+                                                        <CheckCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                                        <p>¡Todos los funcionarios están vinculados!</p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+
+                                        {/* Usuarios disponibles */}
+                                        <Card className="border-2 border-green-200 dark:border-green-800">
+                                            <CardHeader>
+                                                <CardTitle className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                                                    <UserCheck className="h-5 w-5" />
+                                                    Usuarios Disponibles ({filteredAvailableUsers.length})
+                                                </CardTitle>
+                                                <div className="relative">
+                                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                    <Input
+                                                        placeholder="Buscar usuario..."
+                                                        value={searchUsers}
+                                                        onChange={(e) => setSearchUsers(e.target.value)}
+                                                        className="pl-10"
+                                                    />
+                                                </div>
+                                            </CardHeader>
+                                            <CardContent className="max-h-96 overflow-y-auto space-y-2">
+                                                {filteredAvailableUsers.map((user) => (
+                                                    <div
+                                                        key={user.id}
+                                                        className={`p-3 border rounded-lg cursor-pointer transition-all ${
+                                                            selectedUser === user.id
+                                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                                                                : 'border-gray-200 hover:border-gray-300 dark:border-gray-600'
+                                                        }`}
+                                                        onClick={() => setSelectedUser(user.id)}
+                                                    >
+                                                        <div className="font-medium">{user.name}</div>
+                                                        <div className="text-sm text-gray-600 dark:text-gray-400">
+                                                            {user.email}
+                                                        </div>
+                                                        <div className="flex flex-wrap gap-1 mt-1">
+                                                            {user.roles.map((role, index) => (
+                                                                <Badge key={index} variant="outline" className="text-xs">
+                                                                    {role.name}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                {filteredAvailableUsers.length === 0 && (
+                                                    <div className="text-center py-8 text-gray-500">
+                                                        <UserCheck className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                                                        <p>No hay usuarios disponibles</p>
+                                                    </div>
+                                                )}
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
+
+                                {/* Panel de vinculación */}
+                                {!loadingLinking && (selectedEmployee || selectedUser) && (
+                                    <Card className="mt-6 border-2 border-dashed border-blue-300 dark:border-blue-700">
+                                        <CardContent className="pt-6">
+                                            <div className="text-center">
+                                                <h3 className="text-lg font-semibold mb-4">Panel de Vinculación</h3>
+
+                                                {selectedEmployee && selectedUser ? (
+                                                    <div className="space-y-4">
+                                                        <div className="flex items-center justify-center gap-4">
+                                                            <div className="text-center">
+                                                                <div className="font-medium">Funcionario</div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    {filteredUnlinkedEmployees.find(e => e.id === selectedEmployee)?.name}
+                                                                </div>
+                                                            </div>
+                                                            <Link className="h-8 w-8 text-blue-500" />
+                                                            <div className="text-center">
+                                                                <div className="font-medium">Usuario</div>
+                                                                <div className="text-sm text-gray-600">
+                                                                    {filteredAvailableUsers.find(u => u.id === selectedUser)?.email}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <Button onClick={linkEmployeeToUser} className="w-full">
+                                                            <Link className="h-4 w-4 mr-2" />
+                                                            Vincular Funcionario con Usuario
+                                                        </Button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-gray-500">
+                                                        <p>Selecciona un funcionario y un usuario para vincularlos</p>
+                                                        {selectedEmployee && !selectedUser && (
+                                                            <p className="text-sm mt-2">✓ Funcionario seleccionado, ahora selecciona un usuario</p>
+                                                        )}
+                                                        {!selectedEmployee && selectedUser && (
+                                                            <p className="text-sm mt-2">✓ Usuario seleccionado, ahora selecciona un funcionario</p>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
+                                {/* Estadísticas */}
+                                {!loadingLinking && (
+                                    <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <Card>
+                                            <CardContent className="pt-6 text-center">
+                                                <div className="text-2xl font-bold text-orange-600">
+                                                    {linkingData.unlinked_employees.length}
+                                                </div>
+                                                <div className="text-sm text-gray-600">Funcionarios sin usuario</div>
+                                            </CardContent>
+                                        </Card>
+                                        <Card>
+                                            <CardContent className="pt-6 text-center">
+                                                <div className="text-2xl font-bold text-green-600">
+                                                    {linkingData.available_users.length}
+                                                </div>
+                                                <div className="text-sm text-gray-600">Usuarios disponibles</div>
+                                            </CardContent>
+                                        </Card>
+                                        <Card>
+                                            <CardContent className="pt-6 text-center">
+                                                <div className="text-2xl font-bold text-blue-600">
+                                                    {data.empleados.filter(emp => !linkingData.unlinked_employees.find(unlinked => unlinked.id === emp.id)).length}
+                                                </div>
+                                                <div className="text-sm text-gray-600">Funcionarios vinculados</div>
+                                            </CardContent>
+                                        </Card>
+                                    </div>
+                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

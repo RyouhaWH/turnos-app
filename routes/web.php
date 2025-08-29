@@ -528,6 +528,190 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 return redirect()->back()->with('success', 'Empleado actualizado correctamente');
             });
+            // Obtener lista de empleados sin vincular
+            Route::get('/unlinked', function () {
+                $unlinkedEmployees = \App\Models\Employees::with('rol')
+                    ->whereNull('user_id')
+                    ->get()
+                    ->map(function ($employee) {
+                        return [
+                            'id' => $employee->id,
+                            'name' => $employee->name,
+                            'first_name' => $employee->first_name,
+                            'paternal_lastname' => $employee->paternal_lastname,
+                            'maternal_lastname' => $employee->maternal_lastname,
+                            'rut' => $employee->rut,
+                            'phone' => $employee->phone,
+                            'email' => $employee->email,
+                            'rol_nombre' => $employee->rol ? $employee->rol->nombre : 'Sin rol',
+                            'amzoma' => $employee->amzoma ?? false,
+                        ];
+                    });
+
+                $availableUsers = \App\Models\User::whereDoesntHave('employee')
+                    ->get()
+                    ->map(function ($user) {
+                        return [
+                            'id' => $user->id,
+                            'name' => $user->name,
+                            'email' => $user->email,
+                            'roles' => $user->roles->map(function ($role) {
+                                return ['name' => $role->name];
+                            })->toArray(),
+                        ];
+                    });
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'unlinked_employees' => $unlinkedEmployees,
+                        'available_users' => $availableUsers,
+                    ]
+                ]);
+            });
+
+            // Vincular empleado con usuario
+            Route::post('/{employeeId}/link-user', function (Request $request, $employeeId) {
+                $request->validate([
+                    'user_id' => 'required|exists:users,id',
+                ]);
+
+                $employee = \App\Models\Employees::findOrFail($employeeId);
+                $user = \App\Models\User::findOrFail($request->user_id);
+
+                // Verificar que el usuario no esté ya vinculado
+                if ($user->employee) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El usuario ya está vinculado a otro funcionario.'
+                    ], 400);
+                }
+
+                // Verificar que el empleado no esté ya vinculado
+                if ($employee->user_id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'El funcionario ya está vinculado a otro usuario.'
+                    ], 400);
+                }
+
+                // Realizar la vinculación
+                $employee->update(['user_id' => $user->id]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Funcionario vinculado correctamente.'
+                ]);
+            });
+
+            // Desvincular empleado
+            Route::post('/{employeeId}/unlink-user', function ($employeeId) {
+                $employee = \App\Models\Employees::findOrFail($employeeId);
+
+                $employee->update(['user_id' => null]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Funcionario desvinculado correctamente.'
+                ]);
+            });
+
+            // Obtener información de vinculación de un empleado
+            Route::get('/{employeeId}/user-link', function ($employeeId) {
+                $employee = \App\Models\Employees::with('user')->findOrFail($employeeId);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'employee' => [
+                            'id' => $employee->id,
+                            'name' => $employee->name,
+                        ],
+                        'user' => $employee->user ? [
+                            'id' => $employee->user->id,
+                            'name' => $employee->user->name,
+                            'email' => $employee->user->email,
+                            'roles' => $employee->user->roles->map(function ($role) {
+                                return ['name' => $role->name];
+                            })->toArray(),
+                        ] : null,
+                    ]
+                ]);
+            });
+
+            // Obtener funcionarios con datos faltantes
+            Route::get('/missing-data', function () {
+                \Log::info('Missing data endpoint accessed by user: ' . auth()->id());
+                $employees = \App\Models\Employees::with('rol')->get();
+
+                $missingData = [
+                    'missing_email' => [],
+                    'missing_rut' => [],
+                    'missing_phone' => [],
+                    'missing_multiple' => [],
+                    'complete_data' => [],
+                ];
+
+                foreach ($employees as $employee) {
+                    $missing = [];
+                    $employeeData = [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                        'first_name' => $employee->first_name,
+                        'paternal_lastname' => $employee->paternal_lastname,
+                        'maternal_lastname' => $employee->maternal_lastname,
+                        'rut' => $employee->rut,
+                        'phone' => $employee->phone,
+                        'email' => $employee->email,
+                        'rol_nombre' => $employee->rol ? $employee->rol->nombre : 'Sin rol',
+                        'amzoma' => $employee->amzoma ?? false,
+                    ];
+
+                    // Verificar qué datos faltan
+                    if (!$employee->email) {
+                        $missing[] = 'email';
+                    }
+                    if (!$employee->rut) {
+                        $missing[] = 'rut';
+                    }
+                    if (!$employee->phone) {
+                        $missing[] = 'phone';
+                    }
+
+                    $employeeData['missing_fields'] = $missing;
+
+                    // Categorizar según datos faltantes
+                    if (empty($missing)) {
+                        $missingData['complete_data'][] = $employeeData;
+                    } else if (count($missing) > 1) {
+                        $missingData['missing_multiple'][] = $employeeData;
+                    } else {
+                        $field = $missing[0];
+                        $missingData["missing_{$field}"][] = $employeeData;
+                    }
+                }
+
+                // Estadísticas
+                $stats = [
+                    'total_employees' => $employees->count(),
+                    'complete_data' => count($missingData['complete_data']),
+                    'missing_email' => count($missingData['missing_email']),
+                    'missing_rut' => count($missingData['missing_rut']),
+                    'missing_phone' => count($missingData['missing_phone']),
+                    'missing_multiple' => count($missingData['missing_multiple']),
+                    'completion_percentage' => $employees->count() > 0
+                        ? round((count($missingData['complete_data']) / $employees->count()) * 100, 1)
+                        : 0,
+                ];
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'categories' => $missingData,
+                        'stats' => $stats,
+                    ]
+                ]);
+            });
         });
 
         // Rutas para roles

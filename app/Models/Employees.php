@@ -20,6 +20,7 @@ class Employees extends Model
         'status',
         'amzoma',
         'rol_id',
+        'user_id',
     ];
 
     protected $casts = [
@@ -35,5 +36,10 @@ class Employees extends Model
     public function shifts()
     {
         return $this->hasMany(EmployeeShifts::class, 'employee_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
