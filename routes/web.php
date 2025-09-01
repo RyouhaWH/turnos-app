@@ -1,16 +1,12 @@
 <?php
 
+use App\Http\Controllers\PlatformDataController;
+use App\Http\Controllers\RolController;
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Http\Controllers\TurnController;
 use App\Http\Controllers\UserManagementController;
-use App\Http\Controllers\RolController;
-use App\Http\Controllers\PlatformDataController;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -73,6 +69,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])->name('monthly');
         Route::get('/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])->name('history');
     });
+
+    // Rutas con nombres originales para mantener compatibilidad con el frontend
+    Route::get('turnos', [ShiftsController::class, 'index'])->name('shifts');
+    Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
+    Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])->name('create-shifts');
+    Route::get('/turnos/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])->name('shifts-history');
 
     Route::get('/test-getShiftLog/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])
         ->name('test-shifts-history');
@@ -160,17 +162,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         */
 
         Route::prefix('employees')->name('employees.')->group(function () {
-            Route::get('/{id}', [PlatformDataController::class, 'showEmployee'])->name('show');
+            // Rutas específicas primero (antes de las rutas con parámetros)
+            Route::get('/missing-data', [PlatformDataController::class, 'getMissingData'])->name('missing-data');
+            Route::get('/unlinked', [PlatformDataController::class, 'getLinkingData'])->name('unlinked');
 
+            // Rutas con parámetros al final
+            Route::get('/{id}', [PlatformDataController::class, 'getEmployee'])->name('show');
             Route::put('/{id}', [PlatformDataController::class, 'updateEmployee'])->name('update');
-
-            Route::get('/unlinked', [PlatformDataController::class, 'getUnlinkedEmployees'])->name('unlinked');
-
-            Route::post('/{employeeId}/link-user', [PlatformDataController::class, 'linkEmployeeWithUser'])->name('link-user');
-
-            Route::post('/{employeeId}/unlink-user', [PlatformDataController::class, 'unlinkEmployeeFromUser'])->name('unlink-user');
-
-            Route::get('/{employeeId}/user-link', [PlatformDataController::class, 'getEmployeeUserLink'])->name('user-link');
+            Route::post('/{employeeId}/link-user', [PlatformDataController::class, 'linkEmployeeToUser'])->name('link-user');
+            Route::post('/{employeeId}/unlink-user', [PlatformDataController::class, 'unlinkEmployee'])->name('unlink-user');
         });
 
         /*
@@ -180,11 +180,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         */
 
         Route::prefix('roles')->name('roles.')->group(function () {
-            Route::post('/', [PlatformDataController::class, 'storeRole'])->name('store');
-
-            Route::put('/{id}', [PlatformDataController::class, 'updateRole'])->name('update');
-
-                    Route::delete('/{id}', [PlatformDataController::class, 'destroyRole'])->name('destroy');
+            Route::post('/', [RolController::class, 'store'])->name('store');
+            Route::put('/{id}', [RolController::class, 'update'])->name('update');
+            Route::delete('/{id}', [RolController::class, 'destroy'])->name('destroy');
         });
     });
 
@@ -194,17 +192,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/hola', function () {
-        return response()->json(['success' => true]);
-    })->name('missing-data');
+    Route::get('/test', function () {
+        return view('test');
+    })->name('test');
 
-    /*
-    |--------------------------------------------------------------------------
-    | Missing Data Analysis Route
-    |--------------------------------------------------------------------------
-    */
+    // Ruta de test público sin middleware
+    Route::get('/test-public', function () {
+        return view('test');
+    })->name('test-public');
 
-        Route::get('/platform-data/employees/missing-data', [PlatformDataController::class, 'getMissingDataAnalysis'])->name('missing-data-analysis');
+
 });
 
 /*
