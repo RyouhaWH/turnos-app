@@ -18,11 +18,25 @@ class AdminMiddleware
     {
         // Verificar si el usuario está autenticado
         if (!Auth::check()) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Debes iniciar sesión para acceder a esta función.',
+                    'error' => 'unauthenticated'
+                ], 401);
+            }
             return redirect()->route('login')->with('error', 'Debes iniciar sesión para acceder a esta página.');
         }
 
         // Verificar si el usuario tiene el rol de administrador
         if (!Auth::user()->hasRole('Administrador')) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No tienes permisos de administrador para acceder a esta función.',
+                    'error' => 'forbidden'
+                ], 403);
+            }
             return redirect()->back()->with('error', 'No tienes permisos de administrador para acceder a esta función.');
         }
 

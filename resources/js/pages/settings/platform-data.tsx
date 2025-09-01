@@ -519,20 +519,24 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         setLoadingMissingData(true);
         try {
             console.log('Fetching missing data from: /platform-data/employees/missing-data');
+            console.log('User authenticated:', !!window.axios.defaults.headers.common['X-CSRF-TOKEN']);
+            console.log('CSRF Token:', window.axios.defaults.headers.common['X-CSRF-TOKEN']);
 
             // Usar axios que maneja automáticamente CSRF y cookies en Laravel
             const response = await window.axios.get('/platform-data/employees/missing-data');
 
             console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             console.log('Response data:', response.data);
 
             if (response.data.success) {
                 setMissingDataResponse(response.data.data);
-                toast.success('Datos cargados correctamente');
+                const totalMissing = response.data.data.stats.total_employees - response.data.data.stats.complete_data;
+                toast.success(`Datos cargados correctamente. ${totalMissing} funcionarios tienen datos faltantes.`);
             } else {
                 throw new Error(response.data.message || 'Error en la respuesta del servidor');
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error loading missing data:', error);
 
             if (error.response) {
@@ -545,14 +549,14 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 } else if (status === 404) {
                     toast.error('Endpoint no encontrado. Verifica la configuración de rutas.');
                 } else {
-                    toast.error(`Error del servidor (${status}): ${error.response.data.message || 'Error desconocido'}`);
+                    toast.error(`Error del servidor (${status}): ${error.response.data?.message || 'Error desconocido'}`);
                 }
             } else if (error.request) {
                 // Error de red
                 toast.error('Error de conexión. Verifica tu conexión a internet.');
             } else {
                 // Error de configuración
-                toast.error(`Error al cargar datos faltantes: ${error.message}`);
+                toast.error(`Error al cargar datos faltantes: ${error.message || 'Error desconocido'}`);
             }
         } finally {
             setLoadingMissingData(false);
@@ -1254,21 +1258,41 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                             Revisa y completa la información faltante de email, RUT y teléfono de los funcionarios
                                         </CardDescription>
                                     </div>
-                                    <Button
-                                        onClick={loadMissingData}
-                                        variant="outline"
-                                        className="flex items-center gap-2"
-                                        disabled={loadingMissingData}
-                                    >
-                                        <RefreshCw className={`h-4 w-4 ${loadingMissingData ? 'animate-spin' : ''}`} />
-                                        Actualizar
-                                    </Button>
+                                    <div className="flex gap-2">
+                                        <Button
+                                            onClick={loadMissingData}
+                                            variant="outline"
+                                            className="flex items-center gap-2"
+                                            disabled={loadingMissingData}
+                                        >
+                                            <RefreshCw className={`h-4 w-4 ${loadingMissingData ? 'animate-spin' : ''}`} />
+                                            Actualizar
+                                        </Button>
+                                        <Button
+                                            onClick={() => {
+                                                console.log('=== DEBUG INFO ===');
+                                                console.log('CSRF Token:', window.axios.defaults.headers.common['X-CSRF-TOKEN']);
+                                                console.log('User authenticated:', !!window.axios.defaults.headers.common['X-CSRF-TOKEN']);
+                                                console.log('Current URL:', window.location.href);
+                                                console.log('Missing data response:', missingDataResponse);
+                                                console.log('==================');
+                                                toast.info('Información de debug enviada a la consola');
+                                            }}
+                                            variant="outline"
+                                            size="sm"
+                                            className="flex items-center gap-2"
+                                        >
+                                            🐛 Debug
+                                        </Button>
+                                    </div>
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 {loadingMissingData ? (
-                                    <div className="flex items-center justify-center py-8">
-                                        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                                    <div className="flex flex-col items-center justify-center py-8">
+                                        <RefreshCw className="h-8 w-8 animate-spin text-blue-500 mb-4" />
+                                        <p className="text-gray-600 dark:text-gray-400">Cargando datos de funcionarios...</p>
+                                        <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Esto puede tomar unos segundos</p>
                                     </div>
                                 ) : missingDataResponse ? (
                                     <div className="space-y-6">
@@ -1467,7 +1491,13 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                 ) : (
                                     <div className="text-center py-8 text-gray-500">
                                         <AlertCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                                        <p>Haz clic en "Actualizar" para cargar los datos</p>
+                                        <p className="text-lg font-medium mb-2">No hay datos cargados</p>
+                                        <p className="mb-4">Haz clic en "Actualizar" para cargar los datos de funcionarios con información faltante</p>
+                                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 max-w-md mx-auto">
+                                            <p className="text-sm text-blue-800 dark:text-blue-200">
+                                                <strong>Tip:</strong> Esta funcionalidad requiere permisos de administrador y cargará automáticamente todos los funcionarios que tengan datos faltantes como email, RUT o teléfono.
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
                             </CardContent>

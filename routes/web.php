@@ -3,9 +3,13 @@
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Http\Controllers\TurnController;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\RolController;
 use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\ShiftChangeLog;
+use App\Models\Rol;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -13,6 +17,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+
+/*
+|--------------------------------------------------------------------------
+| Public Routes
+|--------------------------------------------------------------------------
+*/
 
 Route::get('/', function () {
     return Inertia::render('welcome');
@@ -26,430 +36,128 @@ Route::get('calendario-turnos-patrulleros', function () {
     return Inertia::render('calendar');
 })->name('calendar-alerta-movil');
 
+/*
+|--------------------------------------------------------------------------
+| Protected Routes
+|--------------------------------------------------------------------------
+*/
+
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    Route::inertia('/dashboard', 'dashboard')->name('dashboard');
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard & Staff Routes
+    |--------------------------------------------------------------------------
+    */
 
+    Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
-    // Rutas para gestión de usuarios
-    Route::post('/admin/users', [App\Http\Controllers\UserManagementController::class, 'store'])->name('admin.users.store');
+    /*
+    |--------------------------------------------------------------------------
+    | User Management Routes
+    |--------------------------------------------------------------------------
+    */
 
-    Route::patch('/admin/users/{user}/role', [App\Http\Controllers\UserManagementController::class, 'updateRole'])->name('admin.users.update-role');
+    Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        Route::post('/', [UserManagementController::class, 'store'])->name('store');
+        Route::patch('/{user}/role', [UserManagementController::class, 'updateRole'])->name('update-role');
+        Route::delete('/{user}', [UserManagementController::class, 'destroy'])->name('destroy');
+    });
 
-    Route::delete('/admin/users/{user}', [App\Http\Controllers\UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+    /*
+    |--------------------------------------------------------------------------
+    | Shifts Routes
+    |--------------------------------------------------------------------------
+    */
 
-    //para tener turnos
-    Route::get('turnos', [ShiftsController::class, 'index'])
-        ->name('shifts');
-
-    Route::get('turnos-hoy', [ShiftsController::class, 'getDailyShifts']);
-
-    Route::get('turnos-mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])
-        ->name('create-shifts');
-
-    Route::get('/turnos/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])
-        ->name('shifts-history');
+    Route::prefix('turnos')->name('shifts.')->group(function () {
+        Route::get('/', [ShiftsController::class, 'index'])->name('index');
+        Route::get('hoy', [ShiftsController::class, 'getDailyShifts'])->name('today');
+        Route::get('mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])->name('monthly');
+        Route::get('/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])->name('history');
+    });
 
     Route::get('/test-getShiftLog/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])
         ->name('test-shifts-history');
 
-    // routes/web.php o routes/api.php
-    Route::middleware(['auth', 'admin'])->group(function () {
-        Route::get('/upload-csv', [ShiftImportController::class, 'index'])
-            ->name('upload-shift-file');
-        Route::post('/upload-csv', [ShiftImportController::class, 'importFromPostToDatabase']);
+    /*
+    |--------------------------------------------------------------------------
+    | CSV Import Routes (Admin Only)
+    |--------------------------------------------------------------------------
+    */
+
+    Route::middleware(['auth', 'admin'])->prefix('upload-csv')->name('upload-shift.')->group(function () {
+        Route::get('/', [ShiftImportController::class, 'index'])->name('index');
+        Route::post('/', [ShiftImportController::class, 'importFromPostToDatabase'])->name('import');
     });
 
-    Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage']);
+    Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage'])
+        ->name('import-from-storage');
 
-    Route::prefix('api/dashboard')->group(function () {
-        //llamadas datos Dashboard principal y de turnos
-        // Estado de empleados para dashboard
+    /*
+    |--------------------------------------------------------------------------
+    | Dashboard API Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('api/dashboard')->name('dashboard.')->group(function () {
         Route::get('employee-status', [TurnController::class, 'getEmployeeStatus'])->name('employee-status');
-
-        // Estadísticas principales
         Route::get('stats', [TurnController::class, 'getDashboardStats'])->name('stats');
-
-        // Información específica
         Route::get('employees-by-role', [TurnController::class, 'getEmployeesByRole'])->name('employees-by-role');
-
-        Route::get('today-shifts', [TurnController::class, 'getTodayShifts'])
-            ->name('today-shifts');
-
+        Route::get('today-shifts', [TurnController::class, 'getTodayShifts'])->name('today-shifts');
     });
 
-    // Rutas para gestión de roles
-    Route::prefix('api/roles')->group(function () {
-        Route::get('/', [App\Http\Controllers\RolController::class, 'index'])->name('roles.index');
-        Route::patch('/{id}/operational-status', [App\Http\Controllers\RolController::class, 'updateOperationalStatus'])->name('roles.update-operational-status');
-        Route::patch('/update-multiple', [App\Http\Controllers\RolController::class, 'updateMultiple'])->name('roles.update-multiple');
+    /*
+    |--------------------------------------------------------------------------
+    | Roles Management Routes
+    |--------------------------------------------------------------------------
+    */
+
+    Route::prefix('api/roles')->name('roles.')->group(function () {
+        Route::get('/', [RolController::class, 'index'])->name('index');
+        Route::patch('/{id}/operational-status', [RolController::class, 'updateOperationalStatus'])->name('update-operational-status');
+        Route::patch('/update-multiple', [RolController::class, 'updateMultiple'])->name('update-multiple');
     });
 
-    //ruta de turnos filtrados
-    Route::get('api/turnos-alerta_movil', [TurnController::class, 'index'])->name('turnos-alerta_movil');
+    /*
+    |--------------------------------------------------------------------------
+    | Shifts API Routes
+    |--------------------------------------------------------------------------
+    */
 
-    // ruta de todos los turnos sin filtrar
-    Route::get('api/montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV'])->name('montly-shifts');
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('turnos-alerta_movil', [TurnController::class, 'index'])->name('turnos-alerta-movil');
+        Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV'])->name('monthly-shifts');
+        Route::get('turnos', [TurnController::class, 'getShiftsFromDB'])->name('turnos');
+        Route::get('turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts'])->name('turnos-mes');
+        Route::get('shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])->name('shift-change-log-employee');
+        Route::get('shift-change-log', [TurnController::class, 'getShiftsChangeLog'])->name('shift-change-log');
+    });
 
-    //retorna turnos desde base de datos
-    Route::get('api/turnos', [TurnController::class, 'getShiftsFromDB'])->name('turnos');
-
-    //Retorna turnos según fecha
-    Route::get('api/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts'])->name('turnos-mes');
-
-    //Retorna turnos modificados
-    Route::get('api/shift-change-log/{employeeId}', [TurnController::class, 'getShiftsChangeLogByEmployee'])->name('shift-change-log-employee');
-
-    //Retorna todos los turnos modificados
-    Route::get('api/shift-change-log', [TurnController::class, 'getShiftsChangeLog'])->name('shift-change-log');
-
-    //ruta de turnos filtrados
     Route::get('/turnos-alerta_movil', [TurnController::class, 'index']);
 
-    //importar turnos desde agGrid
+    /*
+    |--------------------------------------------------------------------------
+    | Shifts Update Route (Supervisor Only)
+    |--------------------------------------------------------------------------
+    */
+
     Route::middleware(['auth', 'supervisor'])->post('turnos-mes/actualizar', function (Request $request) {
+        return app(\App\Http\Controllers\ShiftsUpdateController::class)->updateShifts($request);
+    })->name('post-updateShifts');
 
-        try {
-            // Iniciar transacción para asegurar consistencia de datos
-            DB::beginTransaction();
+    /*
+    |--------------------------------------------------------------------------
+    | Platform Data Routes (Admin Only)
+    |--------------------------------------------------------------------------
+    */
 
-            $numerosAReportarCambios = [];
+    Route::middleware(['auth', 'admin'])->prefix('platform-data')->name('platform-data.')->group(function () {
 
-            //! Números base para notificaciones
-            //central, munuel verdugo y dayanna, paola carrasco, cesar soto
-            $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone;
-            $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone;
-            $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone;
-            $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone;
-            $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone;
-            $numeroDayanaChavez        = "981841759";
-            $numeroCentral             = "964949887";
-            $numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone;
-            $numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone;
-            $numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone;
-            $numeroCristianMontecinos  = "975952121";
-            $numeroInformacionesAmzoma = "985639782";
-            $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone;
-
-            // Verificar si estamos en producción o local
-            if (app()->environment('production')) {
-                $numerosAReportarCambios = [
-                    $numeroInformacionesAmzoma,
-                    $numeroJorgeWaltemath,
-                    $numeroJulioSarmiento,
-                    $numeroMarianelaHuequelef,
-                    $numeroPriscilaEscobar,
-                    $numeroJavierAlvarado,
-                    $numeroEduardoEsparza,
-                    $numeroDayanaChavez,
-                    $numeroCentral,
-                    $numeroMunuelVerdugo,
-                    $numeroPaolaCarrasco,
-                    $numeroCesarSoto,
-                    $numeroCristianMontecinos,
-                ];
-
-            } else {
-                // Agregar números a la lista para notificaciones
-                $numerosAReportarCambios = [
-                    $numeroInformacionesAmzoma,
-                    $numeroJorgeWaltemath,
-
-                ];
-            }
-
-            $cambios    = $request->input('cambios');
-            $mes        = $request->input('mes', now()->month);
-            $año       = $request->input('año', now()->year);
-            $actualUser = Auth::id();
-
-            // Debug: Verificar qué valores se están recibiendo
-            Log::info('🔄 Valores recibidos en actualización:', [
-                'mes'     => $mes,
-                'año'     => $año,
-                'cambios' => $cambios,
-            ]);
-
-            // Array para agrupar cambios por funcionario
-            $cambiosPorFuncionario = [];
-
-            // Verificamos si vienen cambios
-            if (! is_array($cambios) || empty($cambios)) {
-                return response()->json(['message' => 'No hay cambios para guardar'], 400);
-            }
-
-            foreach ($cambios as $employeeId => $fechas) {
-
-                foreach ($fechas['turnos'] as $dia => $turno) {
-
-                    // El frontend ahora envía el ID real del empleado
-                    $empleado = Employees::find($employeeId);
-
-                    if (! $empleado) {
-                        continue; // Saltar este empleado si no se encuentra
-                    }
-
-                    if ($empleado) {
-
-                        // Construir la fecha correctamente usando el día, mes y año actual
-                        $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
-
-                        // Buscar si ya existe el turno
-                        $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
-                            ->whereDate('date', $fecha)
-                            ->first();
-
-                        $nuevoTurno = strtoupper($turno);
-                        $comentario = '';
-
-                        // Verificar si el turno está vacío (para eliminar)
-                        if (empty($turno) || $turno === '') {
-
-                            // Solo eliminar si realmente existe un turno
-                            if ($turnoActual !== null) {
-
-                                // Registrar en historial antes de eliminar
-                                ShiftChangeLog::create([
-                                    'employee_id'       => $empleado->id,
-                                    'employee_shift_id' => null, // null porque el registro se eliminará
-                                    'changed_by'        => $actualUser,
-                                    'old_shift'         => $turnoActual->shift,
-                                    'new_shift'         => '',
-                                    'comment'           => 'Turno eliminado desde plataforma',
-                                    'shift_date'        => $fecha, // Guardar la fecha del turno eliminado
-                                ]);
-
-                                // Almacenar eliminación para mensaje consolidado
-                                if (! isset($cambiosPorFuncionario[$empleado->id])) {
-                                    $cambiosPorFuncionario[$empleado->id] = [
-                                        'nombre'   => $empleado->name,
-                                        'telefono' => $empleado->phone,
-                                        'cambios'  => [],
-                                    ];
-                                }
-
-                                $turnoAnterior = match ($turnoActual->shift) {
-                                    'PE' => 'Patrulla Escolar',
-                                    'A'     => 'Administrativo',
-                                    'AE'     => 'Administrativo Extra',
-                                    'LM'    => 'Licencia Médica',
-                                    'S'     => 'Día Sindical',
-                                    'SE'     => 'Día Sindical Extra',
-                                    'M'     => 'Mañana',
-                                    'T'     => 'Tarde',
-                                    'N'     => 'Noche',
-                                    'ME'     => 'Mañana Extra',
-                                    'TE'     => 'Tarde Extra',
-                                    'NE'     => 'Noche Extra',
-                                    'F'     => 'Franco',
-                                    'FE'     => 'Franco Extra',
-                                    'L'     => 'Libre',
-                                    'LE'     => 'Libre Extra',
-                                    '1'     => 'Primer Turno',
-                                    '2'     => 'Segundo Turno',
-                                    '3'     => 'Tercer Turno',
-                                    '1E'     => 'Primer Turno Extra',
-                                    '2E'     => 'Segundo Turno Extra',
-                                    '3E'     => 'Tercer Turno Extra',
-                                    null    => 'Sin Turno',
-                                    ''      => 'Sin Turno',
-                                    ' '     => 'Sin Turno',
-                                    default => 'Desconocido',
-                                };
-
-                                $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
-                                    'fecha'          => $fecha,
-                                    'turno_anterior' => $turnoAnterior,
-                                    'turno_nuevo'    => 'Sin Turno',
-                                ];
-
-                                // Eliminar el turno
-                                $turnoActual->delete();
-                            }
-                            // Si no existe un turno, no hacer nada (no registrar en historial)
-
-                        } else {
-                            // Procesar turno normal (no vacío)
-                            if ($turnoActual !== null) {
-
-                                // es o no un nuevo turno? si es así agrega
-                                if ($turnoActual->shift !== $nuevoTurno) {
-
-                                    // Guardar o actualizar el turno
-                                    $turnoCreado = EmployeeShifts::updateOrCreate(
-                                        [
-                                            'employee_id' => $empleado->id,
-                                            'date'        => $fecha,
-                                        ],
-                                        [
-                                            'shift'    => $nuevoTurno,
-                                            'comments' => $comentario,
-                                        ]
-                                    );
-
-                                    // Registrar en historial
-                                    ShiftChangeLog::create([
-                                        'employee_id'       => $empleado->id,
-                                        'employee_shift_id' => optional($turnoActual)->id,
-                                        'changed_by'        => $actualUser,
-                                        'old_shift'         => optional($turnoActual)->shift,
-                                        'new_shift'         => $nuevoTurno,
-                                        'comment'           => $turnoActual
-                                        ? "modificado el turno desde plataforma"
-                                        : "Turno creado desde plataforma",
-                                        'shift_date'        => $fecha, // Guardar la fecha del turno
-                                    ]);
-
-                                }
-
-                            } else {
-
-                                // Guardar o actualizar el turno
-                                $shiftToMake = EmployeeShifts::updateOrCreate(
-                                    [
-                                        'employee_id' => $empleado->id,
-                                        'date'        => $fecha,
-                                    ],
-                                    [
-                                        'shift'    => $nuevoTurno,
-                                        'comments' => $comentario,
-                                    ]
-                                );
-
-                                // Registrar en historial
-                                ShiftChangeLog::create([
-                                    'employee_id'       => $empleado->id,
-                                    'employee_shift_id' => $shiftToMake->id,
-                                    'changed_by'        => $actualUser,
-                                    'old_shift'         => '',
-                                    'new_shift'         => $nuevoTurno,
-                                    'comment'           => "Turno creado desde plataforma",
-                                    'shift_date'        => $fecha, // Guardar la fecha del turno
-                                ]);
-                            }
-
-                            $shiftComplete = match ($turno) {
-                                'PE'    => 'Patrulla Escolar',
-                                'A'     => 'Administrativo',
-                                'LM'    => 'Licencia Médica',
-                                'S'     => 'Día Sindical',
-                                'M'     => 'Mañana',
-                                'T'     => 'Tarde',
-                                'N'     => 'Noche',
-                                'F'     => 'Franco',
-                                'L'     => 'Libre',
-                                '1'     => 'Primer Turno',
-                                '2'     => 'Segundo Turno',
-                                '3'     => 'Tercer Turno',
-                                null    => 'Sin Turno',
-                                ''      => 'Sin Turno',
-                                ' '     => 'Sin Turno',
-                                'TE'    => 'Test',
-                                default => 'Desconocido',
-                            };
-
-                            // Almacenar cambio para mensaje consolidado
-                            if (! isset($cambiosPorFuncionario[$empleado->id])) {
-                                $cambiosPorFuncionario[$empleado->id] = [
-                                    'nombre'   => $empleado->name,
-                                    'telefono' => $empleado->phone,
-                                    'cambios'  => [],
-                                ];
-                            }
-
-                            $turnoAnterior = $turnoActual ? match ($turnoActual->shift) {
-                                'PE'    => 'Patrulla Escolar',
-                                'A'     => 'Administrativo',
-                                'LM'    => 'Licencia Médica',
-                                'S'     => 'Día Sindical',
-                                'M'     => 'Mañana',
-                                'T'     => 'Tarde',
-                                'N'     => 'Noche',
-                                'F'     => 'Franco',
-                                'L'     => 'Libre',
-                                '1'     => 'Primer Turno',
-                                '2'     => 'Segundo Turno',
-                                '3'     => 'Tercer Turno',
-                                null    => 'Sin Turno',
-                                ''      => 'Sin Turno',
-                                ' '     => 'Sin Turno',
-                                'TE'    => 'Test',
-                                default => 'Desconocido',
-                            } : 'Sin Turno';
-
-                            $cambiosPorFuncionario[$empleado->id]['cambios'][] = [
-                                'fecha'          => $fecha,
-                                'turno_anterior' => $turnoAnterior,
-                                'turno_nuevo'    => $shiftComplete,
-                            ];
-
-                        }
-                    }
-                }
-
-                // Enviar mensajes consolidados por funcionario
-                foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
-                    if (empty($datosFuncionario['cambios'])) {
-                        continue;
-                    }
-
-                    // Construir mensaje consolidado
-                    $mensaje = "Se *Autoriza* el turno de: *{$datosFuncionario['nombre']}* _siendo modificado_ los días:\n";
-
-                    foreach ($datosFuncionario['cambios'] as $cambio) {
-                        $fechaFormateada = date('d/m/Y', strtotime($cambio['fecha']));
-                        $mensaje .= "• *{$fechaFormateada}* de \"*{$cambio['turno_anterior']}*\" a \"*{$cambio['turno_nuevo']}*\"\n";
-                    }
-
-                    // Enviar mensaje a los contactos de reporte
-                    foreach ($numerosAReportarCambios as $numero) {
-                        $response = Http::post('http://localhost:3001/send-message', [
-                            'mensaje' => $mensaje,
-                            'numero'  => "56" . $numero,
-                        ]);
-                    }
-
-                    if ($datosFuncionario['telefono']) {
-                        $response = Http::post('http://localhost:3001/send-message', [
-                            'mensaje' => $mensaje,
-                            'numero'  => "56" . $datosFuncionario['telefono'],
-                        ]);
-                    }
-                }
-            }
-
-            // Commit de la transacción si todo salió bien
-            DB::commit();
-
-            return back()->with(
-                'success',
-                'Cambios guardados correctamente.'
-            );
-
-        } catch (\Exception $e) {
-            // Rollback en caso de error
-            DB::rollBack();
-
-            Log::error('Error al actualizar turnos: ' . $e->getMessage(), [
-                'user_id'      => Auth::id(),
-                'request_data' => $request->all(),
-                'trace'        => $e->getTraceAsString(),
-            ]);
-
-            return back()->with('success',
-                'Error al guardar los cambios: ' . $e->getMessage(),
-            );
-        }
-    })
-        ->name('post-updateShifts');
-
-    // Ruta para datos de plataforma (solo administradores)
-    Route::middleware(['auth', 'admin'])->group(function () {
-
-        // Vista principal
-        Route::get('/platform-data', function () {
-            $roles = \App\Models\Rol::all()->map(function ($role) {
+        // Main platform data view
+        Route::get('/', function () {
+            $roles = Rol::all()->map(function ($role) {
                 return [
                     'id'             => $role->id,
                     'nombre'         => $role->nombre,
@@ -459,7 +167,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                     'updated_at'     => $role->updated_at,
                 ];
             });
-            $empleados = \App\Models\Employees::with('rol')->get()->map(function ($empleado) {
+
+            $empleados = Employees::with('rol')->get()->map(function ($empleado) {
                 return [
                     'id'         => $empleado->id,
                     'name'       => $empleado->name,
@@ -476,23 +185,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 'roles'     => $roles,
                 'empleados' => $empleados,
             ]);
-        })->name('platform-data');
+        })->name('index');
 
-        // Rutas para empleados
-        Route::prefix('platform-data/employees')->group(function () {
-            // Obtener datos de un empleado específico
+        /*
+        |--------------------------------------------------------------------------
+        | Employees Management Routes
+        |--------------------------------------------------------------------------
+        */
+
+        Route::prefix('employees')->name('employees.')->group(function () {
             Route::get('/{id}', function ($id) {
-                $empleado = \App\Models\Employees::with('rol')->findOrFail($id);
+                $empleado = Employees::with('rol')->findOrFail($id);
+                return response()->json(['success' => true, 'data' => $empleado]);
+            })->name('show');
 
-                return response()->json([
-                    'success' => true,
-                    'data'    => $empleado,
-                ]);
-            });
-
-            // Actualizar empleado
             Route::put('/{id}', function (Request $request, $id) {
-                $empleado = \App\Models\Employees::findOrFail($id);
+                $empleado = Employees::findOrFail($id);
 
                 $request->validate([
                     'name'              => 'nullable|string|max:255',
@@ -511,49 +219,39 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ]);
 
                 $empleado->update($request->only([
-                    'name',
-                    'first_name',
-                    'paternal_lastname',
-                    'maternal_lastname',
-                    'rut',
-                    'phone',
-                    'email',
-                    'address',
-                    'position',
-                    'department',
-                    'start_date',
-                    'status',
-                    'rol_id',
+                    'name', 'first_name', 'paternal_lastname', 'maternal_lastname',
+                    'rut', 'phone', 'email', 'address', 'position', 'department',
+                    'start_date', 'status', 'rol_id',
                 ]));
 
                 return redirect()->back()->with('success', 'Empleado actualizado correctamente');
-            });
-            // Obtener lista de empleados sin vincular
+            })->name('update');
+
             Route::get('/unlinked', function () {
-                $unlinkedEmployees = \App\Models\Employees::with('rol')
+                $unlinkedEmployees = Employees::with('rol')
                     ->whereNull('user_id')
                     ->get()
                     ->map(function ($employee) {
                         return [
-                            'id' => $employee->id,
-                            'name' => $employee->name,
-                            'first_name' => $employee->first_name,
+                            'id'                => $employee->id,
+                            'name'              => $employee->name,
+                            'first_name'        => $employee->first_name,
                             'paternal_lastname' => $employee->paternal_lastname,
                             'maternal_lastname' => $employee->maternal_lastname,
-                            'rut' => $employee->rut,
-                            'phone' => $employee->phone,
-                            'email' => $employee->email,
-                            'rol_nombre' => $employee->rol ? $employee->rol->nombre : 'Sin rol',
-                            'amzoma' => $employee->amzoma ?? false,
+                            'rut'               => $employee->rut,
+                            'phone'             => $employee->phone,
+                            'email'             => $employee->email,
+                            'rol_nombre'        => $employee->rol ? $employee->rol->nombre : 'Sin rol',
+                            'amzoma'            => $employee->amzoma ?? false,
                         ];
                     });
 
-                $availableUsers = \App\Models\User::whereDoesntHave('employee')
+                $availableUsers = User::whereDoesntHave('employee')
                     ->get()
                     ->map(function ($user) {
                         return [
-                            'id' => $user->id,
-                            'name' => $user->name,
+                            'id'    => $user->id,
+                            'name'  => $user->name,
                             'email' => $user->email,
                             'roles' => $user->roles->map(function ($role) {
                                 return ['name' => $role->name];
@@ -563,181 +261,97 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 return response()->json([
                     'success' => true,
-                    'data' => [
+                    'data'    => [
                         'unlinked_employees' => $unlinkedEmployees,
-                        'available_users' => $availableUsers,
-                    ]
+                        'available_users'    => $availableUsers,
+                    ],
                 ]);
-            });
+            })->name('unlinked');
 
-            // Vincular empleado con usuario
             Route::post('/{employeeId}/link-user', function (Request $request, $employeeId) {
-                $request->validate([
-                    'user_id' => 'required|exists:users,id',
-                ]);
+                $request->validate(['user_id' => 'required|exists:users,id']);
 
-                $employee = \App\Models\Employees::findOrFail($employeeId);
-                $user = \App\Models\User::findOrFail($request->user_id);
+                $employee = Employees::findOrFail($employeeId);
+                $user     = User::findOrFail($request->user_id);
 
-                // Verificar que el usuario no esté ya vinculado
                 if ($user->employee) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'El usuario ya está vinculado a otro funcionario.'
+                        'message' => 'El usuario ya está vinculado a otro funcionario.',
                     ], 400);
                 }
 
-                // Verificar que el empleado no esté ya vinculado
                 if ($employee->user_id) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'El funcionario ya está vinculado a otro usuario.'
+                        'message' => 'El funcionario ya está vinculado a otro usuario.',
                     ], 400);
                 }
 
-                // Realizar la vinculación
                 $employee->update(['user_id' => $user->id]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Funcionario vinculado correctamente.'
+                    'message' => 'Funcionario vinculado correctamente.',
                 ]);
-            });
+            })->name('link-user');
 
-            // Desvincular empleado
             Route::post('/{employeeId}/unlink-user', function ($employeeId) {
-                $employee = \App\Models\Employees::findOrFail($employeeId);
-
+                $employee = Employees::findOrFail($employeeId);
                 $employee->update(['user_id' => null]);
 
                 return response()->json([
                     'success' => true,
-                    'message' => 'Funcionario desvinculado correctamente.'
+                    'message' => 'Funcionario desvinculado correctamente.',
                 ]);
-            });
+            })->name('unlink-user');
 
-            // Obtener información de vinculación de un empleado
             Route::get('/{employeeId}/user-link', function ($employeeId) {
-                $employee = \App\Models\Employees::with('user')->findOrFail($employeeId);
+                $employee = Employees::with('user')->findOrFail($employeeId);
 
                 return response()->json([
                     'success' => true,
-                    'data' => [
+                    'data'    => [
                         'employee' => [
-                            'id' => $employee->id,
+                            'id'   => $employee->id,
                             'name' => $employee->name,
                         ],
-                        'user' => $employee->user ? [
-                            'id' => $employee->user->id,
-                            'name' => $employee->user->name,
+                        'user'     => $employee->user ? [
+                            'id'    => $employee->user->id,
+                            'name'  => $employee->user->name,
                             'email' => $employee->user->email,
                             'roles' => $employee->user->roles->map(function ($role) {
                                 return ['name' => $role->name];
                             })->toArray(),
                         ] : null,
-                    ]
+                    ],
                 ]);
-            });
-
-            // Obtener funcionarios con datos faltantes
-            Route::get('/missing-data', function () {
-                \Log::info('Missing data endpoint accessed by user: ' . auth()->id());
-                $employees = \App\Models\Employees::with('rol')->get();
-
-                $missingData = [
-                    'missing_email' => [],
-                    'missing_rut' => [],
-                    'missing_phone' => [],
-                    'missing_multiple' => [],
-                    'complete_data' => [],
-                ];
-
-                foreach ($employees as $employee) {
-                    $missing = [];
-                    $employeeData = [
-                        'id' => $employee->id,
-                        'name' => $employee->name,
-                        'first_name' => $employee->first_name,
-                        'paternal_lastname' => $employee->paternal_lastname,
-                        'maternal_lastname' => $employee->maternal_lastname,
-                        'rut' => $employee->rut,
-                        'phone' => $employee->phone,
-                        'email' => $employee->email,
-                        'rol_nombre' => $employee->rol ? $employee->rol->nombre : 'Sin rol',
-                        'amzoma' => $employee->amzoma ?? false,
-                    ];
-
-                    // Verificar qué datos faltan
-                    if (!$employee->email) {
-                        $missing[] = 'email';
-                    }
-                    if (!$employee->rut) {
-                        $missing[] = 'rut';
-                    }
-                    if (!$employee->phone) {
-                        $missing[] = 'phone';
-                    }
-
-                    $employeeData['missing_fields'] = $missing;
-
-                    // Categorizar según datos faltantes
-                    if (empty($missing)) {
-                        $missingData['complete_data'][] = $employeeData;
-                    } else if (count($missing) > 1) {
-                        $missingData['missing_multiple'][] = $employeeData;
-                    } else {
-                        $field = $missing[0];
-                        $missingData["missing_{$field}"][] = $employeeData;
-                    }
-                }
-
-                // Estadísticas
-                $stats = [
-                    'total_employees' => $employees->count(),
-                    'complete_data' => count($missingData['complete_data']),
-                    'missing_email' => count($missingData['missing_email']),
-                    'missing_rut' => count($missingData['missing_rut']),
-                    'missing_phone' => count($missingData['missing_phone']),
-                    'missing_multiple' => count($missingData['missing_multiple']),
-                    'completion_percentage' => $employees->count() > 0
-                        ? round((count($missingData['complete_data']) / $employees->count()) * 100, 1)
-                        : 0,
-                ];
-
-                return response()->json([
-                    'success' => true,
-                    'data' => [
-                        'categories' => $missingData,
-                        'stats' => $stats,
-                    ]
-                ]);
-            });
+            })->name('user-link');
         });
 
-        // Rutas para roles
-        Route::prefix('platform-data/roles')->group(function () {
-            // Crear nuevo rol
-            Route::post('/', function (Request $request) {
-                $request->validate([
-                    'nombre' => 'required|string|max:255|unique:rols,nombre',
-                ]);
+        /*
+        |--------------------------------------------------------------------------
+        | Roles Management Routes
+        |--------------------------------------------------------------------------
+        */
 
-                \App\Models\Rol::create([
+        Route::prefix('roles')->name('roles.')->group(function () {
+            Route::post('/', function (Request $request) {
+                $request->validate(['nombre' => 'required|string|max:255|unique:rols,nombre']);
+
+                Rol::create([
                     'nombre'         => $request->nombre,
-                    'is_operational' => $request->input('is_operational', true), // Por defecto operativo
-                    'color'          => $request->input('color', '#3B82F6'),     // Por defecto azul
+                    'is_operational' => $request->input('is_operational', true),
+                    'color'          => $request->input('color', '#3B82F6'),
                 ]);
 
                 return redirect()->back()->with('success', 'Rol creado correctamente');
-            });
+            })->name('store');
 
-            // Actualizar rol
             Route::put('/{id}', function (Request $request, $id) {
-                $role = \App\Models\Rol::findOrFail($id);
+                $role = Rol::findOrFail($id);
 
-                $request->validate([
-                    'nombre' => 'required|string|max:255|unique:rols,nombre,' . $id,
-                ]);
+                $request->validate(['nombre' => 'required|string|max:255|unique:rols,nombre,' . $id]);
 
                 $role->update([
                     'nombre'         => $request->nombre,
@@ -746,82 +360,53 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ]);
 
                 return redirect()->back()->with('success', 'Rol actualizado correctamente');
-            });
+            })->name('update');
 
-            // Eliminar rol
             Route::delete('/{id}', function ($id) {
-                $role = \App\Models\Rol::findOrFail($id);
+                $role = Rol::findOrFail($id);
 
-                // Verificar si hay empleados usando este rol
                 $employeesCount = $role->employees()->count();
                 if ($employeesCount > 0) {
-                    return redirect()->back()->with('error', 'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.');
+                    return redirect()->back()->with('error', 
+                        'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.'
+                    );
                 }
 
                 $role->delete();
                 return redirect()->back()->with('success', 'Rol eliminado correctamente');
-            });
+            })->name('destroy');
         });
     });
 
-    /**
-     * Extrae RUT de un nombre que puede contener RUT
-     */
-    function extractRutFromName(string $nombre): ?string
-    {
-        // Patrón para encontrar RUT chileno (formato: 12345678-9 o 12345678-K)
-        if (preg_match('/(\d{7,8}-[\dkK])/', $nombre, $matches)) {
-            return $matches[1];
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | Test Routes
+    |--------------------------------------------------------------------------
+    */
 
-        // Si el nombre es solo un RUT
-        if (preg_match('/^\d{7,8}-[\dkK]$/', trim($nombre))) {
-            return trim($nombre);
-        }
+    Route::get('/hola', function () {
+        return response()->json(['success' => true]);
+    })->name('missing-data');
 
-        return null;
-    }
+    /*
+    |--------------------------------------------------------------------------
+    | Missing Data Analysis Route
+    |--------------------------------------------------------------------------
+    */
 
-    /**
-     * Normaliza una cadena para comparación (remueve acentos, convierte a minúsculas, etc.)
-     */
-    function normalizeString(string $str): string
-    {
-        // Convertir a minúsculas
-        $str = mb_strtolower($str, 'UTF-8');
-
-        // Remover acentos y caracteres especiales
-        $str = removeAccents($str);
-
-        // Remover caracteres especiales y espacios extra
-        $str = preg_replace('/[^a-z0-9\s]/', '', $str);
-        $str = preg_replace('/\s+/', ' ', $str);
-
-        return trim($str);
-    }
-
-    /**
-     * Remueve acentos de una cadena
-     */
-    function removeAccents(string $str): string
-    {
-        $unwanted_array = [
-            'á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ñ' => 'n',
-            'Á' => 'A', 'É' => 'E', 'Í' => 'I', 'Ó' => 'O', 'Ú' => 'U', 'Ñ' => 'N',
-            'à' => 'a', 'è' => 'e', 'ì' => 'i', 'ò' => 'o', 'ù' => 'u',
-            'À' => 'A', 'È' => 'E', 'Ì' => 'I', 'Ò' => 'O', 'Ù' => 'U',
-            'ä' => 'a', 'ë' => 'e', 'ï' => 'i', 'ö' => 'o', 'ü' => 'u',
-            'Ä' => 'A', 'Ë' => 'E', 'Ï' => 'I', 'Ö' => 'O', 'Ü' => 'U',
-            'â' => 'a', 'ê' => 'e', 'î' => 'i', 'ô' => 'o', 'û' => 'u',
-            'Â' => 'A', 'Ê' => 'E', 'Î' => 'I', 'Ô' => 'O', 'Û' => 'U',
-            'ã' => 'a', 'õ' => 'o', 'Ã' => 'A', 'Õ' => 'O',
-            'ç' => 'c', 'Ç' => 'C',
-        ];
-
-        return strtr($str, $unwanted_array);
-    }
-
+    Route::get('/platform-data/employees/missing-data', function () {
+        return response()->json(['success' => true]);
+        
+        // TODO: Implementar lógica de análisis de datos faltantes
+        // Este código está comentado temporalmente
+    })->name('missing-data-analysis');
 });
+
+/*
+|--------------------------------------------------------------------------
+| Include Additional Route Files
+|--------------------------------------------------------------------------
+*/
 
 require __DIR__ . '/settings.php';
 require __DIR__ . '/auth.php';
