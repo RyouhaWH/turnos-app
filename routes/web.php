@@ -171,6 +171,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('/{id}', [PlatformDataController::class, 'updateEmployee'])->name('update');
             Route::post('/{employeeId}/link-user', [PlatformDataController::class, 'linkEmployeeToUser'])->name('link-user');
             Route::post('/{employeeId}/unlink-user', [PlatformDataController::class, 'unlinkEmployee'])->name('unlink-user');
+
+            // Nuevas rutas para gestión de usuarios
+            Route::post('/{employeeId}/create-user', [PlatformDataController::class, 'createUserForEmployee'])->name('create-user');
+            Route::put('/{employeeId}/update-user', [PlatformDataController::class, 'updateUserForEmployee'])->name('update-user');
+            Route::delete('/{employeeId}/delete-user', [PlatformDataController::class, 'deleteUserForEmployee'])->name('delete-user');
         });
 
         /*
@@ -184,6 +189,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('/{id}', [RolController::class, 'update'])->name('update');
             Route::delete('/{id}', [RolController::class, 'destroy'])->name('destroy');
         });
+
+        // Ruta para obtener roles de Spatie
+        Route::get('/spatie-roles', [PlatformDataController::class, 'getSpatieRoles'])->name('spatie-roles');
     });
 
     /*

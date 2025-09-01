@@ -55,6 +55,10 @@ interface Empleado {
     status?: string;
     rol_id: number;
     rol_nombre: string;
+    user_id?: number;
+    user_name?: string;
+    user_roles?: string[];
+    user_has_password?: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -143,6 +147,21 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
     const [loadingEmployee, setLoadingEmployee] = useState(false);
     const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null);
+
+    // Estados para gestión de usuario
+    const [editingUserData, setEditingUserData] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        roles: string[];
+    }>({
+        name: '',
+        email: '',
+        password: '',
+        roles: []
+    });
+    const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+    const [loadingUser, setLoadingUser] = useState(false);
 
     // Estados para vinculación
     const [linkingData, setLinkingData] = useState<LinkingData>({ unlinked_employees: [], available_users: [] });
@@ -343,6 +362,13 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
             if (result.success && result.data) {
                 const employeeData = result.data;
+                console.log('📊 Datos del empleado recibidos:', {
+                    email: employeeData.email,
+                    user_id: employeeData.user_id,
+                    user_name: employeeData.user_name,
+                    user_roles: employeeData.user_roles
+                });
+
                 setEditingEmployeeData({
                     name: employeeData.name,
                     first_name: employeeData.first_name,
@@ -358,6 +384,29 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                     status: employeeData.status,
                     rol_id: employeeData.rol_id
                 });
+
+                // Inicializar datos del usuario si existe
+                if (employeeData.user_id) {
+                    console.log('🔍 Usuario existente encontrado:', {
+                        user_id: employeeData.user_id,
+                        user_name: employeeData.user_name,
+                        user_roles: employeeData.user_roles
+                    });
+                    setEditingUserData({
+                        name: employeeData.user_name || '',
+                        email: employeeData.email || '',
+                        password: '',
+                        roles: employeeData.user_roles || []
+                    });
+                } else {
+                    console.log('🔍 No hay usuario vinculado');
+                    setEditingUserData({
+                        name: '',
+                        email: '',
+                        password: '',
+                        roles: []
+                    });
+                }
             } else {
                 // Fallback a los datos locales si falla la petición
                 setEditingEmployeeData({
@@ -375,6 +424,29 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                     status: employee.status,
                     rol_id: employee.rol_id
                 });
+
+                // Inicializar datos del usuario si existe
+                if (employee.user_id) {
+                    console.log('🔍 Usuario existente (fallback local):', {
+                        user_id: employee.user_id,
+                        user_name: employee.user_name,
+                        user_roles: employee.user_roles
+                    });
+                    setEditingUserData({
+                        name: employee.user_name || '',
+                        email: employee.email || '',
+                        password: '',
+                        roles: employee.user_roles || []
+                    });
+                } else {
+                    console.log('🔍 No hay usuario vinculado (fallback local)');
+                    setEditingUserData({
+                        name: '',
+                        email: '',
+                        password: '',
+                        roles: []
+                    });
+                }
             }
         } catch (error) {
             console.error('Error al obtener datos del empleado:', error);
@@ -394,6 +466,29 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 status: employee.status,
                 rol_id: employee.rol_id
             });
+
+            // Inicializar datos del usuario si existe
+            if (employee.user_id) {
+                console.log('🔍 Usuario existente (catch):', {
+                    user_id: employee.user_id,
+                    user_name: employee.user_name,
+                    user_roles: employee.user_roles
+                });
+                setEditingUserData({
+                    name: employee.user_name || '',
+                    email: employee.email || '',
+                    password: '',
+                    roles: employee.user_roles || []
+                });
+            } else {
+                console.log('🔍 No hay usuario vinculado (catch)');
+                setEditingUserData({
+                    name: '',
+                    email: '',
+                    password: '',
+                    roles: []
+                });
+            }
         } finally {
             setLoadingEmployee(false);
         }
@@ -405,6 +500,67 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         setEditingEmployeeData({});
         setLoadingEmployee(false);
         setExpandedEmployee(null);
+        setEditingUserData({
+            name: '',
+            email: '',
+            password: '',
+            roles: []
+        });
+    };
+
+        // Función para cargar roles disponibles
+    const loadAvailableRoles = async () => {
+        try {
+            console.log('🔄 Cargando roles de Spatie disponibles...');
+            const response = await window.axios.get('/platform-data/spatie-roles');
+            console.log('📡 Response de /platform-data/spatie-roles:', response);
+
+            if (response.data.success) {
+                const roles = response.data.data;
+                console.log('✅ Roles de Spatie cargados:', roles);
+                setAvailableRoles(roles);
+            } else {
+                console.error('❌ Error en response:', response.data);
+            }
+        } catch (error) {
+            console.error('❌ Error loading Spatie roles:', error);
+        }
+    };
+
+    // Función para actualizar usuario
+    const updateUser = async (employeeId: number) => {
+        setLoadingUser(true);
+        try {
+            const response = await window.axios.put(`/platform-data/employees/${employeeId}/update-user`, editingUserData);
+            if (response.data.success) {
+                toast.success('Usuario actualizado correctamente');
+                // Recargar la página para obtener datos actualizados
+                router.reload();
+            }
+        } catch (error: any) {
+            console.error('Error updating user:', error);
+            toast.error(error.response?.data?.message || 'Error al actualizar usuario');
+        } finally {
+            setLoadingUser(false);
+        }
+    };
+
+    // Función para crear usuario
+    const createUser = async (employeeId: number) => {
+        setLoadingUser(true);
+        try {
+            const response = await window.axios.post(`/platform-data/employees/${employeeId}/create-user`, editingUserData);
+            if (response.data.success) {
+                toast.success('Usuario creado correctamente');
+                // Recargar la página para obtener datos actualizados
+                router.reload();
+            }
+        } catch (error: any) {
+            console.error('Error creating user:', error);
+            toast.error(error.response?.data?.message || 'Error al crear usuario');
+        } finally {
+            setLoadingUser(false);
+        }
     };
 
     // Función para construir nombre completo automáticamente
@@ -437,6 +593,27 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             updateFullName();
         }
     }, [editingEmployeeData.first_name, editingEmployeeData.paternal_lastname, editingEmployeeData.maternal_lastname]);
+
+    // Cargar roles disponibles al montar el componente
+    useEffect(() => {
+        console.log('🚀 Componente montado, cargando roles...');
+        loadAvailableRoles();
+    }, []);
+
+    // Log para debuggear el estado de availableRoles
+    useEffect(() => {
+        console.log('📊 Estado actual de availableRoles:', availableRoles);
+    }, [availableRoles]);
+
+    // Log para debuggear el estado de editingUserData
+    useEffect(() => {
+        console.log('👤 Estado actual de editingUserData:', editingUserData);
+    }, [editingUserData]);
+
+    // Log para debuggear el estado de editingEmployeeData
+    useEffect(() => {
+        console.log('👷 Estado actual de editingEmployeeData:', editingEmployeeData);
+    }, [editingEmployeeData]);
 
     // Funciones para vinculación
     const loadLinkingData = async () => {
@@ -924,9 +1101,9 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <CardHeader>
                                 <div className="flex items-center justify-between">
                                     <div>
-                                        <CardTitle>Gestión de Empleados</CardTitle>
+                                        <CardTitle>Gestión de Empleados y Usuarios</CardTitle>
                                         <CardDescription>
-                                            Cambia el rol/facción de los funcionarios
+                                            Gestiona funcionarios, sus datos y cuentas de usuario asociadas
                                         </CardDescription>
                                     </div>
                                 </div>
@@ -969,10 +1146,25 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                             {employee.email && (
                                                                 <>
                                                                     <span>•</span>
-                                                                    <span>Email: {employee.email}</span>
+                                                                    <span className="flex items-center gap-1">
+                                                                        <UserCheck className="h-3 w-3 text-blue-500" />
+                                                                        Email: {employee.email}
+                                                                    </span>
                                                                 </>
                                                             )}
                                                         </div>
+                                                        {employee.user_id && (
+                                                            <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 mb-2">
+                                                                <UserCheck className="h-4 w-4" />
+                                                                <span>Usuario: {employee.user_name}</span>
+                                                                {employee.user_roles && employee.user_roles.length > 0 && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>Roles: {employee.user_roles.join(', ')}</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         <div className="flex flex-wrap items-center gap-2 mb-2">
                                                             <Badge
                                                                 variant="outline"
@@ -1086,17 +1278,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                         className="mt-1"
                                                                     />
                                                                 </div>
-                                                                <div>
-                                                                    <Label htmlFor={`employee-email-${employee.id}`}>Email</Label>
-                                                                    <Input
-                                                                        id={`employee-email-${employee.id}`}
-                                                                        type="email"
-                                                                        value={editingEmployeeData.email || ''}
-                                                                        onChange={(e) => setEditingEmployeeData(prev => ({ ...prev, email: e.target.value }))}
-                                                                        placeholder="empleado@empresa.com"
-                                                                        className="mt-1"
-                                                                    />
-                                                                </div>
+
                                                             </div>
                                                         </div>
 
@@ -1146,6 +1328,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                         <option value="inactivo">Inactivo</option>
                                                                         <option value="vacaciones">Vacaciones</option>
                                                                         <option value="licencia">Licencia</option>
+                                                                        <option value="desvinculado">Desvinculado</option>
                                                                     </select>
                                                                 </div>
                                                             </div>
@@ -1203,6 +1386,213 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                             </div>
                                                         </div>
 
+                                                        {/* Gestión de Usuario */}
+                                                        <div>
+                                                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Gestión de Usuario</h4>
+
+                                                            {employee.user_id ? (
+                                                                // Usuario existente - mostrar opciones de edición
+                                                                <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                                                    <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                                                                        <UserCheck className="h-5 w-5" />
+                                                                        <span className="font-medium">Usuario vinculado: {employee.email}</span>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <Label htmlFor={`user-name-${employee.id}`}>Nombre del Usuario</Label>
+                                                                            <Input
+                                                                                id={`user-name-${employee.id}`}
+                                                                                value={editingUserData.name || employee.user_name || ''}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, name: e.target.value }))}
+                                                                                placeholder="Nombre del usuario"
+                                                                                className="mt-1"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label htmlFor={`user-email-${employee.id}`}>Email del Usuario</Label>
+                                                                            <Input
+                                                                                id={`user-email-${employee.id}`}
+                                                                                type="email"
+                                                                                value={editingUserData.email || employee.email || ''}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, email: e.target.value }))}
+                                                                                placeholder="email@ejemplo.com"
+                                                                                className="mt-1"
+                                                                            />
+                                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                                Email actual del usuario: {employee.email}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label htmlFor={`user-password-${employee.id}`}>Nueva Contraseña (dejar en blanco para no cambiar)</Label>
+                                                                            <Input
+                                                                                id={`user-password-${employee.id}`}
+                                                                                type="password"
+                                                                                value={editingUserData.password}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, password: e.target.value }))}
+                                                                                placeholder="Nueva contraseña"
+                                                                                className="mt-1"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label>Roles del Usuario</Label>
+                                                                            {editingUserData.roles.length > 0 && (
+                                                                                <div className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                                                                                    {editingUserData.roles.length} rol(es) seleccionado(s): {editingUserData.roles.join(', ')}
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="mt-2 space-y-2">
+                                                                                {availableRoles.length > 0 ? (
+                                                                                    availableRoles.map((role) => (
+                                                                                        <label key={role} className="flex items-center space-x-2 cursor-pointer">
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={editingUserData.roles.includes(role)}
+                                                                                                onChange={(e) => {
+                                                                                                    if (e.target.checked) {
+                                                                                                        setEditingUserData(prev => ({
+                                                                                                            ...prev,
+                                                                                                            roles: [...prev.roles, role]
+                                                                                                        }));
+                                                                                                    } else {
+                                                                                                        setEditingUserData(prev => ({
+                                                                                                            ...prev,
+                                                                                                            roles: prev.roles.filter(r => r !== role)
+                                                                                                        }));
+                                                                                                    }
+                                                                                                }}
+                                                                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                                                            />
+                                                                                            <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
+                                                                                        </label>
+                                                                                    ))
+                                                                                ) : (
+                                                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                                                        Cargando roles...
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex gap-2">
+                                                                        <Button
+                                                                            onClick={() => updateUser(employee.id)}
+                                                                            disabled={loadingUser}
+                                                                            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
+                                                                        >
+                                                                            {loadingUser ? (
+                                                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Save className="h-4 w-4" />
+                                                                            )}
+                                                                            Actualizar Usuario
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                // Sin usuario - mostrar opciones de creación
+                                                                <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+                                                                    <div className="flex items-center gap-2 text-orange-700 dark:text-orange-300">
+                                                                        <AlertCircle className="h-5 w-5" />
+                                                                        <span className="font-medium">Sin usuario vinculado</span>
+                                                                    </div>
+
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        <div>
+                                                                            <Label htmlFor={`new-user-name-${employee.id}`}>Nombre del Usuario</Label>
+                                                                            <Input
+                                                                                id={`new-user-name-${employee.id}`}
+                                                                                value={editingUserData.name}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, name: e.target.value }))}
+                                                                                placeholder="Nombre del usuario"
+                                                                                className="mt-1"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label htmlFor={`new-user-email-${employee.id}`}>Email del Usuario</Label>
+                                                                            <Input
+                                                                                id={`new-user-email-${employee.id}`}
+                                                                                type="email"
+                                                                                value={editingUserData.email}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, email: e.target.value }))}
+                                                                                placeholder="email@ejemplo.com"
+                                                                                className="mt-1"
+                                                                            />
+                                                                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                                Ingresa el email que usará el usuario para acceder a la plataforma
+                                                                            </div>
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label htmlFor={`new-user-password-${employee.id}`}>Contraseña</Label>
+                                                                            <Input
+                                                                                id={`new-user-password-${employee.id}`}
+                                                                                type="password"
+                                                                                value={editingUserData.password}
+                                                                                onChange={(e) => setEditingUserData(prev => ({ ...prev, password: e.target.value }))}
+                                                                                placeholder="Contraseña del usuario"
+                                                                                className="mt-1"
+                                                                            />
+                                                                        </div>
+                                                                        <div>
+                                                                            <Label>Roles del Usuario</Label>
+                                                                            {editingUserData.roles.length > 0 && (
+                                                                                <div className="text-xs text-blue-600 dark:text-blue-400 mb-2">
+                                                                                    {editingUserData.roles.length} rol(es) seleccionado(s): {editingUserData.roles.join(', ')}
+                                                                                </div>
+                                                                            )}
+                                                                            <div className="mt-2 space-y-2">
+                                                                                {availableRoles.length > 0 ? (
+                                                                                    availableRoles.map((role) => (
+                                                                                        <label key={role} className="flex items-center space-x-2 cursor-pointer">
+                                                                                            <input
+                                                                                                type="checkbox"
+                                                                                                checked={editingUserData.roles.includes(role)}
+                                                                                                onChange={(e) => {
+                                                                                                    if (e.target.checked) {
+                                                                                                        setEditingUserData(prev => ({
+                                                                                                            ...prev,
+                                                                                                            roles: [...prev.roles, role]
+                                                                                                        }));
+                                                                                                    } else {
+                                                                                                        setEditingUserData(prev => ({
+                                                                                                            ...prev,
+                                                                                                            roles: prev.roles.filter(r => r !== role)
+                                                                                                        }));
+                                                                                                    }
+                                                                                                }}
+                                                                                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                                                                            />
+                                                                                            <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
+                                                                                        </label>
+                                                                                    ))
+                                                                                ) : (
+                                                                                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                                                                                        Cargando roles...
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <div className="flex gap-2">
+                                                                        <Button
+                                                                            onClick={() => createUser(employee.id)}
+                                                                            disabled={loadingUser}
+                                                                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                                                                        >
+                                                                            {loadingUser ? (
+                                                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Plus className="h-4 w-4" />
+                                                                            )}
+                                                                            Crear Usuario
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
                                                         {/* Botones de acción */}
                                                         <div className="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-600">
                                                             <Button
@@ -1258,33 +1648,15 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                             Revisa y completa la información faltante de email, RUT y teléfono de los funcionarios
                                         </CardDescription>
                                     </div>
-                                    <div className="flex gap-2">
-                                        <Button
-                                            onClick={loadMissingData}
-                                            variant="outline"
-                                            className="flex items-center gap-2"
-                                            disabled={loadingMissingData}
-                                        >
-                                            <RefreshCw className={`h-4 w-4 ${loadingMissingData ? 'animate-spin' : ''}`} />
-                                            Actualizar
-                                        </Button>
-                                        <Button
-                                            onClick={() => {
-                                                console.log('=== DEBUG INFO ===');
-                                                console.log('CSRF Token:', window.axios.defaults.headers.common['X-CSRF-TOKEN']);
-                                                console.log('User authenticated:', !!window.axios.defaults.headers.common['X-CSRF-TOKEN']);
-                                                console.log('Current URL:', window.location.href);
-                                                console.log('Missing data response:', missingDataResponse);
-                                                console.log('==================');
-                                                toast.info('Información de debug enviada a la consola');
-                                            }}
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex items-center gap-2"
-                                        >
-                                            🐛 Debug
-                                        </Button>
-                                    </div>
+                                    <Button
+                                        onClick={loadMissingData}
+                                        variant="outline"
+                                        className="flex items-center gap-2"
+                                        disabled={loadingMissingData}
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${loadingMissingData ? 'animate-spin' : ''}`} />
+                                        Actualizar
+                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
@@ -1303,7 +1675,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                     <div className="text-2xl font-bold text-green-600">
                                                         {missingDataResponse.stats.completion_percentage}%
                                                     </div>
-                                                    <div className="text-xs text-gray-600">Completitud</div>
+                                                    <div className="text-xs text-gray-600">Completado</div>
                                                 </CardContent>
                                             </Card>
                                             <Card className="border-2 border-blue-200 dark:border-blue-800">
@@ -1447,9 +1819,9 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                         <Badge variant="outline" className="text-xs">
                                                                             {employee.rol_nombre}
                                                                         </Badge>
-                                                                        <Badge variant="secondary" className="text-xs">
-                                                                            {employee.amzoma ? 'Amzoma' : 'Temuco'}
-                                                                        </Badge>
+                                                                                                                                    <Badge variant="secondary" className="text-xs">
+                                                                {employee.amzoma ? 'Amzoma' : 'Municipal'}
+                                                            </Badge>
                                                                         <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
                                                                     </div>
                                                                 </div>
@@ -1482,7 +1854,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                     <p><strong>{missingDataResponse.stats.complete_data}</strong> con datos completos</p>
                                                     <p><strong>{missingDataResponse.stats.total_employees - missingDataResponse.stats.complete_data}</strong> requieren completar información</p>
                                                     <p className="text-lg font-bold text-blue-600">
-                                                        Completitud: {missingDataResponse.stats.completion_percentage}%
+                                                        Completado: {missingDataResponse.stats.completion_percentage}%
                                                     </p>
                                                 </div>
                                             </CardContent>
@@ -1575,7 +1947,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 {employee.rol_nombre}
                                                             </Badge>
                                                             <Badge variant="secondary" className="text-xs">
-                                                                {employee.amzoma ? 'Amzoma' : 'Temuco'}
+                                                                {employee.amzoma ? 'Amzoma' : 'Municipal'}
                                                             </Badge>
                                                         </div>
                                                     </div>
