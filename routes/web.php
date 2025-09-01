@@ -5,11 +5,7 @@ use App\Http\Controllers\ShiftsController;
 use App\Http\Controllers\TurnController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\RolController;
-use App\Models\Employees;
-use App\Models\EmployeeShifts;
-use App\Models\ShiftChangeLog;
-use App\Models\Rol;
-use App\Models\User;
+use App\Http\Controllers\PlatformDataController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -155,37 +151,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::middleware(['auth', 'admin'])->prefix('platform-data')->name('platform-data.')->group(function () {
 
-        // Main platform data view
-        Route::get('/', function () {
-            $roles = Rol::all()->map(function ($role) {
-                return [
-                    'id'             => $role->id,
-                    'nombre'         => $role->nombre,
-                    'is_operational' => $role->is_operational,
-                    'color'          => $role->color,
-                    'created_at'     => $role->created_at,
-                    'updated_at'     => $role->updated_at,
-                ];
-            });
-
-            $empleados = Employees::with('rol')->get()->map(function ($empleado) {
-                return [
-                    'id'         => $empleado->id,
-                    'name'       => $empleado->name,
-                    'rut'        => $empleado->rut,
-                    'phone'      => $empleado->phone,
-                    'rol_id'     => $empleado->rol_id,
-                    'rol_nombre' => $empleado->rol->nombre ?? 'Sin rol',
-                    'created_at' => $empleado->created_at,
-                    'updated_at' => $empleado->updated_at,
-                ];
-            });
-
-            return Inertia::render('settings/platform-data', [
-                'roles'     => $roles,
-                'empleados' => $empleados,
-            ]);
-        })->name('index');
+        Route::get('/', [PlatformDataController::class, 'index'])->name('index');
 
         /*
         |--------------------------------------------------------------------------
@@ -194,139 +160,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         */
 
         Route::prefix('employees')->name('employees.')->group(function () {
-            Route::get('/{id}', function ($id) {
-                $empleado = Employees::with('rol')->findOrFail($id);
-                return response()->json(['success' => true, 'data' => $empleado]);
-            })->name('show');
+            Route::get('/{id}', [PlatformDataController::class, 'showEmployee'])->name('show');
 
-            Route::put('/{id}', function (Request $request, $id) {
-                $empleado = Employees::findOrFail($id);
+            Route::put('/{id}', [PlatformDataController::class, 'updateEmployee'])->name('update');
 
-                $request->validate([
-                    'name'              => 'nullable|string|max:255',
-                    'first_name'        => 'nullable|string|max:255',
-                    'paternal_lastname' => 'nullable|string|max:255',
-                    'maternal_lastname' => 'nullable|string|max:255',
-                    'rut'               => 'nullable|string|max:20',
-                    'phone'             => 'nullable|string|max:20',
-                    'email'             => 'nullable|email|max:255',
-                    'address'           => 'nullable|string',
-                    'position'          => 'nullable|string|max:255',
-                    'department'        => 'nullable|string|max:255',
-                    'start_date'        => 'nullable|date',
-                    'status'            => 'nullable|in:activo,inactivo,vacaciones,licencia',
-                    'rol_id'            => 'nullable|integer|exists:rols,id',
-                ]);
+            Route::get('/unlinked', [PlatformDataController::class, 'getUnlinkedEmployees'])->name('unlinked');
 
-                $empleado->update($request->only([
-                    'name', 'first_name', 'paternal_lastname', 'maternal_lastname',
-                    'rut', 'phone', 'email', 'address', 'position', 'department',
-                    'start_date', 'status', 'rol_id',
-                ]));
+            Route::post('/{employeeId}/link-user', [PlatformDataController::class, 'linkEmployeeWithUser'])->name('link-user');
 
-                return redirect()->back()->with('success', 'Empleado actualizado correctamente');
-            })->name('update');
+            Route::post('/{employeeId}/unlink-user', [PlatformDataController::class, 'unlinkEmployeeFromUser'])->name('unlink-user');
 
-            Route::get('/unlinked', function () {
-                $unlinkedEmployees = Employees::with('rol')
-                    ->whereNull('user_id')
-                    ->get()
-                    ->map(function ($employee) {
-                        return [
-                            'id'                => $employee->id,
-                            'name'              => $employee->name,
-                            'first_name'        => $employee->first_name,
-                            'paternal_lastname' => $employee->paternal_lastname,
-                            'maternal_lastname' => $employee->maternal_lastname,
-                            'rut'               => $employee->rut,
-                            'phone'             => $employee->phone,
-                            'email'             => $employee->email,
-                            'rol_nombre'        => $employee->rol ? $employee->rol->nombre : 'Sin rol',
-                            'amzoma'            => $employee->amzoma ?? false,
-                        ];
-                    });
-
-                $availableUsers = User::whereDoesntHave('employee')
-                    ->get()
-                    ->map(function ($user) {
-                        return [
-                            'id'    => $user->id,
-                            'name'  => $user->name,
-                            'email' => $user->email,
-                            'roles' => $user->roles->map(function ($role) {
-                                return ['name' => $role->name];
-                            })->toArray(),
-                        ];
-                    });
-
-                return response()->json([
-                    'success' => true,
-                    'data'    => [
-                        'unlinked_employees' => $unlinkedEmployees,
-                        'available_users'    => $availableUsers,
-                    ],
-                ]);
-            })->name('unlinked');
-
-            Route::post('/{employeeId}/link-user', function (Request $request, $employeeId) {
-                $request->validate(['user_id' => 'required|exists:users,id']);
-
-                $employee = Employees::findOrFail($employeeId);
-                $user     = User::findOrFail($request->user_id);
-
-                if ($user->employee) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El usuario ya está vinculado a otro funcionario.',
-                    ], 400);
-                }
-
-                if ($employee->user_id) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'El funcionario ya está vinculado a otro usuario.',
-                    ], 400);
-                }
-
-                $employee->update(['user_id' => $user->id]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Funcionario vinculado correctamente.',
-                ]);
-            })->name('link-user');
-
-            Route::post('/{employeeId}/unlink-user', function ($employeeId) {
-                $employee = Employees::findOrFail($employeeId);
-                $employee->update(['user_id' => null]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Funcionario desvinculado correctamente.',
-                ]);
-            })->name('unlink-user');
-
-            Route::get('/{employeeId}/user-link', function ($employeeId) {
-                $employee = Employees::with('user')->findOrFail($employeeId);
-
-                return response()->json([
-                    'success' => true,
-                    'data'    => [
-                        'employee' => [
-                            'id'   => $employee->id,
-                            'name' => $employee->name,
-                        ],
-                        'user'     => $employee->user ? [
-                            'id'    => $employee->user->id,
-                            'name'  => $employee->user->name,
-                            'email' => $employee->user->email,
-                            'roles' => $employee->user->roles->map(function ($role) {
-                                return ['name' => $role->name];
-                            })->toArray(),
-                        ] : null,
-                    ],
-                ]);
-            })->name('user-link');
+            Route::get('/{employeeId}/user-link', [PlatformDataController::class, 'getEmployeeUserLink'])->name('user-link');
         });
 
         /*
@@ -336,45 +180,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         */
 
         Route::prefix('roles')->name('roles.')->group(function () {
-            Route::post('/', function (Request $request) {
-                $request->validate(['nombre' => 'required|string|max:255|unique:rols,nombre']);
+            Route::post('/', [PlatformDataController::class, 'storeRole'])->name('store');
 
-                Rol::create([
-                    'nombre'         => $request->nombre,
-                    'is_operational' => $request->input('is_operational', true),
-                    'color'          => $request->input('color', '#3B82F6'),
-                ]);
+            Route::put('/{id}', [PlatformDataController::class, 'updateRole'])->name('update');
 
-                return redirect()->back()->with('success', 'Rol creado correctamente');
-            })->name('store');
-
-            Route::put('/{id}', function (Request $request, $id) {
-                $role = Rol::findOrFail($id);
-
-                $request->validate(['nombre' => 'required|string|max:255|unique:rols,nombre,' . $id]);
-
-                $role->update([
-                    'nombre'         => $request->nombre,
-                    'is_operational' => $request->input('is_operational', $role->is_operational),
-                    'color'          => $request->input('color', $role->color),
-                ]);
-
-                return redirect()->back()->with('success', 'Rol actualizado correctamente');
-            })->name('update');
-
-            Route::delete('/{id}', function ($id) {
-                $role = Rol::findOrFail($id);
-
-                $employeesCount = $role->employees()->count();
-                if ($employeesCount > 0) {
-                    return redirect()->back()->with('error', 
-                        'No se puede eliminar el rol porque hay ' . $employeesCount . ' empleado(s) asignado(s) a él.'
-                    );
-                }
-
-                $role->delete();
-                return redirect()->back()->with('success', 'Rol eliminado correctamente');
-            })->name('destroy');
+                    Route::delete('/{id}', [PlatformDataController::class, 'destroyRole'])->name('destroy');
         });
     });
 
@@ -394,12 +204,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |--------------------------------------------------------------------------
     */
 
-    Route::get('/platform-data/employees/missing-data', function () {
-        return response()->json(['success' => true]);
-        
-        // TODO: Implementar lógica de análisis de datos faltantes
-        // Este código está comentado temporalmente
-    })->name('missing-data-analysis');
+        Route::get('/platform-data/employees/missing-data', [PlatformDataController::class, 'getMissingDataAnalysis'])->name('missing-data-analysis');
 });
 
 /*
