@@ -26,6 +26,7 @@ interface OptimizedGridChange {
     newValue: string;
     timestamp: number;
     applied: boolean; // Track if change has been applied to grid
+    undone: boolean; // Track if change has been undone (for history display)
     batch?: string; // Group related changes
 }
 
@@ -221,26 +222,35 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función simplificada para registrar cambios (ahora usa ambos sistemas)
     const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
-        if (oldValue === newValue) return;
+        // Normalizar valores: convertir undefined/null a cadena vacía
+        const normalizedOldValue = String(oldValue || '').trim();
+        const normalizedNewValue = String(newValue || '').trim();
 
-        console.log('Registrando cambio:', { employee, day, oldValue, newValue });
+        // Si no hay cambio real, no registrar
+        if (normalizedOldValue === normalizedNewValue) {
+            console.log('No hay cambio real, ignorando:', { employee, day, oldValue: normalizedOldValue, newValue: normalizedNewValue });
+            return;
+        }
+
+        console.log('Registrando cambio:', { employee, day, oldValue: normalizedOldValue, newValue: normalizedNewValue });
 
         const employeeId = getEmployeeId({ nombre: employee, rut } as TurnoData);
 
         // 1. Registrar en el sistema simple de undo (para deshacer directo en grid)
-        recordChange(employeeId, employee, day, oldValue, newValue);
+        recordChange(employeeId, employee, day, normalizedOldValue, normalizedNewValue);
 
-        // 2. Registrar en el sistema complejo (para resumen y backend)
+        // 2. Registrar en el sistema complejo (para historial y backend)
         const change: OptimizedGridChange = {
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             employeeId,
             employeeName: employee,
             employeeRut: rut,
             day,
-            oldValue,
-            newValue,
+            oldValue: normalizedOldValue,
+            newValue: normalizedNewValue,
             timestamp: Date.now(),
             applied: true,
+            undone: false, // Inicialmente no está deshecho
         };
 
         setGridChanges(prev => {
@@ -262,10 +272,11 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 };
             }
 
-            if (newValue) {
-                newResumen[employeeId].turnos[day] = newValue;
+            if (normalizedNewValue) {
+                newResumen[employeeId].turnos[day] = normalizedNewValue;
             } else {
-                delete newResumen[employeeId].turnos[day];
+                // Si el nuevo valor está vacío, registramos la eliminación
+                newResumen[employeeId].turnos[day] = '';
             }
 
             // Limpiar objetos vacíos
@@ -289,9 +300,18 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         // Usar el sistema simple que actualiza directamente el grid
         simpleUndoLastChange();
 
-        // También remover el último cambio del sistema complejo para mantener consistencia
+        // También marcar el último cambio como deshecho para mantener consistencia
         if (gridChanges.length > 0) {
-            setGridChanges(prev => prev.slice(0, -1));
+            setGridChanges(prev => {
+                const lastIndex = prev.length - 1;
+                const updated = prev.map((change, index) =>
+                    index === lastIndex
+                        ? { ...change, undone: true }
+                        : change
+                );
+                console.log(`📋 Último cambio marcado como deshecho`);
+                return updated;
+            });
 
             // Actualizar resumen si es necesario
             const lastChange = gridChanges[gridChanges.length - 1];
@@ -301,14 +321,14 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     const employeeId = lastChange.employeeId;
 
                     if (newResumen[employeeId]) {
-                        if (lastChange.oldValue) {
-                            newResumen[employeeId].turnos[lastChange.day] = lastChange.oldValue;
-                        } else {
-                            delete newResumen[employeeId].turnos[lastChange.day];
-                        }
+                        // Simplemente eliminar el cambio del resumen (no restaurar valor anterior)
+                        delete newResumen[employeeId].turnos[lastChange.day];
+                        console.log(`🗑️ Eliminado último cambio del resumen para día ${lastChange.day}`);
 
+                        // Si no quedan turnos, eliminar el empleado del resumen
                         if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
                             delete newResumen[employeeId];
+                            console.log(`🗑️ Eliminado empleado del resumen: ${lastChange.employeeName}`);
                         }
                     }
 
@@ -386,28 +406,26 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             return;
         }
 
-        // Remover el cambio específico del historial
+        // Marcar el cambio como deshecho en lugar de eliminarlo del historial
         setGridChanges(prev => {
-            const filtered = prev.filter(change => change.id !== changeId);
-            console.log(`📋 Cambios restantes: ${filtered.length} (eliminado: ${changeId})`);
-            return filtered;
+            const updated = prev.map(change =>
+                change.id === changeId
+                    ? { ...change, undone: true }
+                    : change
+            );
+            console.log(`📋 Cambio marcado como deshecho: ${changeId}`);
+            return updated;
         });
 
-        // Actualizar resumen removiendo este cambio específico
+        // Actualizar resumen eliminando completamente este cambio
         setResumen(prev => {
             const newResumen = { ...prev };
             const employeeKey = changeToUndo.employeeId;
 
             if (newResumen[employeeKey]?.turnos) {
-                if (changeToUndo.oldValue === '' || !changeToUndo.oldValue) {
-                    // Si el valor original era vacío, eliminar la entrada
-                    delete newResumen[employeeKey].turnos[changeToUndo.day];
-                    console.log(`🗑️ Eliminada entrada de turno para día ${changeToUndo.day}`);
-                } else {
-                    // Restaurar el valor original en el resumen
-                    newResumen[employeeKey].turnos[changeToUndo.day] = changeToUndo.oldValue;
-                    console.log(`🔄 Restaurado valor en resumen: ${changeToUndo.oldValue}`);
-                }
+                // Simplemente eliminar el día del resumen (no restaurar valor anterior)
+                delete newResumen[employeeKey].turnos[changeToUndo.day];
+                console.log(`🗑️ Eliminado cambio del resumen para día ${changeToUndo.day}`);
 
                 // Si no quedan turnos, eliminar el empleado del resumen
                 if (Object.keys(newResumen[employeeKey].turnos).length === 0) {
@@ -592,7 +610,13 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     }, [undoChange, redoChange]);
 
     // Compatibilidad con la interfaz existente
+    // Contador de cambios activos (no deshechos)
+    const activeChangeCount = useMemo(() => {
+        return gridChanges.filter(change => !change.undone).length;
+    }, [gridChanges]);
+
     const listaCambios = useMemo(() => {
+        // Retornar TODOS los cambios (incluyendo deshechos) para mostrar historial completo
         return gridChanges.map(change => ({
             id: change.id,
             employeeId: change.employeeId,
@@ -602,7 +626,8 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             oldValue: change.oldValue,
             newValue: change.newValue,
             timestamp: change.timestamp,
-        }));
+            undone: change.undone, // Incluir estado de deshecho
+        })).sort((a, b) => b.timestamp - a.timestamp); // Ordenar por timestamp descendente
     }, [gridChanges]);
 
     return {
@@ -626,10 +651,10 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         errors,
         isProcessingChanges,
 
-        // Estados de historial (usando sistema simple)
+        // Estados de historial
         canUndo: simpleCanUndo,
         canRedo: false, // Simplificado por ahora
-        changeCount: simpleChangeCount,
+        changeCount: activeChangeCount, // Cambios activos (no deshechos)
 
         // Funciones principales
         setSelectedDate,

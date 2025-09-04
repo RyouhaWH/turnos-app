@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell } from 'lucide-react';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 
@@ -59,7 +59,7 @@ interface OptimizedShiftsManagerProps {
 
 export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 1 }: OptimizedShiftsManagerProps) {
     const isMobile = useIsMobile();
-    const [showSummary, setShowSummary] = useState(true);
+    const [showSummary, setShowSummary] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
     // Función para abrir el popup de confirmación
@@ -214,143 +214,123 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 <div className={isMobile ? 'p-4' : 'p-6'}>
-                    {/* Header optimizado */}
-                    <div className="mb-6">
-                        <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    {/* Header compacto de página */}
+                    <div className="mb-4">
+                        <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex items-center gap-3">
-                                <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-3 shadow-lg">
-                                    <FileSpreadsheet className="h-6 w-6 text-white" />
+                                <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-2 shadow-md">
+                                    <FileSpreadsheet className="h-5 w-5 text-white" />
                                 </div>
                                 <div>
-                                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                                        Turnos Optimizados v3
+                                    <h1 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        Grid de Turnos - {currentMonthTitle}
                                         {employee_rol_id === 1 && (
-                                            <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">Patrullaje</Badge>
+                                            <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 text-xs">Patrullaje</Badge>
                                         )}
                                     </h1>
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                                        Gestión avanzada con historial completo y mejor rendimiento
-                                    </p>
+                                    <div className="flex items-center gap-3 mt-1">
+                                        <MonthYearPicker
+                                            onChange={setSelectedDate}
+                                            onLoadData={cargarTurnosPorMes}
+                                            loading={loading}
+                                            currentMonthTitle={currentMonthTitle}
+                                        />
+                                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                                            {getTotalEmployees()} empleados
+                                            {originalChangeDate && (
+                                                <span className="ml-2 text-orange-600 dark:text-orange-400">• Cambios pendientes</span>
+                                            )}
+                                            {changeCount > 0 && !showSummary && (
+                                                <span className="ml-2 text-blue-600 dark:text-blue-400 font-medium">
+                                                    • {changeCount} cambio{changeCount !== 1 ? 's' : ''} sin revisar
+                                                </span>
+                                            )}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="flex items-center gap-3">
-                                <MonthYearPicker
-                                    onChange={setSelectedDate}
-                                    onLoadData={cargarTurnosPorMes}
-                                    loading={loading}
-                                    currentMonthTitle={currentMonthTitle}
-                                />
-
+                            <div className="flex items-center gap-2">
                                 {!hasEditPermissions && (
-                                    <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700">
+                                    <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700 text-xs">
                                         Solo lectura
                                     </Badge>
+                                )}
+
+                                {/* Controles de edición movidos aquí */}
+                                {hasEditPermissions && (
+                                    <>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={undoChange}
+                                            disabled={!canUndo || isProcessingChanges}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                            Deshacer último
+                                        </Button>
+
+                                        {/* Botón para toggle del resumen */}
+                                        {changeCount > 0 && (
+                                            <Button
+                                                variant={showSummary ? "ghost" : "outline"}
+                                                size="sm"
+                                                onClick={() => setShowSummary(!showSummary)}
+                                                className={`flex items-center gap-2 transition-all duration-300 ${
+                                                    showSummary
+                                                        ? "hover:bg-slate-100"
+                                                        : "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-medium"
+                                                }`}
+                                                title={showSummary ? 'Ocultar resumen' : 'Mostrar resumen de cambios'}
+                                            >
+                                                {showSummary ? (
+                                                    <>
+                                                        <EyeOff className="h-4 w-4" />
+                                                        Ocultar resumen
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Eye className="h-4 w-4" />
+                                                        <span className="font-medium">Ver resumen ({changeCount})</span>
+                                                    </>
+                                                )}
+                                            </Button>
+                                        )}
+
+                                        {/* Botón para aplicar cambios */}
+                                        {changeCount > 0 && (
+                                            <Button
+                                                variant="default"
+                                                size="sm"
+                                                onClick={handleOpenConfirmDialog}
+                                                disabled={isProcessingChanges || isSaving}
+                                                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                                            >
+                                                {isSaving ? (
+                                                    <>
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                        Aplicando...
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Save className="h-4 w-4" />
+                                                        Aplicar cambios
+                                                    </>
+                                                )}
+                                            </Button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </div>
                     </div>
 
                     {/* Contenido principal */}
-                    <div className={`flex gap-6 ${isMobile ? 'flex-col' : 'h-[calc(100vh-280px)]'}`}>
+                    <div className={`flex gap-6 ${isMobile ? 'flex-col' : 'h-[calc(100vh-180px)]'}`}>
                         {/* Grid principal */}
                         <div className="min-w-0 flex-1">
                             <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
-                                <CardHeader className="border-b bg-slate-50/50 pb-4 dark:border-slate-800 dark:bg-slate-800/50">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-3">
-                                            <div className="rounded-lg bg-blue-100 p-2 dark:bg-blue-900">
-                                                <FileSpreadsheet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-lg font-semibold text-slate-900 dark:text-white">
-                                                    Grid de Turnos - {currentMonthTitle}
-                                                </CardTitle>
-                                                <p className="text-sm text-slate-600 dark:text-slate-400">
-                                                    {getTotalEmployees()} empleados cargados
-                                                    {originalChangeDate && (
-                                                        <span className="ml-2 text-orange-600 dark:text-orange-400">• Cambios pendientes</span>
-                                                    )}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        {/* Controles rápidos */}
-                                        <div className="flex items-center gap-2">
-                                            {hasEditPermissions && (
-                                                <>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={undoChange}
-                                                        disabled={!canUndo || isProcessingChanges}
-                                                        className="flex items-center gap-2"
-                                                    >
-                                                        <Undo2 className="h-4 w-4" />
-                                                        Deshacer último cambio
-                                                    </Button>
-
-                                                    {/* Botón para toggle del resumen */}
-                                                    {changeCount > 0 && (
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            onClick={() => setShowSummary(!showSummary)}
-                                                            className="flex items-center gap-2"
-                                                            title={showSummary ? 'Ocultar resumen' : 'Mostrar resumen'}
-                                                        >
-                                                            {showSummary ? (
-                                                                <>
-                                                                    <EyeOff className="h-4 w-4" />
-                                                                    Ocultar resumen
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Eye className="h-4 w-4" />
-                                                                    Mostrar resumen
-                                                                </>
-                                                            )}
-                                                        </Button>
-                                                    )}
-
-                                                    {/* Botón para aplicar cambios */}
-                                                    {changeCount > 0 && (
-                                                        <Button
-                                                            variant="default"
-                                                            size="sm"
-                                                            onClick={handleOpenConfirmDialog}
-                                                            disabled={isSaving}
-                                                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-                                                            title="Aplicar todos los cambios"
-                                                        >
-                                                            <Save className="h-4 w-4" />
-                                                            Aplicar cambios ({changeCount})
-                                                        </Button>
-                                                    )}
-
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Alerta de solo lectura */}
-                                    {!hasEditPermissions && (
-                                        <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
-                                            <div className="flex items-center">
-                                                <div className="flex-shrink-0">
-                                                    <Settings className="h-5 w-5 text-yellow-400" />
-                                                </div>
-                                                <div className="ml-3">
-                                                    <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes
-                                                        visualizar la información.
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                </CardHeader>
-
                                 <CardContent className="flex h-full flex-col p-0">
                                     <div className="flex-1 overflow-hidden">
                                         {loading ? (
@@ -369,20 +349,16 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                         {/* Panel lateral - Resumen de cambios */}
                         {!isMobile && hasEditPermissions && changeCount > 0 && showSummary && (
-                            <div className="w-96 flex-shrink-0">
-                                <ScrollArea className="h-full">
-                                    <Suspense
-                                        fallback={
-                                            <Card className="w-full">
-                                                <CardContent className="flex items-center justify-center p-8">
-                                                    <Loader2 className="h-6 w-6 animate-spin" />
-                                                </CardContent>
-                                            </Card>
-                                        }
-                                    >
-                                        <ListaCambios {...summaryProps} />
-                                    </Suspense>
-                                </ScrollArea>
+                            <div className="w-96 flex-shrink-0 h-full">
+                                <Suspense
+                                    fallback={
+                                        <div className="flex h-full items-center justify-center">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </div>
+                                    }
+                                >
+                                    <ListaCambios {...summaryProps} />
+                                </Suspense>
                             </div>
                         )}
                     </div>
