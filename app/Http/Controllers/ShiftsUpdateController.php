@@ -147,7 +147,7 @@ class ShiftsUpdateController extends Controller
     {
         if ($turnoActual !== null && $turnoActual->shift !== $nuevoTurno) {
             $this->updateOrCreateShift($empleado, $fecha, $nuevoTurno);
-            
+
             ShiftChangeLog::create([
                 'employee_id' => $empleado->id,
                 'employee_shift_id' => $turnoActual->id,
@@ -161,7 +161,7 @@ class ShiftsUpdateController extends Controller
             $this->addChangeToEmployee($empleado, $fecha, $this->getShiftDescription($turnoActual->shift), $this->getShiftDescription($nuevoTurno), $cambiosPorFuncionario);
         } elseif ($turnoActual === null) {
             $shiftToMake = $this->updateOrCreateShift($empleado, $fecha, $nuevoTurno);
-            
+
             ShiftChangeLog::create([
                 'employee_id' => $empleado->id,
                 'employee_shift_id' => $shiftToMake->id,
@@ -260,12 +260,15 @@ class ShiftsUpdateController extends Controller
                 ]);
             }
 
-            // Send to employee
-            if ($datosFuncionario['telefono']) {
-                Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => $mensaje,
-                    'numero' => "56" . $datosFuncionario['telefono'],
-                ]);
+            if (app()->environment('production')) {
+
+                // Send to employee
+                if ($datosFuncionario['telefono']) {
+                    Http::post('http://localhost:3001/send-message', [
+                        'mensaje' => $mensaje,
+                        'numero' => "56" . $datosFuncionario['telefono'],
+                    ]);
+                }
             }
         }
     }

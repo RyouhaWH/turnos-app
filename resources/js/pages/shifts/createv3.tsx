@@ -1,27 +1,17 @@
-import React, { useMemo, useCallback, Suspense, useState } from 'react';
+import { MonthYearPicker } from '@/components/month-year-picker';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Toaster } from '@/components/ui/sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-    FileSpreadsheet,
-    Loader2,
-    Search,
-    Users,
-    Calendar,
-    Settings,
-    Zap,
-    TrendingUp,
-    Clock
-} from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2 } from 'lucide-react';
+import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
-import { MonthYearPicker } from '@/components/month-year-picker';
 
 // Lazy loading de componentes pesados
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
@@ -29,11 +19,11 @@ const ListaCambios = React.lazy(() => import('./shift-change-list'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
-        title: 'Turnos',
-        href: '/shifts',
+        title: 'Selección de facción',
+        href: '/turnos',
     },
     {
-        title: 'Gestión Optimizada',
+        title: 'Gestión de turnos',
         href: '#',
     },
 ];
@@ -49,12 +39,8 @@ const OptimizedLoadingGrid = () => (
                 </div>
             </div>
             <div className="text-center">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
-                    Cargando turnos optimizados...
-                </h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                    Preparando la experiencia mejorada
-                </p>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Cargando turnos optimizados...</h3>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Preparando la experiencia mejorada</p>
             </div>
             <div className="flex space-x-2">
                 <div className="h-3 w-3 animate-bounce rounded-full bg-blue-600 [animation-delay:-0.3s]"></div>
@@ -65,84 +51,21 @@ const OptimizedLoadingGrid = () => (
     </div>
 );
 
-// Componente de estadísticas rápidas
-const QuickStats = React.memo(({
-    totalEmployees,
-    changeCount,
-    canUndo,
-    canRedo
-}: {
-    totalEmployees: number;
-    changeCount: number;
-    canUndo: boolean;
-    canRedo: boolean;
-}) => (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800">
-            <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Empleados</p>
-                        <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{totalEmployees}</p>
-                    </div>
-                    <Users className="h-8 w-8 text-blue-500" />
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/50 dark:to-orange-900/50 border-orange-200 dark:border-orange-800">
-            <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Cambios</p>
-                        <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{changeCount}</p>
-                    </div>
-                    <Clock className="h-8 w-8 text-orange-500" />
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/50 dark:to-green-900/50 border-green-200 dark:border-green-800">
-            <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-green-600 dark:text-green-400">Deshacer</p>
-                        <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                            {canUndo ? '✓' : '✗'}
-                        </p>
-                    </div>
-                    <TrendingUp className="h-8 w-8 text-green-500" />
-                </div>
-            </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/50 dark:to-purple-900/50 border-purple-200 dark:border-purple-800">
-            <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Rehacer</p>
-                        <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-                            {canRedo ? '✓' : '✗'}
-                        </p>
-                    </div>
-                    <Zap className="h-8 w-8 text-purple-500" />
-                </div>
-            </CardContent>
-        </Card>
-    </div>
-));
-
 // Componente principal optimizado
 interface OptimizedShiftsManagerProps {
     turnos?: any[];
     employee_rol_id?: number;
 }
 
-export default function OptimizedShiftsManager({
-    turnos = [],
-    employee_rol_id = 1
-}: OptimizedShiftsManagerProps) {
+export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 1 }: OptimizedShiftsManagerProps) {
     const isMobile = useIsMobile();
+    const [showSummary, setShowSummary] = useState(true);
+    const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+
+    // Función para abrir el popup de confirmación
+    const handleOpenConfirmDialog = useCallback(() => {
+        setShowConfirmDialog(true);
+    }, []);
 
     const {
         // Estados principales
@@ -195,71 +118,105 @@ export default function OptimizedShiftsManager({
         setGridApi,
     } = useOptimizedShiftsManager(employee_rol_id);
 
+    // Función para confirmar y aplicar cambios
+    const handleConfirmChanges = useCallback(async () => {
+        setShowConfirmDialog(false);
+        // Usar una cadena vacía como comentario por defecto
+        await handleActualizarCambios('');
+    }, [handleActualizarCambios]);
+
+    // Función para formatear los cambios para mostrar en el popup
+    const formatChangesForDisplay = useCallback(() => {
+        const changesList: Array<{
+            empleado: string;
+            fecha: string;
+            turno: string;
+            day: number;
+        }> = [];
+
+        Object.entries(resumen).forEach(([employeeId, employeeData]: [string, any]) => {
+            if (employeeData && employeeData.turnos) {
+                Object.entries(employeeData.turnos).forEach(([day, turno]) => {
+                    const dayNumber = parseInt(day);
+                    const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
+
+                    changesList.push({
+                        empleado: employeeData.nombre || 'Empleado desconocido',
+                        fecha: date.toLocaleDateString('es-CL', {
+                            day: 'numeric',
+                            month: 'short'
+                        }),
+                        turno: String(turno) || 'Eliminar',
+                        day: dayNumber
+                    });
+                });
+            }
+        });
+
+        return changesList.sort((a, b) => a.day - b.day);
+    }, [resumen, selectedDate]);
+
     // Memoizar el manejador de cambios de celda
-    const handleCellValueChanged = useCallback((change: any) => {
-        registerChange(
-            change.employeeName,
-            change.employeeRut,
-            change.day,
-            change.oldValue,
-            change.newValue
-        );
-    }, [registerChange]);
+    const handleCellValueChanged = useCallback(
+        (change: any) => {
+            registerChange(change.employeeName, change.employeeRut, change.day, change.oldValue, change.newValue);
+        },
+        [registerChange],
+    );
 
     // Memoizar props del grid
-    const gridProps = useMemo(() => ({
-        rowData: filteredRowData,
-        onCellValueChanged: handleCellValueChanged,
-        editable: hasEditPermissions && !isProcessingChanges,
-        month: selectedDate.getMonth(),
-        year: selectedDate.getFullYear(),
-        pendingChanges: listaCambios,
-        showPendingChanges,
-        isProcessingChanges,
-        className: "transition-all duration-300 ease-in-out",
-    }), [
-        filteredRowData,
-        handleCellValueChanged,
-        hasEditPermissions,
-        isProcessingChanges,
-        selectedDate,
-        listaCambios,
-        showPendingChanges,
-    ]);
+    const gridProps = useMemo(
+        () => ({
+            rowData: filteredRowData,
+            onCellValueChanged: handleCellValueChanged,
+            onGridReady: setGridApi, // ¡Crucial para el sistema de undo!
+            editable: hasEditPermissions && !isProcessingChanges,
+            month: selectedDate.getMonth(),
+            year: selectedDate.getFullYear(),
+            pendingChanges: listaCambios,
+            showPendingChanges,
+            isProcessingChanges,
+            className: 'transition-all duration-300 ease-in-out',
+        }),
+        [filteredRowData, handleCellValueChanged, setGridApi, hasEditPermissions, isProcessingChanges, selectedDate, listaCambios, showPendingChanges],
+    );
 
     // Memoizar props del resumen
-    const summaryProps = useMemo(() => ({
-        cambios: resumen,
-        onActualizar: handleActualizarCambios,
-        isProcesing: isSaving,
-        isCollapsed: false,
-        selectedDate: originalChangeDate || selectedDate,
-        disabled: !hasEditPermissions,
-        onUndoLastChange: undoChange,
-        onUndoSpecificChange: undoSpecificChange,
-        onClearAllChanges: undefined, // No más función de limpiar todo
-        changeHistory: listaCambios,
-    }), [
-        resumen,
-        handleActualizarCambios,
-        isSaving,
-        originalChangeDate,
-        selectedDate,
-        hasEditPermissions,
-        undoChange,
-        undoSpecificChange,
-        listaCambios,
-    ]);
+    const summaryProps = useMemo(
+        () => ({
+            cambios: resumen,
+            onActualizar: handleActualizarCambios,
+            isProcesing: isSaving,
+            isCollapsed: false,
+            selectedDate: originalChangeDate || selectedDate,
+            disabled: !hasEditPermissions,
+            onUndoLastChange: undoChange,
+            onUndoSpecificChange: undoSpecificChange,
+            onClearAllChanges: undefined, // No más función de limpiar todo
+            changeHistory: listaCambios,
+        }),
+        [
+            resumen,
+            handleActualizarCambios,
+            isSaving,
+            originalChangeDate,
+            selectedDate,
+            hasEditPermissions,
+            undoChange,
+            undoSpecificChange,
+            listaCambios,
+        ],
+    );
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Turnos Optimizados" />
 
             <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-                <div className={isMobile ? "p-4" : "p-6"}>
+                <div className={isMobile ? 'p-4' : 'p-6'}>
                     {/* Header optimizado */}
                     <div className="mb-6">
-                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+                        <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-3 shadow-lg">
                                     <FileSpreadsheet className="h-6 w-6 text-white" />
@@ -268,9 +225,7 @@ export default function OptimizedShiftsManager({
                                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
                                         Turnos Optimizados v3
                                         {employee_rol_id === 1 && (
-                                            <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">
-                                                Patrullaje
-                                            </Badge>
+                                            <Badge className="ml-2 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100">Patrullaje</Badge>
                                         )}
                                     </h1>
                                     <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -288,26 +243,18 @@ export default function OptimizedShiftsManager({
                                 />
 
                                 {!hasEditPermissions && (
-                                    <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                    <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700">
                                         Solo lectura
                                     </Badge>
                                 )}
                             </div>
                         </div>
-
-                        {/* Estadísticas rápidas */}
-                        <QuickStats
-                            totalEmployees={getTotalEmployees()}
-                            changeCount={changeCount}
-                            canUndo={canUndo}
-                            canRedo={canRedo}
-                        />
                     </div>
 
                     {/* Contenido principal */}
                     <div className={`flex gap-6 ${isMobile ? 'flex-col' : 'h-[calc(100vh-280px)]'}`}>
                         {/* Grid principal */}
-                        <div className="flex-1 min-w-0">
+                        <div className="min-w-0 flex-1">
                             <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                 <CardHeader className="border-b bg-slate-50/50 pb-4 dark:border-slate-800 dark:bg-slate-800/50">
                                     <div className="flex items-center justify-between">
@@ -322,9 +269,7 @@ export default function OptimizedShiftsManager({
                                                 <p className="text-sm text-slate-600 dark:text-slate-400">
                                                     {getTotalEmployees()} empleados cargados
                                                     {originalChangeDate && (
-                                                        <span className="ml-2 text-orange-600 dark:text-orange-400">
-                                                            • Cambios pendientes
-                                                        </span>
+                                                        <span className="ml-2 text-orange-600 dark:text-orange-400">• Cambios pendientes</span>
                                                     )}
                                                 </p>
                                             </div>
@@ -339,19 +284,50 @@ export default function OptimizedShiftsManager({
                                                         size="sm"
                                                         onClick={undoChange}
                                                         disabled={!canUndo || isProcessingChanges}
-                                                        className="flex items-center gap-1"
+                                                        className="flex items-center gap-2"
                                                     >
-                                                        Ctrl+Z
+                                                        <Undo2 className="h-4 w-4" />
+                                                        Deshacer último cambio
                                                     </Button>
-                                                                                            <Button
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={redoChange}
-                                            disabled={!canRedo || isProcessingChanges}
-                                            className="flex items-center gap-1"
-                                        >
-                                            Ctrl+Y
-                                        </Button>
+
+                                                    {/* Botón para toggle del resumen */}
+                                                    {changeCount > 0 && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setShowSummary(!showSummary)}
+                                                            className="flex items-center gap-2"
+                                                            title={showSummary ? 'Ocultar resumen' : 'Mostrar resumen'}
+                                                        >
+                                                            {showSummary ? (
+                                                                <>
+                                                                    <EyeOff className="h-4 w-4" />
+                                                                    Ocultar resumen
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Eye className="h-4 w-4" />
+                                                                    Mostrar resumen
+                                                                </>
+                                                            )}
+                                                        </Button>
+                                                    )}
+
+                                                    {/* Botón para aplicar cambios */}
+                                                    {changeCount > 0 && (
+                                                        <Button
+                                                            variant="default"
+                                                            size="sm"
+                                                            onClick={handleOpenConfirmDialog}
+                                                            disabled={isSaving}
+                                                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                                                            title="Aplicar todos los cambios"
+                                                        >
+                                                            <Save className="h-4 w-4" />
+                                                            Aplicar cambios ({changeCount})
+                                                        </Button>
+                                                    )}
+
                                                 </>
                                             )}
                                         </div>
@@ -366,8 +342,8 @@ export default function OptimizedShiftsManager({
                                                 </div>
                                                 <div className="ml-3">
                                                     <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos.
-                                                        Solo puedes visualizar la información.
+                                                        <strong>Modo de solo lectura:</strong> No tienes permisos para editar turnos. Solo puedes
+                                                        visualizar la información.
                                                     </p>
                                                 </div>
                                             </div>
@@ -392,16 +368,18 @@ export default function OptimizedShiftsManager({
                         </div>
 
                         {/* Panel lateral - Resumen de cambios */}
-                        {!isMobile && hasEditPermissions && changeCount > 0 && (
+                        {!isMobile && hasEditPermissions && changeCount > 0 && showSummary && (
                             <div className="w-96 flex-shrink-0">
                                 <ScrollArea className="h-full">
-                                    <Suspense fallback={
-                                        <Card className="w-full">
-                                            <CardContent className="flex items-center justify-center p-8">
-                                                <Loader2 className="h-6 w-6 animate-spin" />
-                                            </CardContent>
-                                        </Card>
-                                    }>
+                                    <Suspense
+                                        fallback={
+                                            <Card className="w-full">
+                                                <CardContent className="flex items-center justify-center p-8">
+                                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                                </CardContent>
+                                            </Card>
+                                        }
+                                    >
                                         <ListaCambios {...summaryProps} />
                                     </Suspense>
                                 </ScrollArea>
@@ -410,21 +388,87 @@ export default function OptimizedShiftsManager({
                     </div>
 
                     {/* Panel móvil - Resumen de cambios */}
-                    {isMobile && hasEditPermissions && changeCount > 0 && (
+                    {isMobile && hasEditPermissions && changeCount > 0 && showSummary && (
                         <div className="mt-6">
-                            <Suspense fallback={
-                                <Card className="w-full">
-                                    <CardContent className="flex items-center justify-center p-8">
-                                        <Loader2 className="h-6 w-6 animate-spin" />
-                                    </CardContent>
-                                </Card>
-                            }>
+                            <Suspense
+                                fallback={
+                                    <Card className="w-full">
+                                        <CardContent className="flex items-center justify-center p-8">
+                                            <Loader2 className="h-6 w-6 animate-spin" />
+                                        </CardContent>
+                                    </Card>
+                                }
+                            >
                                 <ListaCambios {...summaryProps} />
                             </Suspense>
                         </div>
                     )}
-
                 </div>
+
+                {/* Dialog de confirmación para aplicar cambios */}
+                <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+                    <DialogContent className="max-w-2xl max-h-[80vh]">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <CheckCircle2 className="h-5 w-5 text-green-600" />
+                                Confirmar aplicación de cambios
+                            </DialogTitle>
+                            <DialogDescription>
+                                Estás a punto de aplicar {changeCount} cambio{changeCount !== 1 ? 's' : ''} en los turnos.
+                                Esta acción no se puede deshacer.
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="py-4">
+                            <h4 className="text-sm font-medium mb-3">Resumen de cambios:</h4>
+                            <ScrollArea className="h-64 border rounded-md p-3">
+                                <div className="space-y-2">
+                                    {formatChangesForDisplay().map((change, index) => (
+                                        <div key={index} className="flex justify-between items-center p-2 bg-slate-50 rounded-md">
+                                            <div>
+                                                <span className="font-medium text-slate-900">{change.empleado}</span>
+                                                <span className="text-slate-500 ml-2">• {change.fecha}</span>
+                                            </div>
+                                            <Badge
+                                                variant="outline"
+                                                className={change.turno === 'Eliminar' ? 'border-red-300 text-red-700' : 'border-green-300 text-green-700'}
+                                            >
+                                                {change.turno}
+                                            </Badge>
+                                        </div>
+                                    ))}
+                                </div>
+                            </ScrollArea>
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                onClick={() => setShowConfirmDialog(false)}
+                                disabled={isSaving}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                onClick={handleConfirmChanges}
+                                disabled={isSaving}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Aplicando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle2 className="h-4 w-4 mr-2" />
+                                        Confirmar y aplicar
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
 
                 {/* Toast optimizado */}
                 <Toaster

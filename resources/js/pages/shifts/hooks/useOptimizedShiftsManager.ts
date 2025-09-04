@@ -514,6 +514,11 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             // Recargar datos
             await loadDataOptimized(fechaParaCambios, false);
 
+            // Limpiar sistema simple de undo DESPUÉS de recargar
+            console.log('Limpiando sistema simple después de recargar datos...');
+            simpleClearAllChanges();
+            console.log('Sistema simple limpiado, changeCount debería ser 0');
+
             toast.success('Cambios guardados exitosamente', {
                 description: 'Los turnos fueron actualizados correctamente.',
                 duration: 3000,

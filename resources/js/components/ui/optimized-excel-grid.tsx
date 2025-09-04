@@ -44,6 +44,7 @@ interface OptimizedExcelGridProps {
     rowData: TurnoData[];
     onCellValueChanged?: (change: OptimizedGridChange) => void;
     onRowClicked?: (event: any) => void;
+    onGridReady?: (api: any) => void; // Para sistema de undo
     editable?: boolean;
     month?: number;
     year?: number;
@@ -177,6 +178,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     rowData,
     onCellValueChanged,
     onRowClicked,
+    onGridReady,
     editable = true,
     month,
     year,
@@ -408,6 +410,12 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
     // Configurar grid cuando esté listo
     const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
+        // Notificar al padre que el grid está listo (para sistema de undo)
+        if (onGridReady && params.api) {
+            onGridReady(params.api);
+        }
+
+        // Configuración inicial del grid
         requestAnimationFrame(() => {
             if (params.api) {
                 params.api.autoSizeColumns(['nombre']);
@@ -416,7 +424,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 });
             }
         });
-    }, []);
+    }, [onGridReady]);
 
     // Obtener ID de fila optimizado
     const getRowId = useCallback((params: GetRowIdParams<TurnoData>) => {
