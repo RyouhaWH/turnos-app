@@ -234,29 +234,10 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const saveRole = (roleId: number, roleData: { nombre: string; is_operational?: boolean; color?: string }) => {
         router.put(`/platform-data/roles/${roleId}`, roleData, {
             onSuccess: () => {
-                // Actualizar el estado local inmediatamente
-                const updatedRoles = data.roles.map(role => {
-                    if (role.id === roleId) {
-                        return { ...role, nombre: roleData.nombre };
-                    }
-                    return role;
-                });
-
-                // También actualizar empleados que usen este rol
-                const updatedEmployees = data.empleados.map(emp => {
-                    if (emp.rol_id === roleId) {
-                        return { ...emp, rol_nombre: roleData.nombre };
-                    }
-                    return emp;
-                });
-
-                setData(prev => ({
-                    ...prev,
-                    roles: updatedRoles,
-                    empleados: updatedEmployees
-                }));
                 setEditingRole(null);
                 toast.success('Rol actualizado correctamente');
+                // Refrescar solo los roles sin recargar la página
+                refreshRoles();
             },
             onError: (errors) => {
                 toast.error('Error al actualizar rol');
@@ -274,8 +255,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         router.delete(`/platform-data/roles/${roleId}`, {
             onSuccess: () => {
                 toast.success('Rol eliminado correctamente');
-                // Recargar la página para obtener los datos actualizados
-                router.reload();
+                // Refrescar solo los roles sin recargar la página
+                refreshRoles();
             },
             onError: (errors) => {
                 toast.error('Error al eliminar rol');
@@ -297,11 +278,12 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             color: newRole.color
         }, {
             onSuccess: () => {
-                // Recargar la página para obtener el nuevo rol con ID correcto
-                router.reload();
+                // Reset form state
                 setNewRole({ nombre: '', is_operational: true, color: '#3B82F6' });
                 setIsAddingRole(false);
                 toast.success('Rol creado correctamente');
+                // Refrescar solo los roles sin recargar la página
+                refreshRoles();
             },
             onError: (errors) => {
                 toast.error('Error al crear rol');
@@ -762,12 +744,24 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         if (!missingDataResponse) return [];
 
         if (selectedCategory === 'all') {
-            return [
+            // Usar un Map para eliminar duplicados basándose en el ID del empleado
+            const uniqueEmployees = new Map<number, EmployeeWithMissingData>();
+
+            // Agregar empleados de todas las categorías, manteniendo solo la primera aparición
+            const allCategories = [
                 ...missingDataResponse.categories.missing_email,
                 ...missingDataResponse.categories.missing_rut,
                 ...missingDataResponse.categories.missing_phone,
                 ...missingDataResponse.categories.missing_multiple,
             ];
+
+            allCategories.forEach(employee => {
+                if (!uniqueEmployees.has(employee.id)) {
+                    uniqueEmployees.set(employee.id, employee);
+                }
+            });
+
+            return Array.from(uniqueEmployees.values());
         }
 
         return missingDataResponse.categories[selectedCategory];
@@ -794,6 +788,23 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
 
 
     const colorPalette = AVAILABLE_COLORS;
+
+    // Función para refrescar roles desde la API
+    const refreshRoles = async () => {
+        try {
+            const response = await fetch('/api/roles');
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                setData(prev => ({
+                    ...prev,
+                    roles: result.data
+                }));
+            }
+        } catch (error) {
+            console.error('Error al refrescar roles:', error);
+        }
+    };
 
     return (
         <AppLayout>
@@ -880,7 +891,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                         id="new-role-name"
                                                         value={newRole.nombre}
                                                         onChange={(e) => setNewRole(prev => ({ ...prev, nombre: e.target.value }))}
-                                                        placeholder="Ej: Alerta Móvil"
+                                                        placeholder="Ej: Patrullaje y Proximidad"
                                                         className="mt-1"
                                                     />
                                                 </div>
@@ -1728,10 +1739,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                 onClick={() => setSelectedCategory('all')}
                                             >
                                                 Todos ({
-                                                    missingDataResponse.stats.missing_email +
-                                                    missingDataResponse.stats.missing_rut +
-                                                    missingDataResponse.stats.missing_phone +
-                                                    missingDataResponse.stats.missing_multiple
+                                                    missingDataResponse.stats.total_employees - missingDataResponse.stats.complete_data
                                                 })
                                             </Button>
                                             <Button

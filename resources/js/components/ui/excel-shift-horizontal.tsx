@@ -236,6 +236,16 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
     // Estado para grupos colapsados
     const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+    const [cambios, setCambios] = useState<Record<string, CambioData>>({})
+    const gridRef = useRef<AgGridReact<TurnoData>>(null)
+
+    // Función centralizada para sincronizar el grid
+    const syncGrid = useCallback(() => {
+        if (gridRef.current?.api) {
+            gridRef.current.api.refreshCells();
+            gridRef.current.api.redrawRows();
+        }
+    }, []);
 
     // Procesar datos para agregar separador y manejar grupos colapsados
     const processedRowData = useMemo(() => {
@@ -246,14 +256,12 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
 
         const filteredData: TurnoData[] = [];
         let skipUntilNextGroup = false;
-        let currentGroup: string | null = null;
 
         dataWithSeparators.forEach((row) => {
             if (row.isGroupHeader) {
-                currentGroup = row.groupType || null;
+                const currentGroup = row.groupType || null;
                 if (currentGroup && collapsedGroups.has(currentGroup)) {
                     skipUntilNextGroup = true;
-                    // Incluir solo el header
                     filteredData.push(row);
                 } else {
                     skipUntilNextGroup = false;
@@ -275,44 +283,122 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
         return daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
     }, [daysInData, activeMonth, activeYear]);
 
-    const [cambios, setCambios] = useState<Record<string, CambioData>>({})
-    const gridRef = useRef<AgGridReact<TurnoData>>(null)
-
-    // Debug logging mejorado
+    // Efecto principal para manejar cambios críticos y sincronización
     useEffect(() => {
-        // Solo cuando realmente necesites debug
-        if (process.env.NODE_ENV === 'development') {
-            // También verificar algunos datos de muestra
-            if (rowData.length > 0) {
+        if (!gridRef.current?.api) return;
 
-                // Verificar valores específicos para algunos días
-                const sampleRow = rowData[0];
-                daysInfo.slice(0, 5).forEach(dayInfo => {
-                    const fieldValue = sampleRow[dayInfo.day.toString()];
-                });
-            }
-        }
-    }, [daysInfo.length, rowData.length]); // Solo longitud, no objetos completos
-
-    // Efecto para reiniciar el grid cuando se solicita
-    useEffect(() => {
-        if (resetGrid) {
+        // Si estamos deshaciendo, forzar actualización completa del grid
+        if (isUndoing) {
+            // Limpiar cambios internos
             setCambios({});
 
-            // Forzar refresco del grid
-            if (gridRef.current?.api) {
-                gridRef.current.api.refreshCells();
-                gridRef.current.api.redrawRows();
-            }
-        }
-    }, [resetGrid]);
+            // Forzar actualización del modelo de datos con los datos originales
+            gridRef.current.api.setGridOption('rowData', processedRowData);
 
-    // Efecto para limpiar cambios internos cuando se solicita
+            // Actualización inmediata
+            gridRef.current.api.refreshCells({ force: true });
+            gridRef.current.api.redrawRows();
+
+            // Segunda actualización después de un breve retraso para asegurar sincronización
+            const timeoutId = setTimeout(() => {
+                if (gridRef.current?.api) {
+                    gridRef.current.api.refreshCells({ force: true });
+                    gridRef.current.api.redrawRows();
+                }
+            }, 100);
+
+            return () => clearTimeout(timeoutId);
+        }
+
+        // Si se solicita reset o limpieza, limpiar cambios internos
+        if (resetGrid || clearChanges) {
+            setCambios({});
+            gridRef.current.api.refreshCells({ force: true });
+            gridRef.current.api.redrawRows();
+        }
+
+        // Sincronización general del grid
+        const timeoutId = setTimeout(syncGrid, 50);
+        return () => clearTimeout(timeoutId);
+    }, [isUndoing, resetGrid, clearChanges, processedRowData, syncGrid]);
+
+    // Efecto para sincronizar cambios pendientes
     useEffect(() => {
-        if (clearChanges) {
+        if (pendingChanges.length > 0) {
+            // Convertir pendingChanges a la estructura interna del grid
+            const newCambios: Record<string, CambioData> = {};
+
+            pendingChanges.forEach(change => {
+                const clave = String(change.employeeId);
+
+                if (!newCambios[clave]) {
+                    newCambios[clave] = {
+                        rut: change.employeeRut,
+                        nombre: change.employeeName,
+                        employee_id: change.employeeId,
+                        turnos: {}
+                    };
+                }
+
+                // Solo agregar si hay un valor nuevo
+                if (change.newValue) {
+                    newCambios[clave].turnos[change.day] = change.newValue;
+                }
+            });
+
+            setCambios(newCambios);
+        } else {
+            // Limpiar cambios si no hay pendientes
             setCambios({});
         }
-    }, [clearChanges]);
+
+        // Sincronizar el grid
+        const timeoutId = setTimeout(syncGrid, 50);
+        return () => clearTimeout(timeoutId);
+    }, [pendingChanges, syncGrid]);
+
+    // Efecto para sincronizar cuando cambia rowData (importante para deshacer)
+    useEffect(() => {
+        if (!gridRef.current?.api) return;
+
+        // Si estamos deshaciendo, usar setGridOption para forzar actualización completa
+        if (isUndoing) {
+            gridRef.current.api.setGridOption('rowData', processedRowData);
+        } else {
+            // Para cambios normales, usar applyTransaction
+            gridRef.current.api.applyTransaction({ update: processedRowData });
+        }
+
+        // Forzar actualización completa
+        gridRef.current.api.refreshCells({ force: true });
+        gridRef.current.api.redrawRows();
+    }, [rowData, processedRowData, isUndoing]);
+
+    // Efecto para sincronización cuando cambia collapsedGroups
+    useEffect(() => {
+        const timeoutId = setTimeout(syncGrid, 100);
+        return () => clearTimeout(timeoutId);
+    }, [collapsedGroups, syncGrid]);
+
+    // Efecto para sincronización cuando cambia daysInfo
+    useEffect(() => {
+        const timeoutId = setTimeout(syncGrid, 100);
+        return () => clearTimeout(timeoutId);
+    }, [daysInfo, syncGrid]);
+
+    // Efecto para sincronización cuando cambia processedRowData
+    useEffect(() => {
+        const timeoutId = setTimeout(syncGrid, 100);
+        return () => clearTimeout(timeoutId);
+    }, [processedRowData, syncGrid]);
+
+    // Efecto para sincronización cuando cambia cambios
+    useEffect(() => {
+        const timeoutId = setTimeout(syncGrid, 100);
+        return () => clearTimeout(timeoutId);
+    }, [cambios, syncGrid]);
+
+
 
 
 
@@ -601,6 +687,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
     }, [rowData])
 
 
+
+
     return (
         <div className="w-full h-full">
             {/* Estilos CSS simples desde cero */}
@@ -742,12 +830,13 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     return 32;
                 }}
                 headerHeight={50}
-                suppressColumnVirtualisation={false}
-                suppressRowVirtualisation={false}
+                suppressColumnVirtualisation={true}
+                suppressRowVirtualisation={true}
                 suppressLoadingOverlay={true}
                 suppressNoRowsOverlay={true}
                 animateRows={false}
                 suppressContextMenu={true}
+                getRowId={(params) => params.data.id || params.data.nombre}
             />
         </div>
     )

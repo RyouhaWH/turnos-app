@@ -5,6 +5,7 @@ use App\Http\Controllers\RolController;
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Http\Controllers\TurnController;
+use App\Http\Controllers\TurnosSimplificadoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +46,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('/dashboard', 'dashboard')->name('dashboard');
     Route::inertia('/personal', 'staff')->name('staff-personal');
 
+    // Ruta para la vista simplificada de turnos
+    Route::get('/turno-simple', [TurnosSimplificadoController::class, 'index'])->name('turnos.simplificado');
+    // Route::inertia('/turnos-simple', [TurnosSimplificadoController::class, 'index'])->name('turnos.simplificado');
+
     /*
     |--------------------------------------------------------------------------
     | User Management Routes
@@ -69,6 +74,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('mes/{id}', [ShiftsController::class, 'getMonthlyShifts'])->name('monthly');
         Route::get('/{employee_shift_id}/historial', [ShiftsController::class, 'getHistory'])->name('history');
     });
+
+    Route::get('/shifts/createv3/{id}', [ShiftsController::class, 'createv3'])->name('shifts.createv3');
+
+    // Ruta para demo de v3
+    Route::get('/shifts/demo-v3', function () {
+        return Inertia::render('shifts/demo-v3');
+    })->name('shifts.demo-v3');
 
     // Rutas con nombres originales para mantener compatibilidad con el frontend
     Route::get('turnos', [ShiftsController::class, 'index'])->name('shifts');

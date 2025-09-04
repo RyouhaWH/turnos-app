@@ -20,6 +20,17 @@ class ShiftsController extends Controller
         return Inertia::render('shifts/index');
     }
 
+    public function createv3($id)
+    {
+        $data = $this->getShiftsfromDB($id);
+        $formateado = array_values($data);
+
+        return Inertia::render('shifts/createv3', [
+            'turnos'          => $formateado,
+            'employee_rol_id' => $id,
+        ]);
+    }
+
     /**
      * Traer los turnos de todas las facciones del día de hoy.
      * pedir en un selector, el día deseado y con el filtrar.

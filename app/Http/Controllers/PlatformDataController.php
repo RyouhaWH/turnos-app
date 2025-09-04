@@ -115,14 +115,15 @@ class PlatformDataController extends Controller
 
             $result = $this->employeeLinkingService->linkEmployeeToUser($employeeId, $request->user_id);
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message']
-            ], $result['status']);
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error linking employee to user: ' . $e->getMessage());
-            return $this->errorResponse('Error al vincular funcionario con usuario: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al vincular funcionario con usuario: ' . $e->getMessage()]);
         }
     }
 
@@ -134,14 +135,15 @@ class PlatformDataController extends Controller
         try {
             $result = $this->employeeLinkingService->unlinkEmployee($employeeId);
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message']
-            ], $result['status']);
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error unlinking employee: ' . $e->getMessage());
-            return $this->errorResponse('Error al desvincular funcionario: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al desvincular funcionario: ' . $e->getMessage()]);
         }
     }
 
@@ -174,20 +176,21 @@ class PlatformDataController extends Controller
             // Validar datos
             $validation = $this->employeeCrudService->validateEmployeeData($request->all());
 
-            if (!$validation['success']) {
-                return $this->validationErrorResponse($validation['errors']);
-            }
+                    if (!$validation['success']) {
+            return redirect()->back()->withErrors($validation['errors']);
+        }
 
             $result = $this->employeeCrudService->updateEmployee($id, $validation['data']);
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message']
-            ], $result['status']);
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error updating employee: ' . $e->getMessage());
-            return $this->errorResponse('Error al actualizar empleado: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al actualizar empleado: ' . $e->getMessage()]);
         }
     }
 
@@ -207,15 +210,15 @@ class PlatformDataController extends Controller
 
             $result = $this->employeeLinkingService->createUserForEmployee($employeeId, $request->all());
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message'],
-                'data' => $result['data'] ?? null
-            ], $result['status']);
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error creating user for employee: ' . $e->getMessage());
-            return $this->errorResponse('Error al crear usuario: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al crear usuario: ' . $e->getMessage()]);
         }
     }
 
@@ -235,15 +238,16 @@ class PlatformDataController extends Controller
 
             $result = $this->employeeLinkingService->updateUserForEmployee($employeeId, $request->all());
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message'],
-                'data' => $result['data'] ?? null
-            ], $result['status']);
+
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error updating user for employee: ' . $e->getMessage());
-            return $this->errorResponse('Error al actualizar usuario: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al actualizar usuario: ' . $e->getMessage()]);
         }
     }
 
@@ -255,14 +259,15 @@ class PlatformDataController extends Controller
         try {
             $result = $this->employeeLinkingService->deleteUserForEmployee($employeeId);
 
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message']
-            ], $result['status']);
+            if ($result['success']) {
+                return redirect()->back()->with('success', $result['message']);
+            } else {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
 
         } catch (\Exception $e) {
             Log::error('Error deleting user for employee: ' . $e->getMessage());
-            return $this->errorResponse('Error al eliminar usuario: ' . $e->getMessage(), 500);
+            return redirect()->back()->withErrors(['error' => 'Error al eliminar usuario: ' . $e->getMessage()]);
         }
     }
 

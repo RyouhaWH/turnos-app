@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { useDebounce } from '@/hooks/useDebounce';
+import { router } from '@inertiajs/react';
 
 interface TurnoData {
     id: string;
@@ -12,6 +13,19 @@ interface TurnoData {
     [key: string]: string | boolean | number | undefined;
 }
 
+// Nueva interfaz para el sistema centralizado de cambios
+interface GridChange {
+    id: string;
+    employeeId: string;
+    employeeName: string;
+    employeeRut: string;
+    day: string;
+    oldValue: string;
+    newValue: string;
+    timestamp: number;
+}
+
+// Interfaz de compatibilidad
 interface ChangeItem {
     id: string;
     employeeId: string | number;
@@ -37,9 +51,9 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const user = props.auth?.user;
     const hasEditPermissions = user?.roles?.some((role: any) => role.name === 'Supervisor' || role.name === 'Administrador') || false;
 
-        // Ordenar datos iniciales: primero Amzoma, luego no-Amzoma, ambos alfabéticamente
+    // Ordenar datos iniciales: primero Municipal, luego Amzoma, ambos alfabéticamente
     const datosInicialesOrdenados = useMemo(() => {
-                        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
+        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
             // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
             const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
             const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
@@ -49,27 +63,28 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
             // Si ambos tienen el mismo estado de amzoma, ordenar alfabéticamente
             const nombreA = a.first_name && a.paternal_lastname
-                ? `${a.first_name.split(' ')[0]} ${a.paternal_lastname}`.toLowerCase()
-                : (a.nombre || '').toLowerCase();
+                ? `${String(a.first_name).split(' ')[0]} ${String(a.paternal_lastname)}`.toLowerCase()
+                : String(a.nombre || '').toLowerCase();
             const nombreB = b.first_name && b.paternal_lastname
-                ? `${b.first_name.split(' ')[0]} ${b.paternal_lastname}`.toLowerCase()
-                : (b.nombre || '').toLowerCase();
+                ? `${String(b.first_name).split(' ')[0]} ${String(b.paternal_lastname)}`.toLowerCase()
+                : String(b.nombre || '').toLowerCase();
 
             return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
         });
     }, [props.turnos]);
 
-    // Estados principales - Optimizados para carga lazy
+    // Estados principales
     const [rowData, setRowData] = useState<TurnoData[]>([]);
-    const [resumen, setResumen] = useState<Record<string, Record<string, string>>>({});
+    const [resumen, setResumen] = useState<Record<string, any>>({});
     const [comentario, setComentario] = useState('');
     const [selectedDate, setSelectedDate] = useState(new Date());
 
-    // Derivar el título del mes en lugar de mantenerlo como estado
+    // Derivar el título del mes
     const currentMonthTitle = useMemo(() => {
         return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
     }, [selectedDate]);
-    const [loading, setLoading] = useState(true); // Empezar con loading activo
+
+    const [loading, setLoading] = useState(true);
     const [isChangesExpanded, setIsChangesExpanded] = useState(false);
     const [isHistoryExpanded, setIsHistoryExpanded] = useState(false);
     const [resetGrid, setResetGrid] = useState(false);
@@ -82,17 +97,230 @@ export const useShiftsManager = (employee_rol_id: number) => {
     const [isInitialLoad, setIsInitialLoad] = useState(true);
     const [initialDataLoaded, setInitialDataLoaded] = useState(false);
 
-    // Búsqueda con debounce usando hook personalizado
+    // Búsqueda con debounce
     const [searchInputTerm, setSearchInputTerm] = useState('');
     const debouncedSearchTerm = useDebounce(searchInputTerm.trim(), 250);
 
-    // Selección y disponibles - Empezar vacíos para carga lazy
+    // Selección y empleados disponibles
     const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
     const [availableEmployees, setAvailableEmployees] = useState<TurnoData[]>([]);
     const [showEmployeeSelector, setShowEmployeeSelector] = useState(false);
 
-    // Lista de cambios
-    const [listaCambios, setListaCambios] = useState<ChangeItem[]>([]);
+    // SISTEMA CENTRALIZADO DE CAMBIOS
+    const [gridChanges, setGridChanges] = useState<GridChange[]>([]);
+
+    // Derivar listaCambios para compatibilidad
+    const listaCambios = useMemo((): ChangeItem[] => {
+        return gridChanges.map(change => ({
+            id: change.id,
+            employeeId: change.employeeId,
+            employeeName: change.employeeName,
+            employeeRut: change.employeeRut,
+            day: change.day,
+            oldValue: change.oldValue,
+            newValue: change.newValue,
+            timestamp: change.timestamp,
+        }));
+    }, [gridChanges]);
+
+    // Función para obtener el ID del empleado
+    const getEmployeeId = useCallback((employee: TurnoData): string => {
+        return String(employee.employee_id || employee.id || employee.rut || employee.nombre);
+    }, []);
+
+    // Función para obtener el ID del empleado por nombre y rut
+    const getEmployeeIdByNameAndRut = useCallback((employeeName: string, rut: string): string => {
+        const employee = rowData.find(emp =>
+            emp.nombre === employeeName ||
+            emp.rut === rut ||
+            (emp.first_name && emp.paternal_lastname &&
+             `${String(emp.first_name).split(' ')[0]} ${String(emp.paternal_lastname)}` === employeeName)
+        );
+        return String(employee?.employee_id || employee?.id || employeeName);
+    }, [rowData]);
+
+    // FUNCIÓN PARA REGISTRAR CAMBIOS EN EL GRID
+    const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
+        if (oldValue === newValue) return;
+
+        const employeeId = getEmployeeIdByNameAndRut(employee, rut);
+
+        const change: GridChange = {
+            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            employeeId,
+            employeeName: employee,
+            employeeRut: rut,
+            day,
+            oldValue,
+            newValue,
+            timestamp: Date.now(),
+        };
+
+        // Agregar cambio al array centralizado
+        setGridChanges(prev => [...prev, change]);
+
+        // Actualizar el resumen para compatibilidad con el backend
+        setResumen(prev => {
+            const newResumen = { ...prev } as any;
+
+            if (!newResumen[employeeId]) {
+                newResumen[employeeId] = {
+                    rut: rut,
+                    nombre: employee,
+                    employee_id: employeeId,
+                    turnos: {}
+                };
+            }
+
+            if (newValue) {
+                newResumen[employeeId].turnos[day] = newValue;
+            } else {
+                delete newResumen[employeeId].turnos[day];
+            }
+
+            // Limpiar objetos vacíos
+            if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
+                delete newResumen[employeeId];
+            }
+
+            return newResumen;
+        });
+
+        // Establecer fecha de cambios si no está establecida
+        if (!originalChangeDate) {
+            setOriginalChangeDate(selectedDate);
+            setShowPendingChanges(true);
+        }
+    }, [selectedDate, originalChangeDate, getEmployeeIdByNameAndRut]);
+
+    // DESHACER ÚLTIMO CAMBIO
+    const undoLastChange = useCallback(() => {
+        if (gridChanges.length === 0) return;
+
+        setIsUndoing(true);
+
+        const lastChange = gridChanges[gridChanges.length - 1];
+
+        // Revertir el cambio en rowData
+        setRowData(prevData => prevData.map(emp => {
+            if (String(emp.employee_id) === lastChange.employeeId || String(emp.id) === lastChange.employeeId) {
+                return { ...emp, [lastChange.day]: lastChange.oldValue };
+            }
+            return emp;
+        }));
+
+        // Remover el cambio del array centralizado
+        setGridChanges(prev => prev.slice(0, -1));
+
+        // Actualizar el resumen
+        setResumen(prev => {
+            const newResumen = { ...prev } as any;
+            const employeeId = lastChange.employeeId;
+
+            if (newResumen[employeeId]?.turnos) {
+                delete newResumen[employeeId].turnos[lastChange.day];
+
+                if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
+                    delete newResumen[employeeId];
+                }
+            }
+
+            return newResumen;
+        });
+
+        // Si no hay más cambios, limpiar estados relacionados
+        if (gridChanges.length === 1) {
+            setShowPendingChanges(false);
+            setOriginalChangeDate(null);
+        }
+
+        // Mantener isUndoing activo para sincronización
+        setTimeout(() => setIsUndoing(false), 500);
+    }, [gridChanges]);
+
+    // DESHACER CAMBIO ESPECÍFICO
+    const undoSpecificChange = useCallback((changeId: string) => {
+        const changeIndex = gridChanges.findIndex((c) => c.id === changeId);
+        if (changeIndex === -1) return;
+
+        setIsUndoing(true);
+
+        const change = gridChanges[changeIndex];
+
+        // Revertir el cambio en rowData
+        setRowData(prevData => prevData.map(emp => {
+            if (String(emp.employee_id) === change.employeeId || String(emp.id) === change.employeeId) {
+                return { ...emp, [change.day]: change.oldValue };
+            }
+            return emp;
+        }));
+
+        // Remover el cambio específico del array centralizado
+        setGridChanges(prev => prev.filter((_, index) => index !== changeIndex));
+
+        // Actualizar el resumen
+        setResumen(prev => {
+            const newResumen = { ...prev } as any;
+            const employeeId = change.employeeId;
+
+            if (newResumen[employeeId]?.turnos) {
+                delete newResumen[employeeId].turnos[change.day];
+
+                if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
+                    delete newResumen[employeeId];
+                }
+            }
+
+            return newResumen;
+        });
+
+        // Si no hay más cambios, limpiar estados relacionados
+        if (gridChanges.length === 1) {
+            setShowPendingChanges(false);
+            setOriginalChangeDate(null);
+        }
+
+        // Mantener isUndoing activo para sincronización
+        setTimeout(() => setIsUndoing(false), 500);
+    }, [gridChanges]);
+
+    // LIMPIAR TODOS LOS CAMBIOS
+    const limpiarTodosLosCambios = useCallback(() => {
+        const confirmar = window.confirm('¿Estás seguro de que quieres descartar todos los cambios pendientes? Esta acción no se puede deshacer.');
+        if (!confirmar) return;
+
+        setIsUndoing(true);
+
+        // Restaurar rowData a su estado original
+        setRowData(datosInicialesOrdenados);
+
+        // Limpiar todos los cambios
+        setGridChanges([]);
+        setResumen({});
+        setShowPendingChanges(false);
+        setOriginalChangeDate(null);
+
+        // Actualizar datos del formulario
+        setData(prev => ({
+            ...prev,
+            cambios: {},
+        }));
+
+        setTimeout(() => setIsUndoing(false), 500);
+
+        toast.success('Cambios descartados', {
+            description: 'Todos los cambios pendientes han sido descartados.',
+            duration: 3000,
+        });
+    }, [datosInicialesOrdenados, setData]);
+
+    const limpiarCambiosSinConfirmacion = useCallback(() => {
+        setResumen({});
+        setGridChanges([]);
+        setOriginalChangeDate(null);
+        setShowPendingChanges(false);
+        setComentario('');
+    }, []);
 
     // Función para filtrar datos
     const filterData = useCallback((data: TurnoData[], term: string) => {
@@ -143,12 +371,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         [debouncedSearchTerm, filterAvailableEmployees]
     );
 
-    // Función para obtener ID único de empleado
-    const getEmployeeId = useCallback((employee: TurnoData): string => {
-        return String(employee.employee_id || employee.id || employee.rut || employee.nombre);
-    }, []);
-
-        // Función de ordenamiento por Amzoma y alfabético
+    // Función de ordenamiento por Amzoma y alfabético
     const sortByAmzomaAndName = useCallback((a: TurnoData, b: TurnoData) => {
         // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
         const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
@@ -212,7 +435,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
     // Función para aplicar cambios pendientes
     const aplicarCambiosPendientes = useCallback((turnosArray: TurnoData[], fechaActual: Date): TurnoData[] => {
-        if (listaCambios.length === 0 || !originalChangeDate) {
+        if (gridChanges.length === 0 || !originalChangeDate) {
             return turnosArray;
         }
 
@@ -224,7 +447,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         try {
             const turnosModificados = turnosArray.map(turno => ({ ...turno }));
 
-            listaCambios.forEach(cambio => {
+            gridChanges.forEach(cambio => {
                 const empleadoIndex = turnosModificados.findIndex(
                     emp => emp.employee_id === cambio.employeeId || emp.id === cambio.employeeId
                 );
@@ -239,7 +462,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             console.error('Error al aplicar cambios pendientes:', error);
             return turnosArray;
         }
-    }, [listaCambios, originalChangeDate]);
+    }, [gridChanges, originalChangeDate]);
 
     // Función de carga asíncrona optimizada
     const loadDataAsync = useCallback(async (fecha: Date, showToast = false) => {
@@ -247,7 +470,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         const month = fecha.getMonth() + 1;
 
         // Validar cambios pendientes
-        const hayCambiosReales = listaCambios.length > 0 && Object.keys(resumen).length > 0;
+        const hayCambiosReales = gridChanges.length > 0 && Object.keys(resumen).length > 0;
         const esCambioDeMes = originalChangeDate &&
             (originalChangeDate.getMonth() !== fecha.getMonth() || originalChangeDate.getFullYear() !== fecha.getFullYear());
 
@@ -266,7 +489,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 // TODO: Implementar guardado aquí si es necesario
                 return;
             } else {
-                setListaCambios([]);
+                setGridChanges([]);
                 setOriginalChangeDate(null);
                 setResumen({});
                 setShowPendingChanges(false);
@@ -314,7 +537,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 originalChangeDate.getFullYear() === fecha.getFullYear();
 
             let finalData = turnosOrdenados;
-            if (isOriginalMonth && listaCambios.length > 0) {
+            if (isOriginalMonth && gridChanges.length > 0) {
                 finalData = aplicarCambiosPendientes(turnosOrdenados, fecha);
             }
 
@@ -327,10 +550,10 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 setAvailableEmployees(turnosOrdenados.sort(sortByAmzomaAndName));
                 setInitialDataLoaded(true);
 
-                if (isOriginalMonth && listaCambios.length > 0) {
+                if (isOriginalMonth && gridChanges.length > 0) {
                     setTimeout(() => setShowPendingChanges(true), 200);
                 } else {
-                    if (listaCambios.length === 0) {
+                    if (gridChanges.length === 0) {
                         setResumen({});
                     }
                     setShowPendingChanges(false);
@@ -358,7 +581,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 setLoading(false);
             });
         }
-    }, [employee_rol_id, listaCambios, originalChangeDate, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
+    }, [employee_rol_id, gridChanges, originalChangeDate, comentario, resumen, isInitialLoad, aplicarCambiosPendientes]);
 
     // Cargar turnos por mes - Ahora usa la función optimizada
     const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
@@ -373,150 +596,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
         }));
     }, [setData]);
 
-    // Registrar cambio en historial (para deshacer)
-    const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
-        if (originalChangeDate === null) {
-            const currentMonth = selectedDate.getMonth();
-            const currentYear = selectedDate.getFullYear();
-            const fixedDate = new Date(currentYear, currentMonth, 1);
-            setOriginalChangeDate(fixedDate);
-        }
 
-        const employeeData = rowData.find((row) => row.nombre === employee);
-        const employeeId = String(employeeData?.employee_id || employeeData?.id || '');
-        if (!employeeId) return;
-
-        const change: ChangeItem = {
-            id: `${employeeId}_${day}_${Date.now()}`,
-            employeeId,
-            employeeName: employee,
-            employeeRut: rut,
-            day,
-            oldValue,
-            newValue,
-            timestamp: Date.now(),
-        };
-
-        setListaCambios((prev) => [...prev, change]);
-    }, [originalChangeDate, selectedDate, rowData]);
-
-    // Deshacer último cambio: actualizar datos directamente
-    const undoLastChange = useCallback(async () => {
-        if (listaCambios.length === 0) return;
-
-        setIsUndoing(true);
-
-        const lastChange = listaCambios[listaCambios.length - 1];
-        const newResumen = { ...resumen };
-        const employeeId = lastChange.employeeId;
-        const claveEmpleado = employeeId.toString();
-
-        if (!employeeId) {
-            toast.error('Error al deshacer cambio', {
-                description: 'No se pudo identificar al empleado',
-                duration: 4000,
-            });
-            setIsUndoing(false);
-            return;
-        }
-
-        if (newResumen[claveEmpleado] && (newResumen[claveEmpleado] as any).turnos) {
-            delete (newResumen[claveEmpleado] as any).turnos[lastChange.day];
-            if (Object.keys((newResumen[claveEmpleado] as any).turnos).length === 0) {
-                delete newResumen[claveEmpleado];
-            }
-        }
-
-        setResumen(newResumen);
-        setData((prev) => ({
-            ...prev,
-            cambios: newResumen,
-        }));
-
-        setRowData(prevData => prevData.map(emp => (
-            (emp.employee_id === lastChange.employeeId || emp.id === lastChange.employeeId)
-                ? { ...emp, [lastChange.day]: lastChange.oldValue }
-                : emp
-        )));
-
-        setListaCambios((prev) => {
-            const newList = prev.slice(0, -1);
-            if (newList.length === 0) {
-                setShowPendingChanges(false);
-                setOriginalChangeDate(null);
-            }
-            return newList;
-        });
-
-        setTimeout(() => setIsUndoing(false), 100);
-    }, [listaCambios, resumen, setData]);
-
-    // Deshacer cambio específico
-    const undoSpecificChange = useCallback(async (changeId: string) => {
-        const changeIndex = listaCambios.findIndex((c) => c.id === changeId);
-        if (changeIndex === -1) return;
-
-        setIsUndoing(true);
-
-        const change = listaCambios[changeIndex];
-        const newResumen = { ...resumen };
-        const employeeId = change.employeeId;
-        const claveEmpleado = employeeId.toString();
-
-        if (newResumen[claveEmpleado] && (newResumen[claveEmpleado] as any).turnos) {
-            delete (newResumen[claveEmpleado] as any).turnos[change.day];
-            if (Object.keys((newResumen[claveEmpleado] as any).turnos).length === 0) {
-                delete newResumen[claveEmpleado];
-            }
-        }
-
-        setResumen(newResumen);
-        setData((prev) => ({
-            ...prev,
-            cambios: newResumen,
-        }));
-
-        setRowData(prevData => prevData.map(emp => (
-            (emp.employee_id === change.employeeId || emp.id === change.employeeId)
-                ? { ...emp, [change.day]: change.oldValue }
-                : emp
-        )));
-
-        setListaCambios((prev) => {
-            const newList = prev.filter((_, index) => index !== changeIndex);
-            if (newList.length === 0) {
-                setShowPendingChanges(false);
-                setOriginalChangeDate(null);
-            }
-            return newList;
-        });
-
-        setTimeout(() => setIsUndoing(false), 100);
-    }, [listaCambios, resumen, setData]);
-
-    const limpiarTodosLosCambios = useCallback(() => {
-        const confirmar = window.confirm('¿Estás seguro de que quieres descartar todos los cambios pendientes? Esta acción no se puede deshacer.');
-        if (!confirmar) return;
-
-        setResumen({});
-        setListaCambios([]);
-        setOriginalChangeDate(null);
-        setShowPendingChanges(false);
-        setComentario('');
-
-        toast.success('Cambios descartados', {
-            description: 'Todos los cambios pendientes han sido descartados.',
-            duration: 3000,
-        });
-    }, []);
-
-    const limpiarCambiosSinConfirmacion = useCallback(() => {
-        setResumen({});
-        setListaCambios([]);
-        setOriginalChangeDate(null);
-        setShowPendingChanges(false);
-        setComentario('');
-    }, []);
 
     const handleActualizarCambios = useCallback((comentarioNuevo: string) => {
         setComentario(comentarioNuevo);
@@ -534,7 +614,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
         setIsSaving(true);
 
-        fetch(route('post-updateShifts'), {
+        fetch('/turnos-mes/actualizar', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -560,7 +640,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             setResumen({});
             setComentario('');
             setResetGrid(true);
-            setListaCambios([]);
+            setGridChanges([]);
             setOriginalChangeDate(null);
             setShowPendingChanges(false);
 
@@ -589,7 +669,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
                 setResumen({});
                 setComentario('');
                 setResetGrid(true);
-                setListaCambios([]);
+                setGridChanges([]);
                 setOriginalChangeDate(null);
                 setShowPendingChanges(false);
 
@@ -622,11 +702,11 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [limpiarCambiosSinConfirmacion]);
 
     useEffect(() => {
-        if (pendingDateChange && listaCambios.length === 0 && !isSaving) {
+        if (pendingDateChange && gridChanges.length === 0 && !isSaving) {
             cargarTurnosPorMes(pendingDateChange);
             setPendingDateChange(null);
         }
-    }, [pendingDateChange, listaCambios.length, isSaving, cargarTurnosPorMes]);
+    }, [pendingDateChange, gridChanges.length, isSaving, cargarTurnosPorMes]);
 
     useEffect(() => {
         if (rowData.length > 0 && isInitialLoad) {
@@ -635,10 +715,10 @@ export const useShiftsManager = (employee_rol_id: number) => {
     }, [rowData.length]);
 
     useEffect(() => {
-        if (listaCambios.length === 0) {
+        if (gridChanges.length === 0) {
             setShowPendingChanges(false);
         }
-    }, [listaCambios.length]);
+    }, [gridChanges.length]);
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
