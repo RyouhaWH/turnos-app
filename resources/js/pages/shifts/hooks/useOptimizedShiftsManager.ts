@@ -92,7 +92,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     const debouncedSearchTerm = useDebounce(searchInputTerm.trim(), 250);
     const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
     const [availableEmployees, setAvailableEmployees] = useState<TurnoData[]>([]);
-    const [showEmployeeSelector, setShowEmployeeSelector] = useState(false);
 
     // Estados de cambios
     const [originalChangeDate, setOriginalChangeDate] = useState<Date | null>(null);
@@ -461,29 +460,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         });
     }, []);
 
-    // Filtrado optimizado con memoización
-    const filterData = useCallback((data: TurnoData[], term: string) => {
-        if (!term.trim()) return data;
-
-        const lowerTerm = term.toLowerCase();
-        return data.filter(item => {
-            const nombreCompleto = item.nombre?.toLowerCase() || '';
-            if (nombreCompleto.includes(lowerTerm)) return true;
-
-            if (item.first_name && item.paternal_lastname) {
-                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
-                if (nombreFormateado.includes(lowerTerm)) return true;
-            }
-
-            return [item.first_name, item.paternal_lastname, item.maternal_lastname]
-                .some(field => field && String(field).toLowerCase().includes(lowerTerm));
-        });
-    }, []);
-
-    const filteredRowData = useMemo(() =>
-        filterData(rowData, debouncedSearchTerm),
-        [rowData, debouncedSearchTerm, filterData]
-    );
 
     // Función para guardar cambios optimizada
     const handleActualizarCambios = useCallback(async (comentarioNuevo: string) => {
@@ -578,6 +554,48 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         setRowData(prev => prev.filter(e => getEmployeeId(e) !== employeeId));
     }, [getEmployeeId]);
 
+    // Agregar todos los empleados disponibles al grid
+    const addAllEmployees = useCallback(() => {
+        const newEmployeeIds = new Set(selectedEmployees);
+        const employeesToAdd: TurnoData[] = [];
+
+        availableEmployees.forEach(employee => {
+            const employeeId = getEmployeeId(employee);
+            if (!newEmployeeIds.has(employeeId)) {
+                newEmployeeIds.add(employeeId);
+                employeesToAdd.push(employee);
+            }
+        });
+
+        setSelectedEmployees(newEmployeeIds);
+        setRowData(prev => {
+            const currentIds = new Set(prev.map(e => getEmployeeId(e)));
+            const filteredToAdd = employeesToAdd.filter(e => !currentIds.has(getEmployeeId(e)));
+            return [...prev, ...filteredToAdd].sort(sortByAmzomaAndName);
+        });
+
+        toast.success(`${employeesToAdd.length} empleados agregados al grid`, {
+            description: 'Los empleados han sido agregados exitosamente',
+            duration: 2000,
+        });
+    }, [availableEmployees, selectedEmployees, getEmployeeId, sortByAmzomaAndName]);
+
+    // Limpiar todos los empleados del grid
+    const clearAllEmployees = useCallback(() => {
+        setSelectedEmployees(new Set());
+        setRowData([]);
+
+        toast.success('Grid limpiado', {
+            description: 'Todos los empleados han sido removidos del grid',
+            duration: 2000,
+        });
+    }, []);
+
+    // Cerrar selector de empleados
+    const closeEmployeeSelector = useCallback(() => {
+        setSearchInputTerm('');
+    }, []);
+
     // Efectos
     useEffect(() => {
         loadDataOptimized(selectedDate, false);
@@ -615,6 +633,64 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         return gridChanges.filter(change => !change.undone).length;
     }, [gridChanges]);
 
+    // Función de filtrado de datos
+    const filterData = useCallback((data: TurnoData[], term: string) => {
+        if (!term.trim()) return data;
+
+        return data.filter(item => {
+            // Filtrar por nombre
+            const nombreCompleto = item.nombre?.toLowerCase() || '';
+            if (nombreCompleto.includes(term.toLowerCase())) return true;
+
+            // Filtrar por first_name + paternal_lastname
+            if (item.first_name && item.paternal_lastname) {
+                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
+                if (nombreFormateado.includes(term.toLowerCase())) return true;
+            }
+
+            // Filtrar por campos individuales
+            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.rut && String(item.rut).toLowerCase().includes(term.toLowerCase())) return true;
+
+            return false;
+        });
+    }, []);
+
+    // Datos filtrados con memoización
+    const filteredRowData = useMemo(() =>
+        filterData(rowData, debouncedSearchTerm),
+        [rowData, debouncedSearchTerm, filterData]
+    );
+
+    // Función de filtrado para empleados disponibles
+    const filterAvailableEmployees = useCallback((term: string) => {
+        if (!term.trim()) return availableEmployees;
+
+        return availableEmployees.filter(item => {
+            const nombreCompleto = item.nombre?.toLowerCase() || '';
+            if (nombreCompleto.includes(term.toLowerCase())) return true;
+
+            if (item.first_name && item.paternal_lastname) {
+                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
+                if (nombreFormateado.includes(term.toLowerCase())) return true;
+            }
+
+            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+
+            return false;
+        });
+    }, [availableEmployees]);
+
+    // Empleados disponibles filtrados
+    const filteredAvailableEmployees = useMemo(
+        () => filterAvailableEmployees(debouncedSearchTerm),
+        [debouncedSearchTerm, filterAvailableEmployees]
+    );
+
     const listaCambios = useMemo(() => {
         // Retornar TODOS los cambios (incluyendo deshechos) para mostrar historial completo
         return gridChanges.map(change => ({
@@ -644,7 +720,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         searchTerm: searchInputTerm,
         selectedEmployees,
         availableEmployees,
-        showEmployeeSelector,
+        filteredAvailableEmployees,
         listaCambios,
         hasEditPermissions,
         processing,
@@ -659,7 +735,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         // Funciones principales
         setSelectedDate,
         setSearchTerm: setSearchInputTerm,
-        setShowEmployeeSelector,
         cargarTurnosPorMes: loadDataOptimized,
         registerChange,
         handleActualizarCambios,
@@ -673,6 +748,9 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         getEmployeeId,
         addEmployeeToGrid,
         removeEmployeeFromGrid,
+        addAllEmployees,
+        clearAllEmployees,
+        closeEmployeeSelector,
 
         // Funciones de utilidad
         getTotalEmployees: () => rowData.length,
