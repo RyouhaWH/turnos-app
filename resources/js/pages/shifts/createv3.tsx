@@ -266,7 +266,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             <div className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
                 <div className={`overflow-hidden ${isMobile ? 'p-2' : 'p-6'}`}>
                     {/* Header compacto de página */}
-                    <div className={isMobile ? 'mb-2' : 'mb-4'}>
+                    <div className={isMobile ? 'mb-0' : 'mb-4'}>
                         <div className={`flex flex-col ${isMobile ? 'gap-1' : 'gap-2'} lg:flex-row lg:items-center lg:justify-between`}>
                             <div className="flex items-center justify-between w-full">
                                 <div className="flex items-center gap-3">
