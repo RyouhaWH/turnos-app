@@ -1,13 +1,14 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Eye, Users, Calendar } from 'lucide-react';
+import { MoreVertical, Eye, Users, Calendar, History } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface MobileHeaderMenuProps {
     onShowSummary: () => void;
     onShowEmployees: () => void;
     onShowDatePicker: () => void;
+    onShowHistory: () => void;
     changeCount: number;
     employeeCount: number;
     availableCount: number;
@@ -19,6 +20,7 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
     onShowSummary,
     onShowEmployees,
     onShowDatePicker,
+    onShowHistory,
     changeCount,
     employeeCount,
     availableCount,
@@ -84,6 +86,23 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
                             </div>
                         </div>
                     )}
+
+                    {/* Opción: Ver historial de cambios */}
+                    <div
+                        onClick={() => {
+                            onShowHistory();
+                            setIsOpen(false);
+                        }}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-purple-50 cursor-pointer transition-colors"
+                    >
+                        <div className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100">
+                            <History className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="font-medium text-slate-900 antialiased">Ver Historial</span>
+                            <span className="text-xs text-slate-500 antialiased">Todos los cambios realizados</span>
+                        </div>
+                    </div>
 
                     {/* Opción: Gestionar empleados */}
                     <div

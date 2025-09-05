@@ -47,6 +47,7 @@ interface Props {
         timestamp: number;
         undone?: boolean; // Indica si el cambio fue deshecho
     }>; // Lista completa de cambios (historial)
+    useHistorial?: boolean; // Nueva prop para mostrar historial completo
 }
 
 const ListaCambios: React.FC<Props> = ({
@@ -60,6 +61,7 @@ const ListaCambios: React.FC<Props> = ({
     onUndoSpecificChange,
     onClearAllChanges,
     changeHistory = [],
+    useHistorial = false,
 }) => {
 
     // Función para normalizar los datos del nuevo formato al formato esperado
@@ -406,17 +408,17 @@ const ListaCambios: React.FC<Props> = ({
 
 
     // Usar historial completo si está disponible, sino usar cambios pendientes
-    const useHistorial = changeHistory && changeHistory.length > 0;
+    const shouldUseHistorial = useHistorial && changeHistory && changeHistory.length > 0;
 
-    const totalCambios = useHistorial
+    const totalCambios = shouldUseHistorial
         ? new Set(changeHistory.map(change => change.employeeName)).size
         : Object.keys(cambiosNormalizados).length;
 
-    const totalModificaciones = useHistorial
+    const totalModificaciones = shouldUseHistorial
         ? changeHistory.length
         : Object.values(cambiosNormalizados).reduce((acc, fechas) => acc + Object.keys(fechas).length, 0);
 
-    const activeChanges = useHistorial
+    const activeChanges = shouldUseHistorial
         ? changeHistory.filter(change => !change.undone).length
         : totalModificaciones;
 
@@ -429,10 +431,10 @@ const ListaCambios: React.FC<Props> = ({
                             <Clock className="h-8 w-8 text-slate-400" />
                         </div>
                         <h3 className="mb-2 text-lg font-medium text-slate-900 dark:text-white">
-                            {useHistorial ? 'No hay historial de cambios' : 'No hay cambios pendientes'}
+                            {shouldUseHistorial ? 'No hay historial de cambios' : 'No hay cambios pendientes'}
                         </h3>
                         <p className="max-w-sm text-sm text-slate-500 dark:text-slate-400">
-                            {useHistorial
+                            {shouldUseHistorial
                                 ? 'El historial de modificaciones que realices en los turnos aparecerá aquí.'
                                 : 'Los cambios que realices en los turnos aparecerán aquí antes de ser guardados.'
                             }
@@ -445,18 +447,18 @@ const ListaCambios: React.FC<Props> = ({
                             <div className="grid w-full grid-cols-2 gap-3">
                                 <div className="rounded-lg bg-blue-50 p-3 text-center dark:bg-blue-900/20">
                                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                                        {useHistorial ? totalModificaciones : totalCambios}
+                                        {shouldUseHistorial ? totalModificaciones : totalCambios}
                                     </p>
                                     <p className="text-xs text-blue-600/70 dark:text-blue-400/70">
-                                        {useHistorial ? 'Total cambios' : 'Empleados'}
+                                        {shouldUseHistorial ? 'Total cambios' : 'Empleados'}
                                     </p>
                                 </div>
                                 <div className="rounded-lg bg-green-50 p-3 text-center dark:bg-green-900/20">
                                     <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                        {useHistorial ? activeChanges : totalModificaciones}
+                                        {shouldUseHistorial ? activeChanges : totalModificaciones}
                                     </p>
                                     <p className="text-xs text-green-600/70 dark:text-green-400/70">
-                                        {useHistorial ? 'Pendientes' : 'Turnos'}
+                                        {shouldUseHistorial ? 'Pendientes' : 'Turnos'}
                                     </p>
                                 </div>
                             </div>
@@ -477,7 +479,7 @@ const ListaCambios: React.FC<Props> = ({
                         </div>
 
                         {/* Changes List */}
-                        {useHistorial ? renderHistorial() : renderCambios()}
+                        {shouldUseHistorial ? renderHistorial() : renderCambios()}
                     </div>
                 )}
             </div>

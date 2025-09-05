@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History } from 'lucide-react';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 import { MobileFABGroup, MobileFAB } from '@/components/ui/mobile-fab';
@@ -20,6 +20,7 @@ import { MobileHeaderMenu } from '@/components/ui/mobile-header-menu';
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
 const ListaCambios = React.lazy(() => import('./shift-change-list'));
 const EmployeeManagementCard = React.lazy(() => import('./components/EmployeeManagementCard').then(module => ({ default: module.EmployeeManagementCard })));
+const ShiftHistoryFeed = React.lazy(() => import('@/components/ui/shift-history-feed'));
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -66,6 +67,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [showSummary, setShowSummary] = useState(false);
     const [showEmployeePanel, setShowEmployeePanel] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+    const [showMobileHistoryModal, setShowMobileHistoryModal] = useState(false);
 
     // Estados para popups móviles
     const [showMobileSummaryModal, setShowMobileSummaryModal] = useState(false);
@@ -107,6 +109,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const handleToggleDatePicker = useCallback(() => {
         if (isMobile) {
             setShowMobileDatePickerModal(true);
+        }
+    }, [isMobile]);
+
+    // Función para manejar el historial en móvil
+    const handleToggleHistory = useCallback(() => {
+        if (isMobile) {
+            setShowMobileHistoryModal(true);
         }
     }, [isMobile]);
 
@@ -347,6 +356,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onShowSummary={() => setShowMobileSummaryModal(true)}
                                                     onShowEmployees={() => setShowMobileEmployeeModal(true)}
                                                     onShowDatePicker={handleToggleDatePicker}
+                                                    onShowHistory={handleToggleHistory}
                                                     changeCount={changeCount}
                                                     employeeCount={filteredRowData.length}
                                                     availableCount={filteredAvailableEmployees.length}
@@ -620,6 +630,32 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+
+                {/* Modal móvil - Historial de cambios */}
+                <Dialog open={showMobileHistoryModal} onOpenChange={setShowMobileHistoryModal}>
+                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-0 mx-auto">
+                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900">
+                            <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
+                                <History className="h-5 w-5" />
+                                Historial de Cambios
+                            </DialogTitle>
+                            <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
+                                Historial de cambios de turnos guardados en la base de datos
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-800">
+                            <Suspense
+                                fallback={
+                                    <div className="flex items-center justify-center p-8">
+                                        <Loader2 className="h-6 w-6 animate-spin" />
+                                    </div>
+                                }
+                            >
+                                <ShiftHistoryFeed employee_rol_id={employee_rol_id} />
+                            </Suspense>
                         </div>
                     </DialogContent>
                 </Dialog>
