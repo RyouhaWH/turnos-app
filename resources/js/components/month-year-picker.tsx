@@ -72,7 +72,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Month Selector */}
                 <Select value={String(month)} onValueChange={(val) => setMonth(parseInt(val))}>
-                    <SelectTrigger className="h-8 w-20 rounded-none border-0 bg-transparent focus:ring-0 focus:ring-offset-0 dark:text-slate-200 md:h-9 md:w-28 text-xs md:text-sm">
+                    <SelectTrigger className="h-8 rounded-none border-0 bg-transparent focus:ring-0 focus:ring-offset-0 dark:text-slate-200 md:h-9 md:w-28 text-xs md:text-sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
@@ -91,7 +91,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
 
                 {/* Year Selector */}
                 <Select value={String(year)} onValueChange={(val) => setYear(parseInt(val))}>
-                    <SelectTrigger className="h-8 w-16 rounded-none border-0 border-l border-slate-200 bg-transparent focus:ring-0 focus:ring-offset-0 dark:border-slate-600 dark:text-slate-200 md:h-9 md:w-20 text-xs md:text-sm">
+                    <SelectTrigger className="h-8 rounded-none border-0 border-l border-slate-200 bg-transparent focus:ring-0 focus:ring-offset-0 dark:border-slate-600 dark:text-slate-200 md:h-9 md:w-20 text-xs md:text-sm">
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
@@ -121,7 +121,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
             <div className="flex w-full items-center gap-3 md:w-auto flex-row max-w-[16.5rem]">
                 {/* Loading Indicator */}
                 {loading && (
-                    <div className="flex items-center gap-2 rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800">
+                    <div className="flex items-center justify-center gap-2 rounded-md bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-200 dark:border dark:border-blue-800 w-full">
                         <RefreshCw className="h-3 w-3 animate-spin" />
                         Cargando...
                     </div>

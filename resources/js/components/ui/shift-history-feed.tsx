@@ -138,7 +138,7 @@ export default function ShiftHistoryFeed({ employee_rol_id }: ShiftHistoryFeedPr
     return (
         <div className="h-full bg-white dark:bg-slate-900 overflow-hidden">
             {/* Feed Content */}
-             <div className="p-1 overflow-y-auto h-[calc(100%-80px)] custom-scrollbar">
+             <div className="p-1 overflow-y-auto h-full md:h-[calc(100%-80px)] custom-scrollbar">
                 {logs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center py-8">
                         <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full mb-4">

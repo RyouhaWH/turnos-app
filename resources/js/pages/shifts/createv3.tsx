@@ -9,7 +9,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History, AlertTriangle } from 'lucide-react';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 import { MobileFABGroup, MobileFAB } from '@/components/ui/mobile-fab';
@@ -299,9 +299,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     currentMonthTitle={currentMonthTitle}
                                                 />
                                             )}
-                                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                                            {currentMonthTitle}
-                                        </span>
+                                            <button
+                                                onClick={handleToggleDatePicker}
+                                                className="flex items-center gap-1 text-xs text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-md transition-all cursor-pointer border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600"
+                                            >
+                                                <Calendar className="h-3 w-3" />
+                                                {currentMonthTitle}
+                                            </button>
                                     </div>
                                 </div>
                             </div>
@@ -538,7 +542,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 {/* Modal móvil - Resumen de cambios */}
                 <Dialog open={showMobileSummaryModal} onOpenChange={setShowMobileSummaryModal}>
-                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-0 mx-auto">
+                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-2 mx-auto">
                         <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                                 <Eye className="h-5 w-5" />
@@ -564,8 +568,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 {/* Modal móvil - Gestión de empleados */}
                 <Dialog open={showMobileEmployeeModal} onOpenChange={setShowMobileEmployeeModal}>
-                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-0 mx-auto">
-                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900">
+                    <DialogContent className="max-w-[95vw] max-h-[80vh] w-full h-[80vh] p-2 mx-auto flex flex-col">
+                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900 flex-shrink-0">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                                 <Users className="h-5 w-5" />
                                 Gestión de Funcionarios
@@ -574,10 +578,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 {filteredRowData.length} empleados en grid • {filteredAvailableEmployees.length} disponibles
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex-1 overflow-y-auto px-4 py-3 bg-slate-50 dark:bg-slate-800">
+                        <div className="flex-1 overflow-hidden px-4 py-3 bg-slate-50 dark:bg-slate-800">
                             <Suspense
                                 fallback={
-                                    <div className="flex items-center justify-center p-8">
+                                    <div className="flex items-center justify-center h-full">
                                         <Loader2 className="h-6 w-6 animate-spin" />
                                     </div>
                                 }
@@ -601,8 +605,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 {/* Modal móvil - Selector de fecha */}
                 <Dialog open={showMobileDatePickerModal} onOpenChange={setShowMobileDatePickerModal}>
-                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-0 mx-auto">
-                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900">
+                    <DialogContent className="max-w-[95vw] max-h-[80vh] w-full h-[80vh] p-2 mx-auto flex flex-col">
+                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900 flex-shrink-0">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                                 <Calendar className="h-5 w-5" />
                                 Seleccionar Fecha
@@ -611,7 +615,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 Cambiar el mes y año para visualizar turnos
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex-1 overflow-y-auto px-4 py-3 bg-slate-50 dark:bg-slate-800">
+                        <div className="flex-1 overflow-y-auto px-4 py-6 bg-slate-50 dark:bg-slate-800">
                             <div className="flex flex-col items-center justify-center h-full">
                                 <div className="w-full max-w-sm">
                                     <MonthYearPicker
@@ -621,6 +625,24 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         currentMonthTitle={currentMonthTitle}
                                     />
                                 </div>
+
+                                {/* Advertencia de cambios pendientes */}
+                                {changeCount > 0 && (
+                                    <div className="mt-4 w-full max-w-sm">
+                                        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+                                            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                                                    Cambios Pendientes
+                                                </h4>
+                                                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                                                    Tienes {changeCount} cambio{changeCount !== 1 ? 's' : ''} sin guardar en el mes actual.
+                                                    Te recomendamos guardar o deshacer los cambios antes de cambiar de mes.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 <div className="mt-6 text-center">
                                     <p className="text-sm text-slate-600 dark:text-slate-400">
                                         Actualmente visualizando: <span className="font-medium">{currentMonthTitle}</span>
@@ -636,8 +658,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 {/* Modal móvil - Historial de cambios */}
                 <Dialog open={showMobileHistoryModal} onOpenChange={setShowMobileHistoryModal}>
-                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-0 mx-auto">
-                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900">
+                    <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-2 mx-auto">
+                        <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900 flex-shrink-0">
                             <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                                 <History className="h-5 w-5" />
                                 Historial de Cambios
@@ -646,10 +668,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 Historial de cambios de turnos guardados en la base de datos
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-800">
+                        <div className="flex-1 overflow-hidden">
                             <Suspense
                                 fallback={
-                                    <div className="flex items-center justify-center p-8">
+                                    <div className="flex items-center justify-center h-full">
                                         <Loader2 className="h-6 w-6 animate-spin" />
                                     </div>
                                 }
@@ -662,7 +684,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 {/* Dialog de confirmación para aplicar cambios */}
                 <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                    <DialogContent className="max-w-2xl max-h-[80vh]">
+                    <DialogContent className="max-w-[95vw] w-full max-h-[80vh] mx-auto">
                         <DialogHeader>
                             <DialogTitle className="flex items-center gap-2">
                                 <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -696,7 +718,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             </ScrollArea>
                         </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="pb-2">
                             <Button
                                 variant="outline"
                                 onClick={() => setShowConfirmDialog(false)}
