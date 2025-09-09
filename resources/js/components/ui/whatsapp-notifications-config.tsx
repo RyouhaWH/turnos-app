@@ -40,16 +40,16 @@ const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
     { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', role: 'Supervisor' },
 ];
 
-export function WhatsAppNotificationsConfig({ 
-    isOpen, 
-    onClose, 
-    onSave, 
-    selectedRecipients = [], 
-    isMobile = false 
+export function WhatsAppNotificationsConfig({
+    isOpen,
+    onClose,
+    onSave,
+    selectedRecipients = [],
+    isMobile = false
 }: WhatsAppNotificationsConfigProps) {
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
-    
+
     // Verificar si el usuario tiene permisos de administrador
     const hasAdminPermissions = user?.roles?.some((role: any) =>
         role.name === 'Administrador'
@@ -69,7 +69,7 @@ export function WhatsAppNotificationsConfig({
             setIsLoading(true);
             try {
                 console.log('🔄 Iniciando carga de números de teléfono...');
-                
+
                 // Hacer llamada a la API para obtener los números actualizados
                 const response = await fetch('/api/whatsapp-recipients', {
                     method: 'GET',
@@ -85,7 +85,7 @@ export function WhatsAppNotificationsConfig({
                 if (response.ok) {
                     const data = await response.json();
                     console.log('✅ Datos recibidos:', data);
-                    
+
                     if (data.success && data.phoneNumbers) {
                         setPhoneNumbers(data.phoneNumbers);
                         console.log('📱 Números de teléfono cargados exitosamente:', data.phoneNumbers);
@@ -114,8 +114,8 @@ export function WhatsAppNotificationsConfig({
     }
 
     const handleRecipientToggle = (recipientId: string) => {
-        setLocalSelectedRecipients(prev => 
-            prev.includes(recipientId) 
+        setLocalSelectedRecipients(prev =>
+            prev.includes(recipientId)
                 ? prev.filter(id => id !== recipientId)
                 : [...prev, recipientId]
         );
@@ -190,7 +190,7 @@ export function WhatsAppNotificationsConfig({
                                     {recipients.length}
                                 </Badge>
                             </div>
-                            
+
                             <div className="space-y-2 ml-6">
                                 {recipients.map((recipient) => (
                                     <div
@@ -264,7 +264,7 @@ export function WhatsAppNotificationsConfig({
                         </Badge>
                     </div>
                 </DialogHeader>
-                    
+
                     <div className="flex-1 overflow-y-auto px-4 py-3 bg-slate-50 dark:bg-slate-800">
                         {isLoading ? (
                             <div className="flex items-center justify-center h-full">
@@ -295,13 +295,13 @@ export function WhatsAppNotificationsConfig({
                                 </div>
 
                                 {/* Lista de destinatarios sin agrupación */}
-                                <div>
+                                <div className="w-full border border-red-500">
                                     <ScrollArea className="h-[400px] w-full">
-                                        <div className="space-y-2 pr-4">
+                                        <div className="space-y-2 w-full border border-red-500">
                                             {DEFAULT_RECIPIENTS.map((recipient) => (
                                                 <div
                                                     key={recipient.id}
-                                                    className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full"
+                                                    className="bg-white flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-colors min-w-full"
                                                 >
                                                     <Checkbox
                                                         id={recipient.id}
@@ -355,8 +355,8 @@ export function WhatsAppNotificationsConfig({
                         <Button variant="outline" onClick={onClose} className="flex-1">
                             Cancelar
                         </Button>
-                        <Button 
-                            onClick={handleSave} 
+                        <Button
+                            onClick={handleSave}
                             className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                             disabled={selectedCount === 0}
                         >
