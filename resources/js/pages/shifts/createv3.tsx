@@ -21,7 +21,7 @@ import { usePage } from '@inertiajs/react';
 // Lazy loading de componentes pesados
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
 const ListaCambios = React.lazy(() => import('./shift-change-list'));
-const EmployeeManagementCard = React.lazy(() => import('./components/EmployeeManagementCard').then(module => ({ default: module.EmployeeManagementCard })));
+const EmployeeManagementCardV3 = React.lazy(() => import('./components/EmployeeManagementCardV3').then(module => ({ default: module.EmployeeManagementCardV3 })));
 const ShiftHistoryFeed = React.lazy(() => import('@/components/ui/shift-history-feed'));
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -629,7 +629,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         </div>
                                     }
                                 >
-                                    <EmployeeManagementCard
+                                    <EmployeeManagementCardV3
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
                                         rowData={filteredRowData}
@@ -695,7 +695,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     </div>
                                 }
                             >
-                                <EmployeeManagementCard
+                                <EmployeeManagementCardV3
                                     searchTerm={searchTerm}
                                     setSearchTerm={setSearchTerm}
                                     rowData={filteredRowData}
