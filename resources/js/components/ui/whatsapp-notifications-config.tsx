@@ -55,7 +55,9 @@ export function WhatsAppNotificationsConfig({
         role.name === 'Administrador'
     ) || false;
 
-    const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(selectedRecipients);
+    const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(
+        selectedRecipients.length > 0 ? selectedRecipients : DEFAULT_RECIPIENTS.map(r => r.id)
+    );
     const [isLoading, setIsLoading] = useState(false);
 
     // Estado para los números de teléfono actualizados

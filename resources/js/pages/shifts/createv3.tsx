@@ -88,13 +88,34 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
     // Estado para destinatarios de WhatsApp seleccionados
     const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
-        // Cargar destinatarios guardados desde localStorage
+        // Cargar destinatarios guardados desde localStorage o usar todos por defecto
         try {
             const saved = localStorage.getItem('whatsapp-recipients');
-            return saved ? JSON.parse(saved) : [];
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return parsed.length > 0 ? parsed : [
+                    'julio-sarmiento', 'marianela-huequelef', 'priscila-escobar', 'javier-alvarado',
+                    'eduardo-esparza', 'dayana-chavez', 'central', 'manuel-verdugo',
+                    'paola-carrasco', 'cesar-soto', 'cristian-montecinos', 'informaciones-amzoma',
+                    'jorge-waltemath'
+                ];
+            }
+            // Si no hay nada guardado, seleccionar todos por defecto
+            return [
+                'julio-sarmiento', 'marianela-huequelef', 'priscila-escobar', 'javier-alvarado',
+                'eduardo-esparza', 'dayana-chavez', 'central', 'manuel-verdugo',
+                'paola-carrasco', 'cesar-soto', 'cristian-montecinos', 'informaciones-amzoma',
+                'jorge-waltemath'
+            ];
         } catch (error) {
             console.error('Error al cargar destinatarios WhatsApp:', error);
-            return [];
+            // En caso de error, seleccionar todos por defecto
+            return [
+                'julio-sarmiento', 'marianela-huequelef', 'priscila-escobar', 'javier-alvarado',
+                'eduardo-esparza', 'dayana-chavez', 'central', 'manuel-verdugo',
+                'paola-carrasco', 'cesar-soto', 'cristian-montecinos', 'informaciones-amzoma',
+                'jorge-waltemath'
+            ];
         }
     });
     // Estados para el modal de confirmación de cambio de fecha (ya no se usan)
