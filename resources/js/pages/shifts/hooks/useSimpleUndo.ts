@@ -31,7 +31,7 @@ export const useSimpleUndo = () => {
         };
 
         setChanges(prev => [...prev, change]);
-        console.log('Cambio registrado:', change);
+('Cambio registrado:', change);
     }, []);
 
     // Deshacer último cambio
@@ -42,7 +42,7 @@ export const useSimpleUndo = () => {
         }
 
         const lastChange = changes[changes.length - 1];
-        console.log('Deshaciendo:', lastChange);
+('Deshaciendo:', lastChange);
 
         // Si tenemos referencia al grid API, actualizar directamente
         if (gridApiRef.current) {
@@ -67,7 +67,7 @@ export const useSimpleUndo = () => {
                     // Aplicar la actualización al grid
                     targetRowNode.setData(updatedData);
 
-                    console.log(`Grid actualizado: ${lastChange.employeeName} día ${lastChange.day} = "${lastChange.oldValue}"`);
+(`Grid actualizado: ${lastChange.employeeName} día ${lastChange.day} = "${lastChange.oldValue}"`);
 
                     // Remover el cambio de la lista
                     setChanges(prev => prev.slice(0, -1));
@@ -92,12 +92,12 @@ export const useSimpleUndo = () => {
 
     // Limpiar historial de cambios (y opcionalmente restaurar grid)
     const clearAllChanges = useCallback((originalData?: any[]) => {
-        console.log('Limpiando historial del sistema simple...');
+('Limpiando historial del sistema simple...');
 
         // Solo restaurar grid si se proporcionan datos originales
         if (originalData && gridApiRef.current) {
             try {
-                console.log('Restaurando grid usando sistema simple...');
+('Restaurando grid usando sistema simple...');
 
                 // Actualizar cada fila en el grid con los datos originales
                 originalData.forEach(originalRow => {
@@ -118,24 +118,24 @@ export const useSimpleUndo = () => {
                     }
                 });
 
-                console.log('Grid restaurado por sistema simple');
+('Grid restaurado por sistema simple');
             } catch (error) {
                 console.error('Error al restaurar grid en sistema simple:', error);
             }
         } else {
-            console.log('Solo limpiando historial (sin restaurar grid)');
+('Solo limpiando historial (sin restaurar grid)');
         }
 
         // Siempre limpiar el historial de cambios
         setChanges([]);
 
-        console.log('Historial del sistema simple limpiado');
+('Historial del sistema simple limpiado');
     }, []);
 
     // Establecer referencia del grid API
     const setGridApi = useCallback((api: any) => {
         gridApiRef.current = api;
-        console.log('Grid API establecida:', !!api);
+('Grid API establecida:', !!api);
     }, []);
 
     return {

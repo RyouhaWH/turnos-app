@@ -1,5 +1,6 @@
 import { type NavItem } from '@/types';
 import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings} from 'lucide-react';
+import { route } from 'vendor/tightenco/ziggy/src/js';
 
 
 const mainNavItems: NavItem[] = [

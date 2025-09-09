@@ -336,11 +336,9 @@ class ShiftsUpdateController extends Controller
             $datosFuncionario['cambios'] = $cambiosValidos;
             $mensaje = $this->buildConsolidatedMessage($datosFuncionario);
 
-            // Verificar modo de prueba
-            $modoPrueba = $this->getTestMode();
-            
-            if ($modoPrueba['enabled']) {
-                $this->sendTestMessages($mensaje, $numerosAReportarCambios, $datosFuncionario, $modoPrueba);
+            // Verificar si estamos en local o producción
+            if ($this->isTestMode()) {
+                $this->sendTestMessages($mensaje, $numerosAReportarCambios, $datosFuncionario);
             } else {
                 $this->sendProductionMessages($mensaje, $numerosAReportarCambios, $datosFuncionario);
             }
@@ -348,47 +346,34 @@ class ShiftsUpdateController extends Controller
     }
 
     /**
-     * Get test mode configuration
+     * Check if we're in test mode (local environment)
      */
-    private function getTestMode(): array
+    private function isTestMode(): bool
     {
-        // Opción 1: Variable de entorno
-        $testMode = env('WHATSAPP_TEST_MODE', false);
-        $testNumber = env('WHATSAPP_TEST_NUMBER', '951004035');
-        
-        // Opción 2: Verificar si estamos en local
-        $isLocal = app()->environment('local') || app()->environment('testing');
-        
-        // Opción 3: Verificar si hay un parámetro en la request (para pruebas dinámicas)
-        $requestTestMode = request()->input('test_mode', false);
-        
-        return [
-            'enabled' => $testMode || $isLocal || $requestTestMode,
-            'number' => $testNumber,
-            'log_only' => env('WHATSAPP_LOG_ONLY', false), // Solo logear, no enviar
-        ];
+        return app()->environment('local') || app()->environment('testing');
     }
 
     /**
-     * Send test messages
+     * Send test messages (only to test number in local environment)
      */
-    private function sendTestMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, array $modoPrueba): void
+    private function sendTestMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario): void
     {
-        $testNumber = $modoPrueba['number'];
+        $testNumber = "951004035"; // Tu número de prueba
+
         $mensajePrueba = "🧪 MODO PRUEBA - WhatsApp\n\n";
         $mensajePrueba .= "📋 Destinatarios que recibirían el mensaje:\n";
-        
+
         // Listar todos los destinatarios que recibirían el mensaje
         foreach ($numerosAReportarCambios as $numero) {
             $mensajePrueba .= "• {$numero}\n";
         }
-        
+
         if ($datosFuncionario['telefono']) {
             $mensajePrueba .= "• {$datosFuncionario['telefono']} (empleado)\n";
         }
-        
+
         $mensajePrueba .= "\n📱 Mensaje original:\n{$mensaje}";
-        
+
         // Log del mensaje de prueba
         Log::info('🧪 Mensaje de prueba WhatsApp', [
             'destinatarios' => $numerosAReportarCambios,
@@ -396,24 +381,22 @@ class ShiftsUpdateController extends Controller
             'mensaje' => $mensaje,
             'test_number' => $testNumber
         ]);
-        
-        if (!$modoPrueba['log_only']) {
-            // Enviar solo al número de prueba
-            try {
-                Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => $mensajePrueba,
-                    'numero'  => "56" . $testNumber,
-                ]);
-                
-                Log::info('✅ Mensaje de prueba enviado exitosamente', [
-                    'test_number' => $testNumber
-                ]);
-            } catch (\Exception $e) {
-                Log::error('❌ Error enviando mensaje de prueba', [
-                    'error' => $e->getMessage(),
-                    'test_number' => $testNumber
-                ]);
-            }
+
+        // Enviar solo al número de prueba
+        try {
+            Http::post('http://localhost:3001/send-message', [
+                'mensaje' => $mensajePrueba,
+                'numero'  => "56" . $testNumber,
+            ]);
+
+            Log::info('✅ Mensaje de prueba enviado exitosamente', [
+                'test_number' => $testNumber
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error enviando mensaje de prueba', [
+                'error' => $e->getMessage(),
+                'test_number' => $testNumber
+            ]);
         }
     }
 
@@ -429,7 +412,7 @@ class ShiftsUpdateController extends Controller
                     'mensaje' => $mensaje,
                     'numero'  => "56" . $numero,
                 ]);
-                
+
                 Log::info('✅ Mensaje enviado a destinatario', [
                     'numero' => $numero
                 ]);
@@ -448,7 +431,7 @@ class ShiftsUpdateController extends Controller
                     'mensaje' => $mensaje,
                     'numero'  => "56" . $datosFuncionario['telefono'],
                 ]);
-                
+
                 Log::info('✅ Mensaje enviado a empleado', [
                     'numero' => $datosFuncionario['telefono']
                 ]);

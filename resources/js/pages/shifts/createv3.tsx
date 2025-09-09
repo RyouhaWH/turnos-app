@@ -68,7 +68,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const isMobile = useIsMobile();
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
-    
+
     // Verificar si el usuario tiene permisos de administrador
     const hasAdminPermissions = user?.roles?.some((role: any) =>
         role.name === 'Administrador'
@@ -180,7 +180,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     // Función para guardar la configuración de WhatsApp
     const handleSaveWhatsAppConfig = useCallback((recipients: string[]) => {
         setSelectedWhatsAppRecipients(recipients);
-        console.log('Destinatarios WhatsApp seleccionados:', recipients);
         // Aquí podrías guardar la configuración en localStorage o enviarla al servidor
         localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
     }, []);
@@ -250,7 +249,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     // Función para manejar solicitud de cambio de fecha (ya no se usa)
     const handleDateChangeRequest = useCallback((newDate: Date) => {
         // Esta función ya no se usa porque ahora se previene el cambio directamente
-        console.log('⚠️ Intento de cambio de mes bloqueado por cambios pendientes');
     }, []);
 
     // Funciones para confirmación de cambio de fecha (ya no se usan)
@@ -284,13 +282,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             day: number;
         }> = [];
 
-        console.log('🔍 Construyendo lista de cambios desde resumen:');
-        console.log('  - Empleados en resumen:', Object.keys(resumen).length);
-        console.log('  - Resumen completo:', resumen);
 
         Object.entries(resumen).forEach(([employeeId, employeeData]: [string, any]) => {
             if (employeeData && employeeData.turnos) {
-                console.log(`  - Empleado ${employeeData.nombre}:`, Object.keys(employeeData.turnos).length, 'turnos');
                 Object.entries(employeeData.turnos).forEach(([day, turno]) => {
                     const dayNumber = parseInt(day);
                     const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
@@ -308,7 +302,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             }
         });
 
-        console.log('  - Total cambios en lista:', changesList.length);
         return changesList.sort((a, b) => a.day - b.day);
     }, [resumen, selectedDate]);
 

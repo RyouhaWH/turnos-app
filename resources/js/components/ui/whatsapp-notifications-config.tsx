@@ -295,9 +295,9 @@ export function WhatsAppNotificationsConfig({
                                 </div>
 
                                 {/* Lista de destinatarios sin agrupación */}
-                                <div className="w-full border border-red-500">
+                                <div className="w-full ">
                                     <ScrollArea className="h-[400px] w-full">
-                                        <div className="space-y-2 w-full border border-red-500">
+                                        <div className="space-y-2 w-full ">
                                             {DEFAULT_RECIPIENTS.map((recipient) => (
                                                 <div
                                                     key={recipient.id}

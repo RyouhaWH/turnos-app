@@ -1,0 +1,5 @@
+[33m63328d0[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mwhatsapp-notifications-admin[m[33m)[m feat: Sistema avanzado de pruebas WhatsApp
+[33med4195d[m style: Hacer que componentes de contactos ocupen todo el ancho
+[33mbfcfb4b[m style: Centrar componentes de contactos en vista móvil
+[33m07d101a[m style: Centrar botones de selección en vista móvil
+[33m1b5b3b5[m fix: Mover contador de seleccionados debajo del subtítulo

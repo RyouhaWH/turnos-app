@@ -36,12 +36,12 @@ interface Props {
 const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
   const gridRef = useRef<AgGridReact>(null);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Estado centralizado para gestionar cambios
   const [cambiosPendientes, setCambiosPendientes] = useState<CambioTurno[]>([]);
   const [datosModificados, setDatosModificados] = useState<TurnoData[]>(datos);
   const [mostrarResumenCambios, setMostrarResumenCambios] = useState(false);
-  
+
   // Obtener nombres de los meses
   const nombreMes = useMemo(() => {
     const meses = [
@@ -50,24 +50,24 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
     ];
     return meses[mes - 1];
   }, [mes]);
-  
+
   // Función para obtener color de contraste (memoizada)
   const getContrastColor = useCallback((hexColor: string): string => {
     // Si no hay color, usar negro
     if (!hexColor) return '#000000';
-    
+
     // Convertir hex a RGB
     const r = parseInt(hexColor.slice(1, 3), 16);
     const g = parseInt(hexColor.slice(3, 5), 16);
     const b = parseInt(hexColor.slice(5, 7), 16);
-    
+
     // Calcular luminosidad
     const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-    
+
     // Retornar blanco o negro según luminosidad
     return luminance > 0.5 ? '#000000' : '#FFFFFF';
   }, []);
-  
+
   // Mapa de colores memoizado
   const coloresTurnos = useMemo(() => ({
     'M': { bg: { normal: '#ffe0b3', finde: '#ffcc80' }, text: '#e65100' },
@@ -87,20 +87,19 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
   // Función para obtener color según turno (optimizada)
   const getTurnoColor = useCallback((turno: string, esFinde: boolean): { bg: string, text: string } => {
     if (!turno) return { bg: esFinde ? '#f5f5f5' : '#FFFFFF', text: '#000000' };
-    
+
     const colorConfig = coloresTurnos[turno];
     if (!colorConfig) return { bg: '#FFFFFF', text: '#000000' };
-    
+
     return {
       bg: esFinde ? colorConfig.bg.finde : colorConfig.bg.normal,
       text: colorConfig.text
     };
   }, [coloresTurnos]);
-  
+
   // Funciones para gestionar cambios
   const agregarCambio = useCallback((empleadoId: number, empleadoNombre: string, dia: number, valorAnterior: string, valorNuevo: string) => {
-    console.log('🔄 agregarCambio llamado:', { empleadoId, empleadoNombre, dia, valorAnterior, valorNuevo });
-    
+
     const cambioId = `${empleadoId}-${dia}-${Date.now()}`;
     const nuevoCambio: CambioTurno = {
       id: cambioId,
@@ -112,56 +111,52 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
       fecha: new Date(),
       tipo: valorAnterior ? 'modificacion' : 'creacion'
     };
-    
-    console.log('📝 Nuevo cambio creado:', nuevoCambio);
-    
+
     setCambiosPendientes(prev => {
       // Remover cambio anterior para el mismo empleado y día si existe
       const sinCambioAnterior = prev.filter(c => !(c.empleadoId === empleadoId && c.dia === dia));
       const nuevoArray = [...sinCambioAnterior, nuevoCambio];
-      console.log('📋 Cambios pendientes actualizados:', nuevoArray);
       return nuevoArray;
     });
-    
+
     // Actualizar datos modificados
-    setDatosModificados(prev => 
-      prev.map(empleado => 
-        empleado.id === empleadoId 
+    setDatosModificados(prev =>
+      prev.map(empleado =>
+        empleado.id === empleadoId
           ? { ...empleado, [dia.toString()]: valorNuevo }
           : empleado
       )
     );
   }, []);
-  
+
   const deshacerCambio = useCallback((cambioId: string) => {
     const cambio = cambiosPendientes.find(c => c.id === cambioId);
     if (!cambio) return;
-    
+
     // Remover el cambio de la lista
     setCambiosPendientes(prev => prev.filter(c => c.id !== cambioId));
-    
+
     // Restaurar valor original en datos modificados
-    setDatosModificados(prev => 
-      prev.map(empleado => 
-        empleado.id === cambio.empleadoId 
+    setDatosModificados(prev =>
+      prev.map(empleado =>
+        empleado.id === cambio.empleadoId
           ? { ...empleado, [cambio.dia.toString()]: cambio.valorAnterior }
           : empleado
       )
     );
   }, [cambiosPendientes]);
-  
+
   const deshacerTodosLosCambios = useCallback(() => {
     setCambiosPendientes([]);
     setDatosModificados(datos);
   }, [datos]);
-  
+
   const confirmarCambios = useCallback(async () => {
     if (cambiosPendientes.length === 0) return;
-    
+
     try {
       // Aquí iría la lógica para enviar los cambios al backend
-      console.log('Enviando cambios al servidor:', cambiosPendientes);
-      
+
       // Por ahora solo limpiamos los cambios pendientes
       setCambiosPendientes([]);
       alert(`Se han confirmado ${cambiosPendientes.length} cambios exitosamente.`);
@@ -170,7 +165,7 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
       alert('Error al confirmar los cambios. Inténtalo de nuevo.');
     }
   }, [cambiosPendientes]);
-  
+
   // Estilos memoizados para columnas fijas
   const fixedCellStyles = useMemo(() => ({
     funcionario: { fontWeight: 'bold' },
@@ -184,30 +179,30 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
   const columnDefs = useMemo(() => {
     // Columnas fijas
     const cols: ColDef[] = [
-      { 
-        field: 'nombre', 
+      {
+        field: 'nombre',
         headerName: 'Funcionario',
         pinned: 'left',
         width: 200,
         cellStyle: fixedCellStyles.funcionario,
         suppressSizeToFit: true
       },
-      { 
-        field: 'rol', 
+      {
+        field: 'rol',
         headerName: 'Rol',
         width: 150,
         cellStyle: (params) => fixedCellStyles.getRolStyle(params.data.color),
         suppressSizeToFit: true
       }
     ];
-    
+
     // Columnas para cada día del mes
     const diasEnMes = new Date(anio, mes, 0).getDate();
-    
+
     for (let dia = 1; dia <= diasEnMes; dia++) {
       const fecha = new Date(anio, mes - 1, dia);
       const esFinde = fecha.getDay() === 0 || fecha.getDay() === 6;
-      
+
       cols.push({
         field: dia.toString(),
         headerName: dia.toString(),
@@ -218,26 +213,26 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
         cellEditor: 'agTextCellEditor',
         cellClass: (params) => {
           // Verificar si hay cambios pendientes para esta celda
-          const tieneCambios = cambiosPendientes.some(c => 
+          const tieneCambios = cambiosPendientes.some(c =>
             c.empleadoId === params.data.id && c.dia === dia
           );
-          
+
           return tieneCambios ? 'celda-modificada' : 'celda-normal';
         },
         cellStyle: (params) => {
           const turno = params.value;
           const color = getTurnoColor(turno, esFinde);
-          
+
           // Verificar si hay cambios pendientes para esta celda
-          const tieneCambios = cambiosPendientes.some(c => 
+          const tieneCambios = cambiosPendientes.some(c =>
             c.empleadoId === params.data.id && c.dia === dia
           );
-          
+
           if (tieneCambios) {
             return {}; // Los estilos se manejan por CSS
           }
-          
-          return { 
+
+          return {
             backgroundColor: color.bg,
             color: color.text,
             fontWeight: 'bold',
@@ -251,14 +246,8 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
           // Obtener el valor anterior de los datos originales (no modificados)
           const valorAnterior = datos.find(d => d.id === params.data.id)?.[dia.toString()] || '';
           const valorNuevo = params.newValue || '';
-          
-          console.log('Cambio detectado:', {
-            empleado: params.data.nombre,
-            dia: dia,
-            valorAnterior,
-            valorNuevo
-          });
-          
+
+
           if (valorAnterior !== valorNuevo) {
             agregarCambio(
               params.data.id,
@@ -271,30 +260,29 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
         }
       });
     }
-    
+
     return cols;
   }, [mes, anio, getTurnoColor, fixedCellStyles, cambiosPendientes, datos, agregarCambio]);
-  
+
   // Componente de resumen de cambios
   const ResumenCambios = memo(() => {
-    console.log('🎨 ResumenCambios renderizado con cambios:', cambiosPendientes.length, cambiosPendientes);
-    
+
     return (
       <div className={`border rounded-lg p-4 mb-4 ${
-        cambiosPendientes.length > 0 
-          ? 'bg-yellow-50 border-yellow-200' 
+        cambiosPendientes.length > 0
+          ? 'bg-yellow-50 border-yellow-200'
           : 'bg-blue-50 border-blue-200'
       }`}>
         <div className="flex justify-between items-center mb-3">
           <h3 className={`text-lg font-semibold ${
             cambiosPendientes.length > 0 ? 'text-yellow-800' : 'text-blue-800'
           }`}>
-            {cambiosPendientes.length > 0 
-              ? `Cambios Pendientes (${cambiosPendientes.length})` 
+            {cambiosPendientes.length > 0
+              ? `Cambios Pendientes (${cambiosPendientes.length})`
               : 'Sistema de Gestión de Cambios'
             }
           </h3>
-          
+
           {cambiosPendientes.length > 0 ? (
             <div className="space-x-2">
               <button
@@ -322,7 +310,7 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
             </div>
           )}
         </div>
-        
+
         {cambiosPendientes.length === 0 && (
           <div className="text-sm text-blue-700">
             <p>• Los cambios se registran automáticamente al editar las celdas</p>
@@ -330,7 +318,7 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
             <p>• Puedes confirmar o deshacer cambios desde aquí</p>
           </div>
         )}
-        
+
         {cambiosPendientes.length > 0 && mostrarResumenCambios && (
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {cambiosPendientes.map((cambio) => (
@@ -358,11 +346,11 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
       </div>
     );
   }, [cambiosPendientes, mostrarResumenCambios, confirmarCambios, deshacerTodosLosCambios, deshacerCambio]);
-  
+
   return (
     <>
       <Head title={`Turnos ${nombreMes} ${anio}`} />
-      
+
       <style>{`
           .day-header {
             text-align: center !important;
@@ -393,7 +381,7 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
             width: 100% !important;
             height: 100% !important;
           }
-          
+
           .celda-modificada {
             background-color: #fff3cd !important;
             color: #856404 !important;
@@ -404,7 +392,7 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
             justify-content: center !important;
             font-size: 12px !important;
           }
-          
+
           .celda-normal {
             font-weight: bold !important;
             display: flex !important;
@@ -413,12 +401,12 @@ const TurnosSimplificado: React.FC<Props> = memo(({ datos, mes, anio }) => {
             font-size: 12px !important;
           }
         `}</style>
-      
+
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Turnos Operativos - {nombreMes} {anio}</h1>
-        
+
         <ResumenCambios />
-        
+
         <div className="ag-theme-alpine w-full h-[calc(100vh-200px)]">
           <AgGridReact
              ref={gridRef}

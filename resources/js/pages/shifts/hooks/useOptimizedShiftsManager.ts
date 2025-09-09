@@ -74,7 +74,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función para establecer Grid API solo en sistema simple
     const setGridApi = useCallback((api: any) => {
-        console.log('Configurando Grid API en sistema simple...');
         setSimpleUndoGridApi(api);
     }, [setSimpleUndoGridApi]);
 
@@ -227,11 +226,8 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         // Si no hay cambio real, no registrar
         if (normalizedOldValue === normalizedNewValue) {
-            console.log('No hay cambio real, ignorando:', { employee, day, oldValue: normalizedOldValue, newValue: normalizedNewValue });
             return;
         }
-
-        console.log('Registrando cambio:', { employee, day, oldValue: normalizedOldValue, newValue: normalizedNewValue });
 
         const employeeId = getEmployeeId({ nombre: employee, rut } as TurnoData);
 
@@ -254,7 +250,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         setGridChanges(prev => {
             const newChanges = [...prev, change];
-            console.log('Total de cambios:', newChanges.length);
             return newChanges;
         });
 
@@ -304,14 +299,12 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             setGridChanges(prev => {
                 // Eliminar el último cambio (igual que el sistema simple)
                 const updated = prev.slice(0, -1);
-                console.log(`📋 Último cambio eliminado de la lista`);
 
                 // Reconstruir el resumen usando solo los cambios activos restantes
                 const activeChanges = updated.filter(change => !change.undone);
                 const undoneChanges = updated.filter(change => change.undone);
 
-                console.log('🔍 Cambios deshechos:', undoneChanges.length);
-                console.log('🔍 Cambios activos:', activeChanges.length);
+('🔍 Cambios activos:', activeChanges.length);
 
                 // Reconstruir el resumen completamente desde los cambios activos
                 const newResumen: Record<string, any> = {};
@@ -330,11 +323,11 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
                     // Agregar el turno al resumen
                     newResumen[employeeId].turnos[change.day] = change.newValue;
-                    console.log(`✅ Agregado cambio activo al resumen: ${change.employeeName} - día ${change.day} = "${change.newValue}"`);
+(`✅ Agregado cambio activo al resumen: ${change.employeeName} - día ${change.day} = "${change.newValue}"`);
                 });
 
-                console.log('🔍 Estado final del resumen después de reconstruir:', Object.keys(newResumen).length, 'empleados');
-                console.log(`🧹 Resumen reconstruido: ${activeChanges.length} cambios activos`);
+('🔍 Estado final del resumen después de reconstruir:', Object.keys(newResumen).length, 'empleados');
+(`🧹 Resumen reconstruido: ${activeChanges.length} cambios activos`);
 
                 // Actualizar el resumen con el estado actualizado
                 setResumen(newResumen);
@@ -355,7 +348,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Deshacer cambio específico por ID - Usar sistema simple que funciona
     const undoSpecificChange = useCallback((changeId: string) => {
-        console.log('🎯 Deshaciendo cambio específico:', changeId);
+('🎯 Deshaciendo cambio específico:', changeId);
 
         // Buscar el cambio en el historial
         const changeToUndo = gridChanges.find(change => change.id === changeId);
@@ -365,13 +358,13 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             return;
         }
 
-        console.log('✅ Cambio encontrado:', changeToUndo);
-        console.log('📝 Restaurando valor:', changeToUndo.newValue, '→', changeToUndo.oldValue);
+('✅ Cambio encontrado:', changeToUndo);
+('📝 Restaurando valor:', changeToUndo.newValue, '→', changeToUndo.oldValue);
 
         // Usar el sistema simple que funciona correctamente
         const gridApi = getSimpleUndoGridApi();
         if (gridApi) {
-            console.log('🔍 Usando sistema simple para restaurar...');
+('🔍 Usando sistema simple para restaurar...');
 
             try {
                 // Buscar la fila en el grid usando la misma lógica del sistema simple
@@ -387,7 +380,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 });
 
                 if (targetRowNode) {
-                    console.log('✅ Nodo encontrado, restaurando valor específico...');
+('✅ Nodo encontrado, restaurando valor específico...');
 
                     // Actualizar el dato directamente usando la misma lógica del sistema simple
                     const updatedData = { ...(targetRowNode as any).data };
@@ -396,7 +389,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     // Aplicar la actualización al grid
                     (targetRowNode as any).setData(updatedData);
 
-                    console.log(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
+(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
 
                     // Forzar actualización del grid
                     gridApi.refreshCells({ force: true });
@@ -426,8 +419,8 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     String(row.id) === String(changeToUndo.employeeId);
 
                 if (matchesEmployee) {
-                    console.log('✅ Empleado encontrado en rowData, restaurando valor...');
-                    console.log('📊 Valor actual:', row[changeToUndo.day], '→ Valor a restaurar:', changeToUndo.oldValue);
+('✅ Empleado encontrado en rowData, restaurando valor...');
+('📊 Valor actual:', row[changeToUndo.day], '→ Valor a restaurar:', changeToUndo.oldValue);
 
                     return {
                         ...row,
@@ -437,7 +430,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 return row;
             });
 
-            console.log('✅ rowData actualizado con valor restaurado');
+('✅ rowData actualizado con valor restaurado');
             return updatedRowData;
         });
 
@@ -448,7 +441,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     ? { ...change, undone: true }
                     : change
             );
-            console.log(`📋 Cambio marcado como deshecho: ${changeId}`);
+(`📋 Cambio marcado como deshecho: ${changeId}`);
             return updated;
         });
 
@@ -460,12 +453,12 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             if (newResumen[employeeKey]?.turnos) {
                 // Simplemente eliminar el día del resumen (no restaurar valor anterior)
                 delete newResumen[employeeKey].turnos[changeToUndo.day];
-                console.log(`🗑️ Eliminado cambio del resumen para día ${changeToUndo.day}`);
+(`🗑️ Eliminado cambio del resumen para día ${changeToUndo.day}`);
 
                 // Si no quedan turnos, eliminar el empleado del resumen
                 if (Object.keys(newResumen[employeeKey].turnos).length === 0) {
                     delete newResumen[employeeKey];
-                    console.log(`🗑️ Eliminado empleado del resumen: ${changeToUndo.employeeName}`);
+(`🗑️ Eliminado empleado del resumen: ${changeToUndo.employeeName}`);
                 }
             }
 
@@ -477,7 +470,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         if (remainingChanges.length === 0) {
             setShowPendingChanges(false);
             setOriginalChangeDate(null);
-            console.log('🧹 Estado limpiado - no quedan cambios pendientes');
+('🧹 Estado limpiado - no quedan cambios pendientes');
         }
 
         toast.success('Cambio específico deshecho', {
@@ -485,12 +478,12 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             duration: 3000,
         });
 
-        console.log('🎉 Cambio específico deshecho exitosamente');
+('🎉 Cambio específico deshecho exitosamente');
     }, [gridChanges, getSimpleUndoGridApi]);
 
     // Función para deshacer múltiples cambios con callback
     const undoSpecificChangesWithCallback = useCallback((changeIds: string[], onComplete?: () => void) => {
-        console.log('🎯 Deshaciendo múltiples cambios:', changeIds);
+('🎯 Deshaciendo múltiples cambios:', changeIds);
 
         // Establecer el callback
         onAllChangesApplied.current = onComplete || null;
@@ -500,10 +493,10 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         const onChangeApplied = () => {
             pendingChanges--;
-            console.log(`📊 Cambios restantes: ${pendingChanges}`);
+(`📊 Cambios restantes: ${pendingChanges}`);
 
             if (pendingChanges === 0) {
-                console.log('✅ Todos los cambios han sido aplicados');
+('✅ Todos los cambios han sido aplicados');
                 if (onAllChangesApplied.current) {
                     onAllChangesApplied.current();
                     onAllChangesApplied.current = null;
@@ -521,7 +514,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     return;
                 }
 
-                console.log(`🔄 Deshaciendo cambio ${index + 1}/${changeIds.length}: ${changeToUndo.employeeName} - Día ${changeToUndo.day}`);
+(`🔄 Deshaciendo cambio ${index + 1}/${changeIds.length}: ${changeToUndo.employeeName} - Día ${changeToUndo.day}`);
 
                 // Usar el sistema simple para deshacer
                 const gridApi = getSimpleUndoGridApi();
@@ -545,7 +538,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                             (targetRowNode as any).setData(updatedData);
                             gridApi.refreshCells({ force: true });
 
-                            console.log(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
+(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
 
                             // Esperar un poco para que el usuario vea el cambio
                             await new Promise(resolve => setTimeout(resolve, 200));
@@ -590,7 +583,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                                 });
                             });
 
-                            console.log(`✅ Cambio ${changeId} deshecho completamente`);
+(`✅ Cambio ${changeId} deshecho completamente`);
                         } else {
                             console.error('❌ No se encontró la fila para el cambio:', changeId);
                         }
@@ -642,11 +635,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
             const realEmployeeId = String(employeeInGrid?.employee_id || employeeInGrid?.id || employeeKey);
 
-            console.log('🔄 Transformando resumen:', {
-                employeeKey,
-                realEmployeeId,
-                employeeInGrid: employeeInGrid ? { id: employeeInGrid.id, employee_id: employeeInGrid.employee_id, nombre: employeeInGrid.nombre } : null
-            });
 
             resumenTransformado[realEmployeeId] = {
                 ...employeeData,
@@ -690,9 +678,9 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             await loadDataOptimized(fechaParaCambios, false);
 
             // Limpiar sistema simple de undo DESPUÉS de recargar
-            console.log('Limpiando sistema simple después de recargar datos...');
+('Limpiando sistema simple después de recargar datos...');
             simpleClearAllChanges();
-            console.log('Sistema simple limpiado, changeCount debería ser 0');
+('Sistema simple limpiado, changeCount debería ser 0');
 
             toast.success('Cambios guardados exitosamente', {
                 description: 'Los turnos fueron actualizados correctamente.',
@@ -815,10 +803,10 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         const totalChanges = gridChanges.length;
         const undoneChanges = gridChanges.filter(change => change.undone);
 
-        console.log('📊 Cálculo de activeChangeCount:');
-        console.log('  - Total cambios:', totalChanges);
-        console.log('  - Cambios activos:', activeChanges.length);
-        console.log('  - Cambios deshechos:', undoneChanges.length);
+('📊 Cálculo de activeChangeCount:');
+('  - Total cambios:', totalChanges);
+('  - Cambios activos:', activeChanges.length);
+('  - Cambios deshechos:', undoneChanges.length);
 
         return activeChanges.length;
     }, [gridChanges]);

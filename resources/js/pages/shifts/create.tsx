@@ -58,11 +58,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
 
-    console.log('el rol del empleado es: ' + employee_rol_id);
 
     // Esta función se mantiene estable entre renders
     const handleResumenUpdate = useCallback((ResumenCambios) => {
-        console.log(ResumenCambios);
         setResumen(ResumenCambios);
         setData(ResumenCambios);
         setData({ cambios: ResumenCambios });
@@ -70,10 +68,8 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
 
     // Aquí llamas a tu endpoint o lógica de guardar cambios en DB
     const handleActualizarCambios = () => {
-        console.log('turnos-mes/actualizar');
         post(route('post-updateShifts'), {
             onSuccess: () => {
-                console.log('✅ Turnos guardados correctamente');
                 setResumen({}); // limpia cambios si quieres
                 toast('✅ Cambios guardados', {
                     description: 'Los turnos fueron actualizados correctamente.',

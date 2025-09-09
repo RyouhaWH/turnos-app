@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { Home, FileSpreadsheet, Users, Settings, LogOut } from 'lucide-react';
+import { Home, FileSpreadsheet, User, Key, Palette, LogOut } from 'lucide-react';
 import React from 'react';
 
 interface MobileNavigationDrawerProps {
@@ -15,9 +15,13 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
 }) => {
     const navigationItems = [
         { label: 'Dashboard', href: '/dashboard', icon: Home },
-        { label: 'Turnos', href: '/shifts', icon: FileSpreadsheet },
-        { label: 'Empleados', href: '/employees', icon: Users },
-        { label: 'Configuración', href: '/settings', icon: Settings },
+        { label: 'Turnos', href: '/turnos', icon: FileSpreadsheet },
+    ];
+
+    const userSettingsItems = [
+        { label: 'Mi Perfil', href: '/settings/profile', icon: User },
+        { label: 'Cambiar Contraseña', href: '/settings/password', icon: Key },
+        { label: 'Apariencia', href: '/settings/appearance', icon: Palette },
     ];
 
     return (
@@ -33,6 +37,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                 </SheetHeader>
 
                 <div className="flex flex-col p-4 space-y-2">
+                    {/* Navegación principal */}
                     {navigationItems.map((item) => {
                         const Icon = item.icon;
                         return (
@@ -51,6 +56,30 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                         );
                     })}
 
+                    {/* Separador */}
+                    <div className="border-t pt-4 mt-4">
+                        <h3 className="text-sm font-medium text-slate-500 mb-3 px-3">Configuración de Usuario</h3>
+
+                        {/* Configuración de usuario */}
+                        {userSettingsItems.map((item) => {
+                            const Icon = item.icon;
+                            return (
+                                <Button
+                                    key={item.href}
+                                    variant="ghost"
+                                    className="justify-start gap-3 h-12 text-left text-slate-700 hover:text-slate-900 hover:bg-slate-50"
+                                    onClick={() => {
+                                        window.location.href = item.href;
+                                    }}
+                                >
+                                    <Icon className="h-5 w-5" />
+                                    {item.label}
+                                </Button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Cerrar sesión */}
                     <div className="border-t pt-4 mt-4">
                         <Button
                             variant="ghost"

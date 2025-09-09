@@ -44,8 +44,6 @@ export default function Dashboard() {
     const { stats, roles, loading, error, message, refetch } = useDashboardStats();
     const { operationalRoles, loading: rolesLoading, error: rolesError, refetch: refetchRoles } = useOperationalRoles();
 
-    console.log('Todos los roles:', roles);
-    console.log('Roles operativos:', operationalRoles);
 
     if (error) {
         return (
