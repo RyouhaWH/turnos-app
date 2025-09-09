@@ -238,7 +238,7 @@ export function WhatsAppNotificationsConfig({
                                                 </label>
                                                 <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                                                     <Phone className="h-3 w-3" />
-                                                    <span>
+                                                    <span className="font-mono">
                                                         {phoneNumbers[recipient.id] || recipient.phone}
                                                     </span>
                                                 </div>
