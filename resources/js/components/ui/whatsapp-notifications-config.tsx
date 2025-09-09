@@ -258,6 +258,11 @@ export function WhatsAppNotificationsConfig({
                     <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 text-left">
                         Selecciona destinatarios para notificaciones de cambios de turnos
                     </DialogDescription>
+                    <div className="flex justify-end">
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                            {selectedCount} de {totalCount} seleccionados
+                        </Badge>
+                    </div>
                 </DialogHeader>
                     
                     <div className="flex-1 overflow-y-auto px-4 py-3 bg-slate-50 dark:bg-slate-800">
@@ -290,12 +295,7 @@ export function WhatsAppNotificationsConfig({
                                 </div>
 
                                 {/* Lista de destinatarios sin agrupación */}
-                                <div className="relative">
-                                    <div className="absolute top-0 right-0">
-                                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                                            {selectedCount} de {totalCount} seleccionados
-                                        </Badge>
-                                    </div>
+                                <div>
                                     <ScrollArea className="h-[400px] w-full">
                                         <div className="space-y-2 pr-4">
                                             {DEFAULT_RECIPIENTS.map((recipient) => (
