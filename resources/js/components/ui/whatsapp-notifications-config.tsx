@@ -271,18 +271,18 @@ export function WhatsAppNotificationsConfig({
     );
 
     if (isMobile) {
-        return (
-            <Dialog open={isOpen} onOpenChange={onClose}>
-                <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-2 mx-auto flex flex-col">
-                    <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900 flex-shrink-0">
-                        <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                            <Settings className="h-5 w-5" />
-                            Configuración WhatsApp
-                        </DialogTitle>
-                        <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-                            Selecciona destinatarios para notificaciones de cambios de turnos
-                        </DialogDescription>
-                    </DialogHeader>
+    return (
+        <Dialog open={isOpen} onOpenChange={onClose}>
+            <DialogContent className="max-w-[95vw] max-h-[90vh] w-full h-full p-2 mx-auto flex flex-col">
+                <DialogHeader className="px-4 py-3 border-b bg-white dark:bg-slate-900 flex-shrink-0">
+                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-left">
+                        <Settings className="h-5 w-5 flex-shrink-0" />
+                        <span className="whitespace-nowrap">Configuración WhatsApp</span>
+                    </DialogTitle>
+                    <DialogDescription className="text-sm text-slate-600 dark:text-slate-400 text-left">
+                        Selecciona destinatarios para notificaciones de cambios de turnos
+                    </DialogDescription>
+                </DialogHeader>
                     
                     <div className="flex-1 overflow-y-auto px-4 py-3 bg-slate-50 dark:bg-slate-800">
                         {isLoading ? (
@@ -315,9 +315,9 @@ export function WhatsAppNotificationsConfig({
     return (
         <Card className="w-full max-w-2xl mx-auto border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
             <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-xl">
-                    <Settings className="h-5 w-5" />
-                    Configuración de Notificaciones WhatsApp
+                <CardTitle className="flex items-center gap-2 text-xl text-left">
+                    <Settings className="h-5 w-5 flex-shrink-0" />
+                    <span className="whitespace-nowrap">Configuración de Notificaciones WhatsApp</span>
                 </CardTitle>
             </CardHeader>
             <CardContent>

@@ -37,7 +37,11 @@ Route::middleware(['auth', 'admin'])->get('/whatsapp-recipients', function () {
     
     foreach ($ruts as $id => $rut) {
         $employee = \App\Models\Employees::where('rut', $rut)->first();
-        $phoneNumbers[$id] = $employee ? $employee->phone : 'No disponible';
+        if ($employee && $employee->phone) {
+            $phoneNumbers[$id] = $employee->phone;
+        } else {
+            $phoneNumbers[$id] = 'No disponible';
+        }
     }
     
     // Números fijos

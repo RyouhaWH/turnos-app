@@ -857,11 +857,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                     <Dialog open={showWhatsAppConfig} onOpenChange={setShowWhatsAppConfig}>
                         <DialogContent className="max-w-4xl w-full max-h-[90vh] mx-auto">
                             <DialogHeader>
-                                <DialogTitle className="flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-green-600" />
-                                    Configuración de Notificaciones WhatsApp
+                                <DialogTitle className="flex items-center gap-2 text-left">
+                                    <MessageSquare className="h-5 w-5 text-green-600 flex-shrink-0" />
+                                    <span className="whitespace-nowrap">Configuración de Notificaciones WhatsApp</span>
                                 </DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="text-left">
                                     Selecciona a quiénes notificar cuando se modifiquen los turnos en el grid
                                 </DialogDescription>
                             </DialogHeader>
