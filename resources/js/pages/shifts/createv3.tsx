@@ -416,13 +416,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     </Badge>
                                 )}
 
-                                {/* Indicador de destinatarios WhatsApp configurados */}
-                                {hasAdminPermissions && selectedWhatsAppRecipients.length > 0 && (
-                                    <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700 text-xs">
-                                        <MessageSquare className="h-3 w-3 mr-1" />
-                                        WhatsApp ({selectedWhatsAppRecipients.length})
-                                    </Badge>
-                                )}
 
                                 {/* Controles de edición movidos aquí */}
                                 {hasEditPermissions && (
