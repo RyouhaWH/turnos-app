@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
@@ -314,22 +313,14 @@ export function WhatsAppNotificationsConfig({
     }
 
     return (
-        <Card className="w-full max-w-2xl mx-auto border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
-            <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2 text-xl text-left">
-                    <Settings className="h-5 w-5 flex-shrink-0" />
-                    <span className="whitespace-nowrap">Configuración de Notificaciones WhatsApp</span>
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? (
-                    <div className="flex items-center justify-center h-64">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-                    </div>
-                ) : (
-                    content
-                )}
-            </CardContent>
-        </Card>
+        <div className="w-full">
+            {isLoading ? (
+                <div className="flex items-center justify-center h-64">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                </div>
+            ) : (
+                content
+            )}
+        </div>
     );
 }
