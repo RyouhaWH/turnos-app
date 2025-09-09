@@ -257,13 +257,21 @@ export default function Dashboard() {
                                                 <p className="text-xs text-blue-600/70 dark:text-slate-400">Hoy</p>
                                             </div>
                                         </div>
-                                                <Button asChild className={`w-full bg-gradient-to-r ${colors.buttonFrom} ${colors.buttonTo} hover:from-${colors.buttonFrom.split('-')[1]}-700 hover:to-${colors.buttonTo.split('-')[1]}-800 group-hover:shadow-lg transition-all`}>
-                                                    <Link href={route('create-shifts', { id: parseInt(roleId) })} as="button">
-                                                <Clock className="mr-2 h-4 w-4" />
-                                                Gestionar Turnos
-                                                <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                                            </Link>
-                                        </Button>
+                                                <div className="space-y-2">
+                                                    <Button asChild className={`w-full bg-gradient-to-r ${colors.buttonFrom} ${colors.buttonTo} hover:from-${colors.buttonFrom.split('-')[1]}-700 hover:to-${colors.buttonTo.split('-')[1]}-800 group-hover:shadow-lg transition-all`}>
+                                                        <Link href={route('shifts.createv2', { id: parseInt(roleId) })} as="button">
+                                                    <Clock className="mr-2 h-4 w-4" />
+                                                    Gestionar Turnos (Estable)
+                                                    <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                                </Link>
+                                            </Button>
+                                            <Button asChild variant="outline" className="w-full text-xs">
+                                                <Link href={route('shifts.createv3', { id: parseInt(roleId) })} as="button">
+                                                    <span className="mr-2">🚀</span>
+                                                    Versión Beta (V3)
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </CardContent>
                                 </Card>
                                     );

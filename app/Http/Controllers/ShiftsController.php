@@ -20,6 +20,17 @@ class ShiftsController extends Controller
         return Inertia::render('shifts/index');
     }
 
+    public function createv2($id)
+    {
+        $data = $this->getShiftsfromDB($id);
+        $formateado = array_values($data);
+
+        return Inertia::render('shifts/createv2', [
+            'turnos'          => $formateado,
+            'employee_rol_id' => $id,
+        ]);
+    }
+
     public function createv3($id)
     {
         $data = $this->getShiftsfromDB($id);

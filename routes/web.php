@@ -77,6 +77,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('/shifts/createv3/{id}', [ShiftsController::class, 'createv3'])->name('shifts.createv3');
+    Route::get('/shifts/createv2/{id}', [ShiftsController::class, 'createv2'])->name('shifts.createv2');
 
     // Ruta para demo de v3
     Route::get('/shifts/demo-v3', function () {
