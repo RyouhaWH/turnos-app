@@ -301,7 +301,7 @@ export function WhatsAppNotificationsConfig({
                                             {DEFAULT_RECIPIENTS.map((recipient) => (
                                                 <div
                                                     key={recipient.id}
-                                                    className="flex items-center justify-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                                    className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors w-full"
                                                 >
                                                     <Checkbox
                                                         id={recipient.id}
@@ -309,15 +309,15 @@ export function WhatsAppNotificationsConfig({
                                                         onCheckedChange={() => handleRecipientToggle(recipient.id)}
                                                         className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                                                     />
-                                                    <div className="flex-1 min-w-0">
-                                                        <div className="flex items-center justify-center gap-2">
+                                                    <div className="flex-1 min-w-0 w-full">
+                                                        <div className="flex items-center justify-between gap-2 w-full">
                                                             <label
                                                                 htmlFor={recipient.id}
-                                                                className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1 text-center"
+                                                                className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1"
                                                             >
                                                                 {recipient.name}
                                                             </label>
-                                                            <div className="flex items-center justify-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                                            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                                                                 <Phone className="h-3 w-3" />
                                                                 <span className="font-mono">
                                                                     {phoneNumbers[recipient.id] || recipient.phone}
