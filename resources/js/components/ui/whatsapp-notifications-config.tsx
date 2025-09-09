@@ -267,7 +267,7 @@ export function WhatsAppNotificationsConfig({
                             </div>
                         ) : (
                             <div className="space-y-6">
-                                {/* Controles de selección masiva */}
+                                {/* Controles de selección masiva y contador */}
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <Button
@@ -289,10 +289,6 @@ export function WhatsAppNotificationsConfig({
                                             Deseleccionar todos
                                         </Button>
                                     </div>
-                                </div>
-
-                                {/* Contador de seleccionados */}
-                                <div className="flex justify-center">
                                     <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
                                         {selectedCount} de {totalCount} seleccionados
                                     </Badge>
