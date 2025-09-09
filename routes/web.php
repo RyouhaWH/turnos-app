@@ -106,7 +106,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Ruta para obtener números de teléfono de destinatarios WhatsApp
     Route::middleware(['auth', 'admin'])->get('/api/whatsapp-recipients', function (Request $request) {
         $phoneNumbers = [];
-        
+
         // Obtener números de teléfono de empleados por RUT
         $ruts = [
             'julio-sarmiento' => '12282547-7',
@@ -119,7 +119,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'cesar-soto' => '16533970-3',
             'jorge-waltemath' => '18198426-0',
         ];
-        
+
         foreach ($ruts as $id => $rut) {
             $employee = \App\Models\Employees::where('rut', $rut)->first();
             if ($employee && $employee->phone) {
@@ -128,15 +128,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 $phoneNumbers[$id] = 'No disponible';
             }
         }
-        
+
         // Números fijos
         $phoneNumbers['dayana-chavez'] = '981841759';
         $phoneNumbers['central'] = '964949887';
         $phoneNumbers['cristian-montecinos'] = '975952121';
         $phoneNumbers['informaciones-amzoma'] = '985639782';
-        
+
         Log::info('📱 Números de teléfono cargados:', $phoneNumbers);
-        
+
         return response()->json([
             'success' => true,
             'phoneNumbers' => $phoneNumbers

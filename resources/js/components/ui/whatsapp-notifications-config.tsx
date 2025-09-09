@@ -13,7 +13,6 @@ interface WhatsAppRecipient {
     id: string;
     name: string;
     phone: string;
-    rut?: string;
     role?: string;
 }
 
@@ -27,19 +26,19 @@ interface WhatsAppNotificationsConfigProps {
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
 const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
-    { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', rut: '12282547-7', role: 'Supervisor' },
-    { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', rut: '10604235-7', role: 'Supervisor' },
-    { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', rut: '18522287-K', role: 'Supervisor' },
-    { id: 'javier-alvarado', name: 'Javier Alvarado', phone: 'Se obtiene de BD', rut: '18984596-0', role: 'Supervisor' },
-    { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: 'Se obtiene de BD', rut: '16948150-4', role: 'Supervisor' },
+    { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'javier-alvarado', name: 'Javier Alvarado', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'dayana-chavez', name: 'Dayana Chavez', phone: '981841759', role: 'Supervisor' },
     { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
-    { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: 'Se obtiene de BD', rut: '15987971-2', role: 'Supervisor' },
-    { id: 'paola-carrasco', name: 'Paola Carrasco', phone: 'Se obtiene de BD', rut: '12389084-1', role: 'Supervisor' },
-    { id: 'cesar-soto', name: 'Cesar Soto', phone: 'Se obtiene de BD', rut: '16533970-3', role: 'Supervisor' },
+    { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'paola-carrasco', name: 'Paola Carrasco', phone: 'Se obtiene de BD', role: 'Supervisor' },
+    { id: 'cesar-soto', name: 'Cesar Soto', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'cristian-montecinos', name: 'Cristian Montecinos', phone: '975952121', role: 'Supervisor' },
     { id: 'informaciones-amzoma', name: 'Informaciones Amzoma', phone: '985639782', role: 'Central' },
-    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', rut: '18198426-0', role: 'Supervisor' },
+    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', role: 'Supervisor' },
 ];
 
 export function WhatsAppNotificationsConfig({ 
@@ -230,24 +229,15 @@ export function WhatsAppNotificationsConfig({
                                             className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                                         />
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center justify-between gap-2">
                                                 <label
                                                     htmlFor={recipient.id}
                                                     className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1"
                                                 >
                                                     {recipient.name}
                                                 </label>
-                                            </div>
-                                            <div className="flex items-center gap-4 mt-1">
-                                                {recipient.rut && (
-                                                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                                        <span className="font-medium">RUT:</span>
-                                                        <span>{recipient.rut}</span>
-                                                    </div>
-                                                )}
                                                 <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                                                     <Phone className="h-3 w-3" />
-                                                    <span className="font-medium">Tel:</span>
                                                     <span>
                                                         {phoneNumbers[recipient.id] || recipient.phone}
                                                     </span>
