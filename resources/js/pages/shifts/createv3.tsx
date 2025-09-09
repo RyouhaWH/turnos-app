@@ -9,12 +9,14 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History, AlertTriangle } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History, AlertTriangle, MessageSquare } from 'lucide-react';
+import { WhatsAppNotificationsConfig } from '@/components/ui/whatsapp-notifications-config';
 import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 import { MobileFABGroup, MobileFAB } from '@/components/ui/mobile-fab';
 import { MobileDropdownMenu } from '@/components/ui/mobile-dropdown-menu';
 import { MobileHeaderMenu } from '@/components/ui/mobile-header-menu';
+import { usePage } from '@inertiajs/react';
 
 // Lazy loading de componentes pesados
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
@@ -64,15 +66,41 @@ interface OptimizedShiftsManagerProps {
 
 export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 1 }: OptimizedShiftsManagerProps) {
     const isMobile = useIsMobile();
+    const { props: pageProps } = usePage<{ auth: { user: any } }>();
+    const user = pageProps.auth?.user;
+    
+    // Verificar si el usuario tiene permisos de administrador
+    const hasAdminPermissions = user?.roles?.some((role: any) =>
+        role.name === 'Administrador'
+    ) || false;
+
     const [showSummary, setShowSummary] = useState(false);
     const [showEmployeePanel, setShowEmployeePanel] = useState(false);
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showMobileHistoryModal, setShowMobileHistoryModal] = useState(false);
+    const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false);
 
     // Estados para popups móviles
     const [showMobileSummaryModal, setShowMobileSummaryModal] = useState(false);
     const [showMobileEmployeeModal, setShowMobileEmployeeModal] = useState(false);
     const [showMobileDatePickerModal, setShowMobileDatePickerModal] = useState(false);
+    const [showMobileWhatsAppModal, setShowMobileWhatsAppModal] = useState(false);
+
+    // Estado para destinatarios de WhatsApp seleccionados
+    const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
+        // Cargar destinatarios guardados desde localStorage
+        try {
+            const saved = localStorage.getItem('whatsapp-recipients');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Error al cargar destinatarios WhatsApp:', error);
+            return [];
+        }
+    });
+    // Estados para el modal de confirmación de cambio de fecha (ya no se usan)
+    // const [showDateChangeConfirmModal, setShowDateChangeConfirmModal] = useState(false);
+    // const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null);
+    // const [isDiscardingChanges, setIsDiscardingChanges] = useState(false);
 
     // Funciones para manejar paneles mutuamente excluyentes (desktop) y popups (móvil)
     const handleToggleSummary = useCallback(() => {
@@ -119,6 +147,24 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         }
     }, [isMobile]);
 
+    // Función para manejar la configuración de WhatsApp
+    const handleToggleWhatsAppConfig = useCallback(() => {
+        if (isMobile) {
+            setShowMobileWhatsAppModal(true);
+        } else {
+            setShowWhatsAppConfig(true);
+        }
+    }, [isMobile]);
+
+    // Función para guardar la configuración de WhatsApp
+    const handleSaveWhatsAppConfig = useCallback((recipients: string[]) => {
+        setSelectedWhatsAppRecipients(recipients);
+        console.log('Destinatarios WhatsApp seleccionados:', recipients);
+        // Aquí podrías guardar la configuración en localStorage o enviarla al servidor
+        localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
+    }, []);
+
+
     // Función para abrir el popup de confirmación
     const handleOpenConfirmDialog = useCallback(() => {
         setShowConfirmDialog(true);
@@ -159,7 +205,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         // Funciones de historial
         undoChange,
         undoSpecificChange,
+        undoSpecificChangesWithCallback,
         redoChange,
+        clearAllChanges,
 
         // Funciones de empleados
         getEmployeeId,
@@ -178,12 +226,33 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         closeEmployeeSelector,
     } = useOptimizedShiftsManager(employee_rol_id);
 
+    // Función para manejar solicitud de cambio de fecha (ya no se usa)
+    const handleDateChangeRequest = useCallback((newDate: Date) => {
+        // Esta función ya no se usa porque ahora se previene el cambio directamente
+        console.log('⚠️ Intento de cambio de mes bloqueado por cambios pendientes');
+    }, []);
+
+    // Funciones para confirmación de cambio de fecha (ya no se usan)
+    /*
+    const handleConfirmDateChangeWithSave = useCallback(async () => {
+        // Ya no se usa
+    }, []);
+
+    const handleConfirmDateChangeWithDiscard = useCallback(() => {
+        // Ya no se usa
+    }, []);
+
+    const handleCancelDateChange = useCallback(() => {
+        // Ya no se usa
+    }, []);
+    */
+
     // Función para confirmar y aplicar cambios
     const handleConfirmChanges = useCallback(async () => {
         setShowConfirmDialog(false);
-        // Usar una cadena vacía como comentario por defecto
-        await handleActualizarCambios('');
-    }, [handleActualizarCambios]);
+        // Usar una cadena vacía como comentario por defecto y pasar los destinatarios de WhatsApp
+        await handleActualizarCambios('', selectedWhatsAppRecipients);
+    }, [handleActualizarCambios, selectedWhatsAppRecipients]);
 
     // Función para formatear los cambios para mostrar en el popup
     const formatChangesForDisplay = useCallback(() => {
@@ -194,8 +263,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             day: number;
         }> = [];
 
+        console.log('🔍 Construyendo lista de cambios desde resumen:');
+        console.log('  - Empleados en resumen:', Object.keys(resumen).length);
+        console.log('  - Resumen completo:', resumen);
+
         Object.entries(resumen).forEach(([employeeId, employeeData]: [string, any]) => {
             if (employeeData && employeeData.turnos) {
+                console.log(`  - Empleado ${employeeData.nombre}:`, Object.keys(employeeData.turnos).length, 'turnos');
                 Object.entries(employeeData.turnos).forEach(([day, turno]) => {
                     const dayNumber = parseInt(day);
                     const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
@@ -213,6 +287,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             }
         });
 
+        console.log('  - Total cambios en lista:', changesList.length);
         return changesList.sort((a, b) => a.day - b.day);
     }, [resumen, selectedDate]);
 
@@ -297,6 +372,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onLoadData={cargarTurnosPorMes}
                                                     loading={loading}
                                                     currentMonthTitle={currentMonthTitle}
+                                                    selectedDate={selectedDate}
+                                                    onMonthChangeRequest={handleDateChangeRequest}
+                                                    hasPendingChanges={changeCount > 0}
                                                 />
                                             )}
                                             <button
@@ -314,6 +392,14 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 {!hasEditPermissions && (
                                     <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-yellow-700 text-xs">
                                         Solo lectura
+                                    </Badge>
+                                )}
+
+                                {/* Indicador de destinatarios WhatsApp configurados */}
+                                {hasAdminPermissions && selectedWhatsAppRecipients.length > 0 && (
+                                    <Badge variant="outline" className="border-green-300 bg-green-50 text-green-700 text-xs">
+                                        <MessageSquare className="h-3 w-3 mr-1" />
+                                        WhatsApp ({selectedWhatsAppRecipients.length})
                                     </Badge>
                                 )}
 
@@ -361,10 +447,12 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onShowEmployees={() => setShowMobileEmployeeModal(true)}
                                                     onShowDatePicker={handleToggleDatePicker}
                                                     onShowHistory={handleToggleHistory}
+                                                    onShowWhatsApp={handleToggleWhatsAppConfig}
                                                     changeCount={changeCount}
                                                     employeeCount={filteredRowData.length}
                                                     availableCount={filteredAvailableEmployees.length}
                                                     currentMonthTitle={currentMonthTitle}
+                                                    hasAdminPermissions={hasAdminPermissions}
                                                 />
                                             </>
                                         )}
@@ -427,6 +515,20 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         </span>
                                                     </>
                                                 )}
+                                            </Button>
+                                        )}
+
+                                        {/* Botón de configuración WhatsApp solo para administradores */}
+                                        {!isMobile && hasAdminPermissions && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleToggleWhatsAppConfig}
+                                                className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300"
+                                                title="Configurar notificaciones WhatsApp"
+                                            >
+                                                <MessageSquare className="h-4 w-4" />
+                                                WhatsApp
                                             </Button>
                                         )}
 
@@ -623,6 +725,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         onLoadData={cargarTurnosPorMes}
                                         loading={loading}
                                         currentMonthTitle={currentMonthTitle}
+                                        selectedDate={selectedDate}
+                                        onMonthChangeRequest={handleDateChangeRequest}
+                                        hasPendingChanges={changeCount > 0}
                                     />
                                 </div>
 
@@ -747,11 +852,124 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                     </DialogContent>
                 </Dialog>
 
+                {/* Modal de configuración de WhatsApp - Desktop */}
+                {!isMobile && hasAdminPermissions && (
+                    <Dialog open={showWhatsAppConfig} onOpenChange={setShowWhatsAppConfig}>
+                        <DialogContent className="max-w-4xl w-full max-h-[90vh] mx-auto">
+                            <DialogHeader>
+                                <DialogTitle className="flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5 text-green-600" />
+                                    Configuración de Notificaciones WhatsApp
+                                </DialogTitle>
+                                <DialogDescription>
+                                    Selecciona a quiénes notificar cuando se modifiquen los turnos en el grid
+                                </DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="py-4">
+                                <WhatsAppNotificationsConfig
+                                    isOpen={showWhatsAppConfig}
+                                    onClose={() => setShowWhatsAppConfig(false)}
+                                    onSave={handleSaveWhatsAppConfig}
+                                    selectedRecipients={selectedWhatsAppRecipients}
+                                    isMobile={false}
+                                />
+                            </div>
+                        </DialogContent>
+                    </Dialog>
+                )}
+
+                {/* Modal de configuración de WhatsApp - Mobile */}
+                {isMobile && hasAdminPermissions && (
+                    <WhatsAppNotificationsConfig
+                        isOpen={showMobileWhatsAppModal}
+                        onClose={() => setShowMobileWhatsAppModal(false)}
+                        onSave={handleSaveWhatsAppConfig}
+                        selectedRecipients={selectedWhatsAppRecipients}
+                        isMobile={true}
+                    />
+                )}
+
+                {/* Dialog de confirmación para cambio de fecha con cambios pendientes (ya no se usa) */}
+                {/*
+                <Dialog open={showDateChangeConfirmModal} onOpenChange={setShowDateChangeConfirmModal}>
+                    <DialogContent className="max-w-[95vw] max-h-[80vh] w-full h-auto p-2 mx-auto flex flex-col">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                                Cambios Pendientes
+                            </DialogTitle>
+                            <DialogDescription>
+                                Tienes {changeCount} cambio{changeCount !== 1 ? 's' : ''} sin guardar en el mes actual.
+                                ¿Qué deseas hacer antes de cambiar de mes?
+                            </DialogDescription>
+                        </DialogHeader>
+
+                        <div className="py-4">
+                            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+                                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
+                                        Cambio de mes solicitado
+                                    </h4>
+                                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                                        Se cambiará a: <span className="font-medium">
+                                            {pendingDateChange ? pendingDateChange.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }) : ''}
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="pb-2">
+                            <Button
+                                variant="outline"
+                                onClick={handleCancelDateChange}
+                                disabled={isDiscardingChanges}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={handleConfirmDateChangeWithDiscard}
+                                disabled={isDiscardingChanges}
+                                className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
+                            >
+                                {isDiscardingChanges ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Descartando...
+                                    </>
+                                ) : (
+                                    'Descartar Cambios'
+                                )}
+                            </Button>
+                            <Button
+                                onClick={handleConfirmDateChangeWithSave}
+                                disabled={isSaving || isDiscardingChanges}
+                                className="bg-green-600 hover:bg-green-700"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Guardando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4 mr-2" />
+                                        Guardar y Cambiar
+                                    </>
+                                )}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+                */}
 
                 {/* Toast optimizado */}
                 <Toaster
                     richColors
-                    position="top-right"
+                    position="bottom-right"
                     toastOptions={{
                         style: {
                             background: 'rgba(255, 255, 255, 0.95)',

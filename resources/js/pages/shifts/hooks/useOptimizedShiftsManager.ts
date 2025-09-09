@@ -292,58 +292,68 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             setShowPendingChanges(true);
         }
 
-    }, [getEmployeeId, originalChangeDate, selectedDate, recordChange]);
+    }, [getEmployeeId, originalChangeDate, selectedDate, recordChange, rowData]);
 
     // Sistema de deshacer que usa el grid API directamente
     const undoChange = useCallback(() => {
         // Usar el sistema simple que actualiza directamente el grid
         simpleUndoLastChange();
 
-        // También marcar el último cambio como deshecho para mantener consistencia
+        // También eliminar el último cambio de la lista para mantener consistencia con el sistema simple
         if (gridChanges.length > 0) {
             setGridChanges(prev => {
-                const lastIndex = prev.length - 1;
-                const updated = prev.map((change, index) =>
-                    index === lastIndex
-                        ? { ...change, undone: true }
-                        : change
-                );
-                console.log(`📋 Último cambio marcado como deshecho`);
-                return updated;
-            });
+                // Eliminar el último cambio (igual que el sistema simple)
+                const updated = prev.slice(0, -1);
+                console.log(`📋 Último cambio eliminado de la lista`);
 
-            // Actualizar resumen si es necesario
-            const lastChange = gridChanges[gridChanges.length - 1];
-            if (lastChange) {
-                setResumen(prev => {
-                    const newResumen = { ...prev };
-                    const employeeId = lastChange.employeeId;
+                // Reconstruir el resumen usando solo los cambios activos restantes
+                const activeChanges = updated.filter(change => !change.undone);
+                const undoneChanges = updated.filter(change => change.undone);
 
-                    if (newResumen[employeeId]) {
-                        // Simplemente eliminar el cambio del resumen (no restaurar valor anterior)
-                        delete newResumen[employeeId].turnos[lastChange.day];
-                        console.log(`🗑️ Eliminado último cambio del resumen para día ${lastChange.day}`);
+                console.log('🔍 Cambios deshechos:', undoneChanges.length);
+                console.log('🔍 Cambios activos:', activeChanges.length);
 
-                        // Si no quedan turnos, eliminar el empleado del resumen
-                        if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
-                            delete newResumen[employeeId];
-                            console.log(`🗑️ Eliminado empleado del resumen: ${lastChange.employeeName}`);
-                        }
+                // Reconstruir el resumen completamente desde los cambios activos
+                const newResumen: Record<string, any> = {};
+
+                activeChanges.forEach(change => {
+                    const employeeId = change.employeeId;
+
+                    if (!newResumen[employeeId]) {
+                        newResumen[employeeId] = {
+                            rut: change.employeeRut,
+                            nombre: change.employeeName,
+                            employee_id: employeeId,
+                            turnos: {}
+                        };
                     }
 
-                    return newResumen;
+                    // Agregar el turno al resumen
+                    newResumen[employeeId].turnos[change.day] = change.newValue;
+                    console.log(`✅ Agregado cambio activo al resumen: ${change.employeeName} - día ${change.day} = "${change.newValue}"`);
                 });
-            }
 
-            // Limpiar estados si no hay más cambios
-            if (gridChanges.length === 1) {
-                setShowPendingChanges(false);
-                setOriginalChangeDate(null);
-            }
+                console.log('🔍 Estado final del resumen después de reconstruir:', Object.keys(newResumen).length, 'empleados');
+                console.log(`🧹 Resumen reconstruido: ${activeChanges.length} cambios activos`);
+
+                // Actualizar el resumen con el estado actualizado
+                setResumen(newResumen);
+
+                // Limpiar estados si no hay más cambios activos
+                if (activeChanges.length === 0) {
+                    setShowPendingChanges(false);
+                    setOriginalChangeDate(null);
+                }
+
+                return updated;
+            });
         }
     }, [simpleUndoLastChange, gridChanges]);
 
-    // Deshacer cambio específico por ID - Restauración directa en grid
+    // Callback para notificar cuando se han aplicado todos los cambios
+    const onAllChangesApplied = useRef<(() => void) | null>(null);
+
+    // Deshacer cambio específico por ID - Usar sistema simple que funciona
     const undoSpecificChange = useCallback((changeId: string) => {
         console.log('🎯 Deshaciendo cambio específico:', changeId);
 
@@ -358,52 +368,78 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         console.log('✅ Cambio encontrado:', changeToUndo);
         console.log('📝 Restaurando valor:', changeToUndo.newValue, '→', changeToUndo.oldValue);
 
-        // Usar el Grid API directamente para restaurar el valor específico
+        // Usar el sistema simple que funciona correctamente
         const gridApi = getSimpleUndoGridApi();
-
         if (gridApi) {
-            console.log('🔍 Buscando empleado en grid:', changeToUndo.employeeName);
+            console.log('🔍 Usando sistema simple para restaurar...');
 
-            // Buscar el nodo específico en el grid
-            let targetNode = null;
-            gridApi.forEachNode((node: any) => {
-                if (node.data) {
-                    // Buscar por múltiples criterios para mayor precisión
-                    const matchesEmployee =
-                        node.data.nombre === changeToUndo.employeeName ||
+            try {
+                // Buscar la fila en el grid usando la misma lógica del sistema simple
+                let targetRowNode = null;
+                gridApi.forEachNode((node: any) => {
+                    if (node.data && (
                         String(node.data.employee_id) === String(changeToUndo.employeeId) ||
-                        String(node.data.id) === String(changeToUndo.employeeId);
-
-                    if (matchesEmployee) {
-                        targetNode = node;
+                        String(node.data.id) === String(changeToUndo.employeeId) ||
+                        node.data.nombre === changeToUndo.employeeName
+                    )) {
+                        targetRowNode = node;
                     }
+                });
+
+                if (targetRowNode) {
+                    console.log('✅ Nodo encontrado, restaurando valor específico...');
+
+                    // Actualizar el dato directamente usando la misma lógica del sistema simple
+                    const updatedData = { ...(targetRowNode as any).data };
+                    updatedData[changeToUndo.day] = changeToUndo.oldValue;
+
+                    // Aplicar la actualización al grid
+                    (targetRowNode as any).setData(updatedData);
+
+                    console.log(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
+
+                    // Forzar actualización del grid
+                    gridApi.refreshCells({ force: true });
+                } else {
+                    console.error('❌ No se encontró la fila en el grid');
+                    toast.error('No se pudo encontrar la fila para deshacer');
+                    return;
                 }
-            });
-
-            if (targetNode) {
-                console.log('✅ Nodo encontrado, restaurando valor específico...');
-                console.log('📊 Datos actuales:', (targetNode as any).data[changeToUndo.day]);
-
-                // Restaurar el valor específico directamente
-                const newData = { ...(targetNode as any).data };
-                newData[changeToUndo.day] = changeToUndo.oldValue;
-
-                (targetNode as any).setData(newData);
-
-                console.log('✅ Valor restaurado en grid:', changeToUndo.oldValue);
-
-                // Forzar actualización del grid
-                gridApi.refreshCells({ force: true });
-            } else {
-                console.warn('❌ No se encontró el nodo del empleado en el grid');
-                toast.error('No se pudo encontrar el empleado en el grid');
+            } catch (error) {
+                console.error('❌ Error al deshacer en el grid:', error);
+                toast.error('Error al deshacer el cambio');
                 return;
             }
         } else {
-            console.warn('❌ Grid API no disponible');
-            toast.error('Grid no disponible para restaurar');
+            console.error('❌ No hay referencia al grid API');
+            toast.error('Grid no disponible para deshacer');
             return;
         }
+
+        // También actualizar el rowData para mantener consistencia
+        setRowData(prevRowData => {
+            const updatedRowData = prevRowData.map(row => {
+                // Buscar por múltiples criterios para mayor precisión
+                const matchesEmployee =
+                    row.nombre === changeToUndo.employeeName ||
+                    String(row.employee_id) === String(changeToUndo.employeeId) ||
+                    String(row.id) === String(changeToUndo.employeeId);
+
+                if (matchesEmployee) {
+                    console.log('✅ Empleado encontrado en rowData, restaurando valor...');
+                    console.log('📊 Valor actual:', row[changeToUndo.day], '→ Valor a restaurar:', changeToUndo.oldValue);
+
+                    return {
+                        ...row,
+                        [changeToUndo.day]: changeToUndo.oldValue
+                    };
+                }
+                return row;
+            });
+
+            console.log('✅ rowData actualizado con valor restaurado');
+            return updatedRowData;
+        });
 
         // Marcar el cambio como deshecho en lugar de eliminarlo del historial
         setGridChanges(prev => {
@@ -452,6 +488,125 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         console.log('🎉 Cambio específico deshecho exitosamente');
     }, [gridChanges, getSimpleUndoGridApi]);
 
+    // Función para deshacer múltiples cambios con callback
+    const undoSpecificChangesWithCallback = useCallback((changeIds: string[], onComplete?: () => void) => {
+        console.log('🎯 Deshaciendo múltiples cambios:', changeIds);
+
+        // Establecer el callback
+        onAllChangesApplied.current = onComplete || null;
+
+        // Contador de cambios pendientes
+        let pendingChanges = changeIds.length;
+
+        const onChangeApplied = () => {
+            pendingChanges--;
+            console.log(`📊 Cambios restantes: ${pendingChanges}`);
+
+            if (pendingChanges === 0) {
+                console.log('✅ Todos los cambios han sido aplicados');
+                if (onAllChangesApplied.current) {
+                    onAllChangesApplied.current();
+                    onAllChangesApplied.current = null;
+                }
+            }
+        };
+
+        // Deshacer cada cambio con feedback visual
+        changeIds.forEach((changeId, index) => {
+            setTimeout(async () => {
+                const changeToUndo = gridChanges.find(change => change.id === changeId);
+                if (!changeToUndo) {
+                    console.warn('❌ Cambio no encontrado:', changeId);
+                    onChangeApplied();
+                    return;
+                }
+
+                console.log(`🔄 Deshaciendo cambio ${index + 1}/${changeIds.length}: ${changeToUndo.employeeName} - Día ${changeToUndo.day}`);
+
+                // Usar el sistema simple para deshacer
+                const gridApi = getSimpleUndoGridApi();
+                if (gridApi) {
+                    try {
+                        let targetRowNode = null;
+                        gridApi.forEachNode((node: any) => {
+                            if (node.data && (
+                                String(node.data.employee_id) === String(changeToUndo.employeeId) ||
+                                String(node.data.id) === String(changeToUndo.employeeId) ||
+                                node.data.nombre === changeToUndo.employeeName
+                            )) {
+                                targetRowNode = node;
+                            }
+                        });
+
+                        if (targetRowNode) {
+                            // Actualizar la grid inmediatamente para feedback visual
+                            const updatedData = { ...(targetRowNode as any).data };
+                            updatedData[changeToUndo.day] = changeToUndo.oldValue;
+                            (targetRowNode as any).setData(updatedData);
+                            gridApi.refreshCells({ force: true });
+
+                            console.log(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
+
+                            // Esperar un poco para que el usuario vea el cambio
+                            await new Promise(resolve => setTimeout(resolve, 200));
+
+                            // Marcar como deshecho
+                            setGridChanges(prev => {
+                                return prev.map(change =>
+                                    change.id === changeId
+                                        ? { ...change, undone: true }
+                                        : change
+                                );
+                            });
+
+                            // Actualizar resumen
+                            setResumen(prev => {
+                                const newResumen = { ...prev };
+                                const employeeKey = changeToUndo.employeeId;
+                                if (newResumen[employeeKey]?.turnos) {
+                                    delete newResumen[employeeKey].turnos[changeToUndo.day];
+                                    if (Object.keys(newResumen[employeeKey].turnos).length === 0) {
+                                        delete newResumen[employeeKey];
+                                    }
+                                }
+                                return newResumen;
+                            });
+
+                            // Actualizar rowData
+                            setRowData(prevRowData => {
+                                return prevRowData.map(row => {
+                                    const matchesEmployee =
+                                        row.nombre === changeToUndo.employeeName ||
+                                        String(row.employee_id) === String(changeToUndo.employeeId) ||
+                                        String(row.id) === String(changeToUndo.employeeId);
+
+                                    if (matchesEmployee) {
+                                        return {
+                                            ...row,
+                                            [changeToUndo.day]: changeToUndo.oldValue
+                                        };
+                                    }
+                                    return row;
+                                });
+                            });
+
+                            console.log(`✅ Cambio ${changeId} deshecho completamente`);
+                        } else {
+                            console.error('❌ No se encontró la fila para el cambio:', changeId);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error al deshacer cambio:', changeId, error);
+                    }
+                } else {
+                    console.error('❌ Grid API no disponible para cambio:', changeId);
+                }
+
+                // Notificar que este cambio se completó
+                onChangeApplied();
+            }, index * 300); // Delay más largo para permitir feedback visual
+        });
+    }, [gridChanges, getSimpleUndoGridApi]);
+
     // Simplificar redo por ahora - implementación básica
     const redoChange = useCallback(() => {
         toast.info('Función de rehacer en desarrollo', {
@@ -462,7 +617,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
 
     // Función para guardar cambios optimizada
-    const handleActualizarCambios = useCallback(async (comentarioNuevo: string) => {
+    const handleActualizarCambios = useCallback(async (comentarioNuevo: string, whatsappRecipients?: string[]) => {
         if (Object.keys(resumen).length === 0) {
             toast.warning('No hay cambios para guardar');
             return;
@@ -474,11 +629,37 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         const mes = fechaParaCambios.getMonth() + 1;
         const año = fechaParaCambios.getFullYear();
 
+        // Transformar el resumen para usar IDs numéricos en lugar de nombres como claves
+        const resumenTransformado: Record<string, any> = {};
+
+        Object.entries(resumen).forEach(([employeeKey, employeeData]) => {
+            // Buscar el empleado en rowData para obtener su ID numérico real
+            const employeeInGrid = rowData.find(emp =>
+                emp.nombre === employeeKey ||
+                String(emp.employee_id) === employeeKey ||
+                String(emp.id) === employeeKey
+            );
+
+            const realEmployeeId = String(employeeInGrid?.employee_id || employeeInGrid?.id || employeeKey);
+
+            console.log('🔄 Transformando resumen:', {
+                employeeKey,
+                realEmployeeId,
+                employeeInGrid: employeeInGrid ? { id: employeeInGrid.id, employee_id: employeeInGrid.employee_id, nombre: employeeInGrid.nombre } : null
+            });
+
+            resumenTransformado[realEmployeeId] = {
+                ...employeeData,
+                employee_id: realEmployeeId
+            };
+        });
+
         const datosAEnviar = {
-            cambios: resumen,
+            cambios: resumenTransformado,
             comentario: comentarioNuevo,
             mes,
             año,
+            whatsapp_recipients: whatsappRecipients || [],
         };
 
         try {
@@ -527,7 +708,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         } finally {
             setIsSaving(false);
         }
-    }, [resumen, originalChangeDate, selectedDate, getCacheKey, loadDataOptimized]);
+    }, [resumen, originalChangeDate, selectedDate, getCacheKey, loadDataOptimized, simpleClearAllChanges]);
 
 
     // Funciones de empleados (simplificadas para mejor performance)
@@ -630,7 +811,16 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     // Compatibilidad con la interfaz existente
     // Contador de cambios activos (no deshechos)
     const activeChangeCount = useMemo(() => {
-        return gridChanges.filter(change => !change.undone).length;
+        const activeChanges = gridChanges.filter(change => !change.undone);
+        const totalChanges = gridChanges.length;
+        const undoneChanges = gridChanges.filter(change => change.undone);
+
+        console.log('📊 Cálculo de activeChangeCount:');
+        console.log('  - Total cambios:', totalChanges);
+        console.log('  - Cambios activos:', activeChanges.length);
+        console.log('  - Cambios deshechos:', undoneChanges.length);
+
+        return activeChanges.length;
     }, [gridChanges]);
 
     // Función de filtrado de datos
@@ -742,7 +932,9 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         // Funciones de historial
         undoChange,
         undoSpecificChange,
+        undoSpecificChangesWithCallback,
         redoChange,
+        clearAllChanges: simpleClearAllChanges,
 
         // Funciones de empleados
         getEmployeeId,

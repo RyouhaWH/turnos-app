@@ -515,6 +515,11 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     if (params.data?.isSeparator) return false;
                     return editable;
                 },
+                cellEditor: 'agTextCellEditor',
+                cellEditorParams: {
+                    maxLength: 10, // Permitir hasta 10 caracteres
+                    useFormatter: false, // No usar formatter durante la edición
+                },
                 width: 50,
                 minWidth: 50,
                 maxWidth: 50,
@@ -542,7 +547,7 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                     return classes.join(' ');
                 },
                 valueParser: (params: any) =>
-                    String(params.newValue || '').toUpperCase().slice(0, 2),
+                    String(params.newValue || '').toUpperCase().trim(),
             });
         });
         return columns;

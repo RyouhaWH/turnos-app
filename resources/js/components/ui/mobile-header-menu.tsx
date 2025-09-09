@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Eye, Users, Calendar, History } from 'lucide-react';
+import { MoreVertical, Eye, Users, Calendar, History, MessageSquare } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface MobileHeaderMenuProps {
@@ -9,10 +9,12 @@ interface MobileHeaderMenuProps {
     onShowEmployees: () => void;
     onShowDatePicker: () => void;
     onShowHistory: () => void;
+    onShowWhatsApp?: () => void;
     changeCount: number;
     employeeCount: number;
     availableCount: number;
     currentMonthTitle: string;
+    hasAdminPermissions?: boolean;
     className?: string;
 }
 
@@ -21,10 +23,12 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
     onShowEmployees,
     onShowDatePicker,
     onShowHistory,
+    onShowWhatsApp,
     changeCount,
     employeeCount,
     availableCount,
     currentMonthTitle,
+    hasAdminPermissions = false,
     className,
 }) => {
     const [isOpen, setIsOpen] = useState(false);
@@ -120,6 +124,25 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
                             <span className="text-xs text-slate-500 antialiased">{employeeCount} en grid • {availableCount} disponibles</span>
                         </div>
                     </div>
+
+                    {/* Opción: Configurar WhatsApp (solo para administradores) */}
+                    {hasAdminPermissions && onShowWhatsApp && (
+                        <div
+                            onClick={() => {
+                                onShowWhatsApp();
+                                setIsOpen(false);
+                            }}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-green-50 cursor-pointer transition-colors"
+                        >
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100">
+                                <MessageSquare className="h-4 w-4 text-green-600" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-medium text-slate-900 antialiased">Configurar WhatsApp</span>
+                                <span className="text-xs text-slate-500 antialiased">Notificaciones de cambios</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </PopoverContent>
         </Popover>
