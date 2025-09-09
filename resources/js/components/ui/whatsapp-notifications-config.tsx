@@ -27,19 +27,19 @@ interface WhatsAppNotificationsConfigProps {
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
 const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
-    { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: '', rut: '12282547-7', role: 'Supervisor' },
-    { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: '', rut: '10604235-7', role: 'Supervisor' },
-    { id: 'priscila-escobar', name: 'Priscila Escobar', phone: '', rut: '18522287-K', role: 'Supervisor' },
-    { id: 'javier-alvarado', name: 'Javier Alvarado', phone: '', rut: '18984596-0', role: 'Supervisor' },
-    { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: '', rut: '16948150-4', role: 'Supervisor' },
+    { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', rut: '12282547-7', role: 'Supervisor' },
+    { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', rut: '10604235-7', role: 'Supervisor' },
+    { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', rut: '18522287-K', role: 'Supervisor' },
+    { id: 'javier-alvarado', name: 'Javier Alvarado', phone: 'Se obtiene de BD', rut: '18984596-0', role: 'Supervisor' },
+    { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: 'Se obtiene de BD', rut: '16948150-4', role: 'Supervisor' },
     { id: 'dayana-chavez', name: 'Dayana Chavez', phone: '981841759', role: 'Supervisor' },
     { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
-    { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: '', rut: '15987971-2', role: 'Supervisor' },
-    { id: 'paola-carrasco', name: 'Paola Carrasco', phone: '', rut: '12389084-1', role: 'Supervisor' },
-    { id: 'cesar-soto', name: 'Cesar Soto', phone: '', rut: '16533970-3', role: 'Supervisor' },
+    { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: 'Se obtiene de BD', rut: '15987971-2', role: 'Supervisor' },
+    { id: 'paola-carrasco', name: 'Paola Carrasco', phone: 'Se obtiene de BD', rut: '12389084-1', role: 'Supervisor' },
+    { id: 'cesar-soto', name: 'Cesar Soto', phone: 'Se obtiene de BD', rut: '16533970-3', role: 'Supervisor' },
     { id: 'cristian-montecinos', name: 'Cristian Montecinos', phone: '975952121', role: 'Supervisor' },
     { id: 'informaciones-amzoma', name: 'Informaciones Amzoma', phone: '985639782', role: 'Central' },
-    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: '', rut: '18198426-0', role: 'Supervisor' },
+    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', rut: '18198426-0', role: 'Supervisor' },
 ];
 
 export function WhatsAppNotificationsConfig({ 
@@ -60,16 +60,33 @@ export function WhatsAppNotificationsConfig({
     const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(selectedRecipients);
     const [isLoading, setIsLoading] = useState(false);
 
-    // Cargar números de teléfono desde la base de datos si no están disponibles
+    // Estado para los números de teléfono actualizados
+    const [phoneNumbers, setPhoneNumbers] = useState<Record<string, string>>({});
+
+    // Cargar números de teléfono desde la base de datos
     useEffect(() => {
         const loadPhoneNumbers = async () => {
             setIsLoading(true);
             try {
-                // Aquí podrías hacer una llamada a la API para obtener los números actualizados
-                // Por ahora usamos los valores por defecto
-                console.log('Cargando números de teléfono...');
+                // Hacer llamada a la API para obtener los números actualizados
+                const response = await fetch('/api/whatsapp-recipients', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    setPhoneNumbers(data.phoneNumbers || {});
+                    console.log('Números de teléfono cargados:', data.phoneNumbers);
+                } else {
+                    console.warn('No se pudieron cargar los números de teléfono, usando valores por defecto');
+                }
             } catch (error) {
                 console.error('Error al cargar números de teléfono:', error);
+                // En caso de error, usar los valores por defecto
             } finally {
                 setIsLoading(false);
             }
@@ -209,18 +226,22 @@ export function WhatsAppNotificationsConfig({
                                                 >
                                                     {recipient.name}
                                                 </label>
-                                                {recipient.phone && (
+                                            </div>
+                                            <div className="flex items-center gap-4 mt-1">
+                                                {recipient.rut && (
                                                     <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                                        <Phone className="h-3 w-3" />
-                                                        {recipient.phone}
+                                                        <span className="font-medium">RUT:</span>
+                                                        <span>{recipient.rut}</span>
                                                     </div>
                                                 )}
+                                                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                                    <Phone className="h-3 w-3" />
+                                                    <span className="font-medium">Tel:</span>
+                                                    <span>
+                                                        {phoneNumbers[recipient.id] || recipient.phone}
+                                                    </span>
+                                                </div>
                                             </div>
-                                            {recipient.rut && (
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                                    RUT: {recipient.rut}
-                                                </p>
-                                            )}
                                         </div>
                                     </div>
                                 ))}

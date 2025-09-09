@@ -112,13 +112,13 @@ class ShiftsUpdateController extends Controller
                     $selectedNumbers[] = $recipientsMap[$recipientId];
                 }
             }
-            
+
             Log::info('📱 Usando destinatarios WhatsApp seleccionados:', [
                 'selected_recipients' => $selectedRecipients,
                 'selected_numbers' => $selectedNumbers,
                 'total_count' => count($selectedNumbers)
             ]);
-            
+
             return $selectedNumbers;
         }
 
