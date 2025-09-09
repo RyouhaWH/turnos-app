@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { Users, UserPlus, UserMinus, ChevronDown } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Users, UserPlus, UserMinus, ChevronRight } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 
 interface TurnoData {
@@ -22,6 +23,8 @@ interface EmployeeManagementCardProps {
     addAllEmployees: () => void;
     clearAllEmployees: () => void;
     isMobile?: boolean;
+    isExpanded?: boolean;
+    setIsExpanded?: (expanded: boolean) => void;
 }
 
 export const EmployeeManagementCard = memo(({
@@ -35,10 +38,9 @@ export const EmployeeManagementCard = memo(({
     addAllEmployees,
     clearAllEmployees,
     isMobile = false,
+    isExpanded = false,
+    setIsExpanded,
 }: EmployeeManagementCardProps) => {
-    // Estado para grupos colapsados
-    const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
     // Función para obtener nombre de visualización
     const getDisplayName = (employee: TurnoData) => {
         return employee.first_name && employee.paternal_lastname
@@ -49,53 +51,6 @@ export const EmployeeManagementCard = memo(({
     // Función para determinar si un empleado es de Amzoma
     const isAmzomaEmployee = (employee: TurnoData) => {
         return employee.amzoma === true || employee.amzoma === 'true' || employee.amzoma === 1;
-    };
-
-    // Función para alternar grupo colapsado
-    const toggleGroup = (groupType: string) => {
-        setCollapsedGroups(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(groupType)) {
-                newSet.delete(groupType);
-            } else {
-                newSet.add(groupType);
-            }
-            return newSet;
-        });
-    };
-
-    // Función para agregar/quitar todos los empleados de un grupo
-    const handleGroupAction = (groupType: string, action: 'add' | 'remove') => {
-        const groupEmployees = allEmployees.filter(emp => {
-            const isAmzoma = isAmzomaEmployee(emp);
-            return groupType === 'amzoma' ? isAmzoma : !isAmzoma;
-        });
-
-        if (action === 'add') {
-            groupEmployees.forEach(emp => {
-                const employeeId = getEmployeeId(emp);
-                const isInGrid = rowData.some(e => getEmployeeId(e) === employeeId);
-                if (!isInGrid) {
-                    addEmployeeToGrid(emp);
-                }
-            });
-        } else {
-            groupEmployees.forEach(emp => {
-                const employeeId = getEmployeeId(emp);
-                const isInGrid = rowData.some(e => getEmployeeId(e) === employeeId);
-                if (isInGrid) {
-                    removeEmployeeFromGrid(emp);
-                }
-            });
-        }
-    };
-
-    // Función para manejar click en empleado
-    const handleEmployeeClick = (employee: TurnoData) => {
-        addEmployeeToGrid(employee);
-        setTimeout(() => {
-            setSearchTerm('');
-        }, 0);
     };
 
     // Combinar todos los empleados y agrupar por Amzoma
@@ -114,7 +69,7 @@ export const EmployeeManagementCard = memo(({
             }
         });
 
-                return Array.from(employeeMap.values()).sort((a, b) => {
+        return Array.from(employeeMap.values()).sort((a, b) => {
             // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
             const isAmzomaA = isAmzomaEmployee(a);
             const isAmzomaB = isAmzomaEmployee(b);
@@ -152,277 +107,119 @@ export const EmployeeManagementCard = memo(({
     }, [filteredAllEmployees]);
 
     return (
-        <div className="h-full flex flex-col">
-            <div className="pb-2 mb-4 border-b border-slate-100 dark:border-slate-800">
+        <Card className={`${isMobile ? 'border-0 !:mb-0 pb-0 bg-white/95 dark:bg-slate-900/95 shadow-none transition-all duration-300 ease-in-out hover:bg-slate-50 dark:hover:bg-slate-800/50' : 'border-slate-200/50 bg-white/90 shadow-xl backdrop-blur-sm dark:bg-slate-900/90'}`}>
+            <CardHeader
+                className={`cursor-pointer pb-2 transition-colors ${isMobile ? 'border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-slate-700/50 py-3' : 'border-b border-slate-100 hover:bg-slate-100/50 dark:border-slate-800 dark:bg-slate-800/50 dark:hover:bg-slate-700/50'}`}
+                onClick={() => setIsExpanded?.(!isExpanded)}
+            >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <div className="rounded-md bg-blue-100 p-1 dark:bg-blue-900">
                             <Users className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        <CardTitle className="text-sm text-slate-900 dark:text-white">
                             Gestión de Funcionarios
-                        </h4>
+                        </CardTitle>
                     </div>
 
                     <div className="flex items-center gap-2">
                         <span className="text-xs text-slate-500 dark:text-slate-400">
                             {rowData.length} en grid
                         </span>
+                        <ChevronRight
+                            className={`h-4 w-4 text-slate-500 transition-transform duration-300 ease-in-out ${isExpanded ? 'rotate-90' : ''}`}
+                        />
                     </div>
                 </div>
-            </div>
+            </CardHeader>
 
-            <div className="flex-1 overflow-hidden">
-                <div className="h-full flex flex-col space-y-4">
-                    {/* Barra de búsqueda */}
-                    <div className="mb-4">
+            <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    isExpanded
+                        ? 'max-h-[300px] opacity-100'
+                        : 'max-h-0 opacity-0'
+                }`}
+            >
+                <CardContent className="pt-2">
+                    <div className="space-y-3">
+                        {/* Barra de búsqueda simplificada */}
                         <div className="relative">
                             <Input
                                 type="text"
                                 placeholder="Buscar funcionarios..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
+                                className="pl-8 pr-4 py-1.5 text-sm border border-slate-300 dark:border-slate-600 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-white"
                             />
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                <svg className="h-4 w-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
                             {searchTerm && (
-                                <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <div className="absolute inset-y-0 right-0 pr-2 flex items-center">
                                     <button
                                         onClick={() => setSearchTerm('')}
                                         className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                                     >
-                                        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                         </svg>
                                     </button>
                                 </div>
                             )}
                         </div>
-                        {searchTerm && (
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
-                                Mostrando {filteredAllEmployees.length} de {allEmployees.length} funcionarios
-                            </p>
-                        )}
-                    </div>
 
-                    {/* Lista de funcionarios agrupados */}
-                    <div className="flex-1 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
-                        {filteredAllEmployees.length > 0 ? (
-                            <div className="space-y-1">
-                                {/* Grupo MUNICIPAL */}
-                                    {groupedEmployees.municipal.length > 0 && (
-                                        <div className="border-b border-slate-200 dark:border-slate-700">
-                                            {/* Header del grupo MUNICIPAL */}
-                                            <div
-                                                className="flex items-center justify-between p-2 bg-green-50 dark:bg-green-900/20 cursor-pointer hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                                                onClick={() => toggleGroup('municipal')}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    {collapsedGroups.has('municipal') ? (
-                                                        <ChevronRight className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                                    ) : (
-                                                        <ChevronDown className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                                    )}
-                                                    <span className="text-sm font-medium text-green-700 dark:text-green-300">
-                                                        MUNICIPAL ({groupedEmployees.municipal.length})
-                                                    </span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleGroupAction('municipal', 'add');
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded transition-colors"
-                                                    >
-                                                        +Todos
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleGroupAction('municipal', 'remove');
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                                                    >
-                                                        -Todos
-                                                    </button>
-                                                </div>
-                                            </div>
+                        {/* Lista de empleados simplificada */}
+                        <div className="max-h-[200px] overflow-y-auto space-y-1">
+                            {filteredAllEmployees.slice(0, 10).map((employee) => {
+                                const employeeId = getEmployeeId(employee);
+                                const isInGrid = rowData.some(e => getEmployeeId(e) === employeeId);
+                                const displayName = getDisplayName(employee);
+                                const isAmzoma = isAmzomaEmployee(employee);
 
-                                            {/* Lista de empleados MUNICIPAL */}
-                                            {!collapsedGroups.has('municipal') && (
-                                                <div>
-                                                    {groupedEmployees.municipal.map((employee) => {
-                                                        const employeeId = getEmployeeId(employee);
-                                                        const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
-                                                        const displayName = getDisplayName(employee);
-
-                                                        return (
-                                                            <div
-                                                                key={employeeId}
-                                                                className={`flex items-center justify-between p-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
-                                                                    isInGrid
-                                                                        ? 'hover:bg-green-50 dark:hover:bg-green-900/20 bg-slate-50 dark:bg-slate-700/50'
-                                                                        : 'hover:bg-red-50 dark:hover:bg-red-900/20'
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (isInGrid) {
-                                                                        removeEmployeeFromGrid(employee);
-                                                                    } else {
-                                                                        handleEmployeeClick(employee);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
-                                                                        isInGrid
-                                                                            ? 'border-green-300 dark:border-green-600'
-                                                                            : 'border-red-300 dark:border-red-600'
-                                                                    }`}>
-                                                                        {isInGrid ? (
-                                                                            <UserMinus className="h-2 w-2 text-green-600 dark:text-green-400" />
-                                                                        ) : (
-                                                                            <UserPlus className="h-2 w-2 text-red-600 dark:text-red-400" />
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-sm text-slate-900 dark:text-white">
-                                                                        {displayName}
-                                                                    </span>
-                                                                    {isInGrid && (
-                                                                        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-1.5 py-0.5 rounded-full">
-                                                                            En Planilla
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <span className={`text-xs font-medium ${
-                                                                    isInGrid
-                                                                        ? 'text-green-600 dark:text-green-400'
-                                                                        : 'text-red-600 dark:text-red-400'
-                                                                }`}>
-                                                                    {isInGrid ? 'Quitar' : 'Agregar'}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
+                                return (
+                                    <div
+                                        key={employeeId}
+                                        className={`flex items-center justify-between p-2 rounded-md text-xs transition-colors ${
+                                            isInGrid
+                                                ? 'bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800'
+                                                : 'bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700/50'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                                            <div className={`w-2 h-2 rounded-full ${isAmzoma ? 'bg-orange-400' : 'bg-blue-400'}`} />
+                                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                                                {displayName}
+                                            </span>
                                         </div>
-                                    )}
-
-                                    {/* Grupo AMZOMA */}
-                                    {groupedEmployees.amzoma.length > 0 && (
-                                        <div>
-                                            {/* Header del grupo AMZOMA */}
-                                            <div
-                                                className="flex items-center justify-between p-2 bg-blue-50 dark:bg-blue-900/20 cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                                                onClick={() => toggleGroup('amzoma')}
-                                            >
-                                                <div className="flex items-center gap-2">
-                                                    {collapsedGroups.has('amzoma') ? (
-                                                        <ChevronRight className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                                    ) : (
-                                                        <ChevronDown className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                                                    )}
-                                                    <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                                                        AMZOMA ({groupedEmployees.amzoma.length})
-                                                    </span>
-                                                </div>
-                                                <div className="flex gap-1">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleGroupAction('amzoma', 'add');
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
-                                                    >
-                                                        +Todos
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            handleGroupAction('amzoma', 'remove');
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors"
-                                                    >
-                                                        -Todos
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Lista de empleados AMZOMA */}
-                                            {!collapsedGroups.has('amzoma') && (
-                                                <div>
-                                                    {groupedEmployees.amzoma.map((employee) => {
-                                                        const employeeId = getEmployeeId(employee);
-                                                        const isInGrid = rowData.some(emp => getEmployeeId(emp) === employeeId);
-                                                        const displayName = getDisplayName(employee);
-
-                                                        return (
-                                                            <div
-                                                                key={employeeId}
-                                                                className={`flex items-center justify-between p-2 border-b border-slate-100 dark:border-slate-700 last:border-b-0 cursor-pointer transition-colors ${
-                                                                    isInGrid
-                                                                        ? 'hover:bg-green-50 dark:hover:bg-green-900/20 bg-slate-50 dark:bg-slate-700/50'
-                                                                        : 'hover:bg-red-50 dark:hover:bg-red-900/20'
-                                                                }`}
-                                                                onClick={() => {
-                                                                    if (isInGrid) {
-                                                                        removeEmployeeFromGrid(employee);
-                                                                    } else {
-                                                                        handleEmployeeClick(employee);
-                                                                    }
-                                                                }}
-                                                            >
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className={`w-3 h-3 rounded border-2 flex items-center justify-center ${
-                                                                        isInGrid
-                                                                            ? 'border-green-300 dark:border-green-600'
-                                                                            : 'border-red-300 dark:border-red-600'
-                                                                    }`}>
-                                                                        {isInGrid ? (
-                                                                            <UserMinus className="h-2 w-2 text-green-600 dark:text-green-400" />
-                                                                        ) : (
-                                                                            <UserPlus className="h-2 w-2 text-red-600 dark:text-red-400" />
-                                                                        )}
-                                                                    </div>
-                                                                    <span className="text-sm text-slate-900 dark:text-white">
-                                                                        {displayName}
-                                                                    </span>
-                                                                    {isInGrid && (
-                                                                        <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-1.5 py-0.5 rounded-full">
-                                                                            En Planilla
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                                <span className={`text-xs font-medium ${
-                                                                    isInGrid
-                                                                        ? 'text-green-600 dark:text-green-400'
-                                                                        : 'text-red-600 dark:text-red-400'
-                                                                }`}>
-                                                                    {isInGrid ? 'Quitar' : 'Agregar'}
-                                                                </span>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
+                                        <button
+                                            onClick={() => isInGrid ? removeEmployeeFromGrid(employee) : addEmployeeToGrid(employee)}
+                                            className={`p-1 rounded transition-colors ${
+                                                isInGrid
+                                                    ? 'text-red-600 hover:bg-red-100 dark:hover:bg-red-900/20'
+                                                    : 'text-green-600 hover:bg-green-100 dark:hover:bg-green-900/20'
+                                            }`}
+                                        >
+                                            {isInGrid ? (
+                                                <UserMinus className="h-3 w-3" />
+                                            ) : (
+                                                <UserPlus className="h-3 w-3" />
                                             )}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="p-3 text-center text-slate-500 dark:text-slate-400 text-sm">
-                                    {searchTerm ? 'No se encontraron funcionarios' : 'No hay funcionarios disponibles'}
+                                        </button>
+                                    </div>
+                                );
+                            })}
+                            
+                            {filteredAllEmployees.length > 10 && (
+                                <div className="text-xs text-slate-500 dark:text-slate-400 text-center py-2">
+                                    ... y {filteredAllEmployees.length - 10} más
                                 </div>
                             )}
                         </div>
 
-                    {/* Controles de acción */}
-                    <div className={`flex flex-col gap-2 ${isMobile ? 'mt-2 pt-2' : 'mt-3 pt-3'} border-t border-slate-200 dark:border-slate-700`}>
-                        <div className="flex gap-1">
+                        {/* Botones de acción rápida */}
+                        <div className="flex gap-2">
                             <button
                                 onClick={addAllEmployees}
                                 className="flex-1 text-xs px-2 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded transition-colors flex items-center justify-center gap-1"
@@ -438,14 +235,9 @@ export const EmployeeManagementCard = memo(({
                                 Limpiar
                             </button>
                         </div>
-                        <div className="flex justify-center">
-                            <span className="text-xs text-slate-600 dark:text-slate-400">
-                                {rowData.length} de {allEmployees.length} en planilla
-                            </span>
-                        </div>
                     </div>
-                </div>
+                </CardContent>
             </div>
-        </div>
+        </Card>
     );
 });

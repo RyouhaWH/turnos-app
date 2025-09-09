@@ -8,7 +8,7 @@ import { ShiftsGrid } from './components/ShiftsGrid';
 import { ShiftsControls } from './components/ShiftsControls';
 
 import { RightPanel } from './components/RightPanel';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -19,6 +19,9 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const isMobile = useIsMobile();
+    
+    // Estado para controlar la expansión del EmployeeManagementCard
+    const [isEmployeeManagementExpanded, setIsEmployeeManagementExpanded] = useState(false);
 
     const {
         // Estados
@@ -183,6 +186,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         removeEmployeeFromGrid,
         addAllEmployees,
         clearAllEmployees,
+        // Props para controlar expansión de EmployeeManagementCard
+        isEmployeeManagementExpanded,
+        setIsEmployeeManagementExpanded,
     }), [
         isChangesExpanded,
         setIsChangesExpanded,
@@ -212,6 +218,9 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
         removeEmployeeFromGrid,
         addAllEmployees,
         clearAllEmployees,
+        // Props para controlar expansión de EmployeeManagementCard
+        isEmployeeManagementExpanded,
+        setIsEmployeeManagementExpanded,
     ]);
 
     return (

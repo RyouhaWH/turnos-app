@@ -52,6 +52,9 @@ interface RightPanelProps {
     removeEmployeeFromGrid: (employee: TurnoData) => void;
     addAllEmployees: () => void;
     clearAllEmployees: () => void;
+    // Props para controlar expansión de EmployeeManagementCard
+    isEmployeeManagementExpanded?: boolean;
+    setIsEmployeeManagementExpanded?: (expanded: boolean) => void;
 }
 
 export const RightPanel = memo(({
@@ -83,6 +86,9 @@ export const RightPanel = memo(({
     removeEmployeeFromGrid,
     addAllEmployees,
     clearAllEmployees,
+    // Props para controlar expansión de EmployeeManagementCard
+    isEmployeeManagementExpanded = false,
+    setIsEmployeeManagementExpanded,
 }: RightPanelProps) => {
     return (
         <div className={`${isMobile ? 'mt-0 mb-0 absolute left-0 bottom-0 w-full bg-slate-50/95 dark:bg-slate-900/95 backdrop-blur-sm border-t border-slate-200 dark:border-slate-700 transition-all duration-300 ease-in-out flex flex-col gap-0.5 z-10' : 'flex flex-col gap-4 xl:w-[320px]'}`}>
@@ -90,8 +96,6 @@ export const RightPanel = memo(({
             <EmployeeManagementCard
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                showEmployeeSelector={showEmployeeSelector}
-                setShowEmployeeSelector={setShowEmployeeSelector}
                 rowData={rowData}
                 availableEmployees={availableEmployees}
                 getEmployeeId={getEmployeeId}
@@ -100,6 +104,8 @@ export const RightPanel = memo(({
                 addAllEmployees={addAllEmployees}
                 clearAllEmployees={clearAllEmployees}
                 isMobile={isMobile}
+                isExpanded={isEmployeeManagementExpanded}
+                setIsExpanded={setIsEmployeeManagementExpanded}
             />
 
             {/* Resumen de cambios por aplicar - colapsable */}
