@@ -149,25 +149,6 @@ export function WhatsAppNotificationsConfig({
 
     const content = (
         <div className="space-y-6">
-            {/* Header con estadísticas */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="rounded-lg bg-green-100 p-2 dark:bg-green-900/20">
-                        <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
-                    </div>
-                    <div>
-                        <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Selecciona a quiénes notificar cuando se modifiquen los turnos
-                        </p>
-                    </div>
-                </div>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
-                    {selectedCount} de {totalCount} seleccionados
-                </Badge>
-            </div>
-
-            <Separator />
-
             {/* Controles de selección masiva */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -190,13 +171,9 @@ export function WhatsAppNotificationsConfig({
                         Deseleccionar todos
                     </Button>
                 </div>
-                <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {selectedCount > 0 && (
-                        <span className="text-green-600 dark:text-green-400 font-medium">
-                            {selectedCount} destinatario{selectedCount !== 1 ? 's' : ''} seleccionado{selectedCount !== 1 ? 's' : ''}
-                        </span>
-                    )}
-                </div>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                    {selectedCount} de {totalCount} seleccionados
+                </Badge>
             </div>
 
             {/* Lista de destinatarios agrupados por rol */}
