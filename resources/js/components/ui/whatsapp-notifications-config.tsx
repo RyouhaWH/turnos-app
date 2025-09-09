@@ -156,9 +156,6 @@ export function WhatsAppNotificationsConfig({
                         <MessageSquare className="h-5 w-5 text-green-600 dark:text-green-400" />
                     </div>
                     <div>
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                            Configuración de Notificaciones WhatsApp
-                        </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
                             Selecciona a quiénes notificar cuando se modifiquen los turnos
                         </p>
