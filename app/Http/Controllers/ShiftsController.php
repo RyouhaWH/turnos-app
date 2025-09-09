@@ -59,7 +59,7 @@ class ShiftsController extends Controller
 
         $formateado = array_values($data);
 
-        return Inertia::render('shifts/createv2', [
+        return Inertia::render('shifts/createv3', [
             'turnos'          => $formateado,
             'employee_rol_id' => $id,
         ]);
