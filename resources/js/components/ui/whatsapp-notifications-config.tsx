@@ -68,25 +68,36 @@ export function WhatsAppNotificationsConfig({
         const loadPhoneNumbers = async () => {
             setIsLoading(true);
             try {
+                console.log('🔄 Iniciando carga de números de teléfono...');
+                
                 // Hacer llamada a la API para obtener los números actualizados
                 const response = await fetch('/api/whatsapp-recipients', {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json',
                     },
                 });
 
+                console.log('📡 Respuesta del servidor:', response.status, response.statusText);
+
                 if (response.ok) {
                     const data = await response.json();
-                    setPhoneNumbers(data.phoneNumbers || {});
-                    console.log('Números de teléfono cargados:', data.phoneNumbers);
+                    console.log('✅ Datos recibidos:', data);
+                    
+                    if (data.success && data.phoneNumbers) {
+                        setPhoneNumbers(data.phoneNumbers);
+                        console.log('📱 Números de teléfono cargados exitosamente:', data.phoneNumbers);
+                    } else {
+                        console.warn('⚠️ Respuesta no exitosa:', data);
+                    }
                 } else {
-                    console.warn('No se pudieron cargar los números de teléfono, usando valores por defecto');
+                    const errorData = await response.json().catch(() => ({}));
+                    console.error('❌ Error en la respuesta:', response.status, errorData);
                 }
             } catch (error) {
-                console.error('Error al cargar números de teléfono:', error);
-                // En caso de error, usar los valores por defecto
+                console.error('💥 Error al cargar números de teléfono:', error);
             } finally {
                 setIsLoading(false);
             }

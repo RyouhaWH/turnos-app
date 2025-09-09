@@ -18,8 +18,26 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+// Ruta de prueba para verificar que las rutas API funcionan
+Route::get('/test', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'API funcionando correctamente',
+        'timestamp' => now()
+    ]);
+});
+
 // Ruta para obtener números de teléfono de destinatarios WhatsApp
-Route::middleware(['auth', 'admin'])->get('/whatsapp-recipients', function () {
+Route::middleware(['auth:sanctum'])->get('/whatsapp-recipients', function (Request $request) {
+    // Verificar que el usuario sea administrador
+    $user = $request->user();
+    if (!$user || !$user->hasRole('Administrador')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permisos de administrador'
+        ], 403);
+    }
+    
     $phoneNumbers = [];
     
     // Obtener números de teléfono de empleados por RUT
@@ -49,6 +67,8 @@ Route::middleware(['auth', 'admin'])->get('/whatsapp-recipients', function () {
     $phoneNumbers['central'] = '964949887';
     $phoneNumbers['cristian-montecinos'] = '975952121';
     $phoneNumbers['informaciones-amzoma'] = '985639782';
+    
+    \Log::info('📱 Números de teléfono cargados:', $phoneNumbers);
     
     return response()->json([
         'success' => true,
