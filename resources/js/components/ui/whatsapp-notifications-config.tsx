@@ -266,7 +266,106 @@ export function WhatsAppNotificationsConfig({
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                             </div>
                         ) : (
-                            content
+                            <div className="space-y-6">
+                                {/* Controles de selección masiva */}
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleSelectAll}
+                                            disabled={selectedCount === totalCount}
+                                            className="text-xs"
+                                        >
+                                            Seleccionar todos
+                                        </Button>
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleSelectNone}
+                                            disabled={selectedCount === 0}
+                                            className="text-xs"
+                                        >
+                                            Deseleccionar todos
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Contador de seleccionados */}
+                                <div className="flex justify-center">
+                                    <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800">
+                                        {selectedCount} de {totalCount} seleccionados
+                                    </Badge>
+                                </div>
+
+                                {/* Lista de destinatarios agrupados por rol */}
+                                <ScrollArea className="h-[400px] w-full">
+                                    <div className="space-y-4 pr-4">
+                                        {Object.entries(recipientsByRole).map(([role, recipients]) => (
+                                            <div key={role} className="space-y-3">
+                                                <div className="flex items-center gap-2">
+                                                    <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                                                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                                        {role}
+                                                    </h4>
+                                                    <Badge variant="secondary" className="text-xs">
+                                                        {recipients.length}
+                                                    </Badge>
+                                                </div>
+                                                
+                                                <div className="space-y-2 ml-6">
+                                                    {recipients.map((recipient) => (
+                                                        <div
+                                                            key={recipient.id}
+                                                            className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                                        >
+                                                            <Checkbox
+                                                                id={recipient.id}
+                                                                checked={localSelectedRecipients.includes(recipient.id)}
+                                                                onCheckedChange={() => handleRecipientToggle(recipient.id)}
+                                                                className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
+                                                            />
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <label
+                                                                        htmlFor={recipient.id}
+                                                                        className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1"
+                                                                    >
+                                                                        {recipient.name}
+                                                                    </label>
+                                                                    <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                                                        <Phone className="h-3 w-3" />
+                                                                        <span className="font-mono">
+                                                                            {phoneNumbers[recipient.id] || recipient.phone}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+
+                                {/* Información adicional */}
+                                <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                                    <div className="flex items-start gap-3">
+                                        <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                                        <div className="flex-1">
+                                            <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                                                Información importante
+                                            </h4>
+                                            <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                                                <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
+                                                <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
+                                                <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         )}
                     </div>
 
