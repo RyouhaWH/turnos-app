@@ -8,6 +8,7 @@ use App\Http\Controllers\TurnController;
 use App\Http\Controllers\TurnosSimplificadoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -100,6 +101,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['auth', 'admin'])->prefix('upload-csv')->name('upload-shift.')->group(function () {
         Route::get('/', [ShiftImportController::class, 'index'])->name('index');
         Route::post('/', [ShiftImportController::class, 'importFromPostToDatabase'])->name('import');
+    });
+
+    // Ruta para obtener números de teléfono de destinatarios WhatsApp
+    Route::middleware(['auth', 'admin'])->get('/api/whatsapp-recipients', function (Request $request) {
+        $phoneNumbers = [];
+        
+        // Obtener números de teléfono de empleados por RUT
+        $ruts = [
+            'julio-sarmiento' => '12282547-7',
+            'marianela-huequelef' => '10604235-7',
+            'priscila-escobar' => '18522287-K',
+            'javier-alvarado' => '18984596-0',
+            'eduardo-esparza' => '16948150-4',
+            'manuel-verdugo' => '15987971-2',
+            'paola-carrasco' => '12389084-1',
+            'cesar-soto' => '16533970-3',
+            'jorge-waltemath' => '18198426-0',
+        ];
+        
+        foreach ($ruts as $id => $rut) {
+            $employee = \App\Models\Employees::where('rut', $rut)->first();
+            if ($employee && $employee->phone) {
+                $phoneNumbers[$id] = $employee->phone;
+            } else {
+                $phoneNumbers[$id] = 'No disponible';
+            }
+        }
+        
+        // Números fijos
+        $phoneNumbers['dayana-chavez'] = '981841759';
+        $phoneNumbers['central'] = '964949887';
+        $phoneNumbers['cristian-montecinos'] = '975952121';
+        $phoneNumbers['informaciones-amzoma'] = '985639782';
+        
+        Log::info('📱 Números de teléfono cargados:', $phoneNumbers);
+        
+        return response()->json([
+            'success' => true,
+            'phoneNumbers' => $phoneNumbers
+        ]);
     });
 
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage'])
