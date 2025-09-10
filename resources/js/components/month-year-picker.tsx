@@ -78,7 +78,7 @@ export const MonthYearPicker = ({ onChange, onLoadData, loading, currentMonthTit
     return (
         <div className="flex w-full flex-col items-center gap-3 md:w-auto md:flex-row">
             {/* Month/Year Display and Navigation */}
-            <div className="flex items-center rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:shadow-lg">
+            <div className="flex items-center h-8 rounded-lg border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:shadow-lg">
                 {/* Previous Month Button */}
                 <Button
                     variant="ghost"
