@@ -249,6 +249,15 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
     }, []);
 
+    // Función para aplicar la configuración de WhatsApp sin cerrar el modal
+    const handleApplyWhatsAppConfig = useCallback((recipients: string[]) => {
+        setSelectedWhatsAppRecipients(recipients);
+        // Guardar la configuración en localStorage
+        localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
+        // Mostrar notificación de que se aplicó la configuración
+        console.log('Configuración de WhatsApp aplicada:', recipients);
+    }, []);
+
     // Funciones para el filtro de turnos
     const handleToggleShiftFilter = useCallback(() => {
         setShowShiftFilter(!showShiftFilter);
@@ -1129,6 +1138,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     isOpen={showWhatsAppConfig}
                                     onClose={() => setShowWhatsAppConfig(false)}
                                     onSave={handleSaveWhatsAppConfig}
+                                    onApply={handleApplyWhatsAppConfig}
                                     selectedRecipients={selectedWhatsAppRecipients}
                                     isMobile={false}
                                 />
@@ -1142,6 +1152,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             isOpen={showMobileWhatsAppModal}
                             onClose={() => setShowMobileWhatsAppModal(false)}
                             onSave={handleSaveWhatsAppConfig}
+                            onApply={handleApplyWhatsAppConfig}
                             selectedRecipients={selectedWhatsAppRecipients}
                             isMobile={true}
                         />

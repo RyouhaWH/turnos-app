@@ -19,6 +19,7 @@ interface WhatsAppNotificationsConfigProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (selectedRecipients: string[]) => void;
+    onApply?: (selectedRecipients: string[]) => void;
     selectedRecipients?: string[];
     isMobile?: boolean;
 }
@@ -48,6 +49,7 @@ export function WhatsAppNotificationsConfig({
     isOpen,
     onClose,
     onSave,
+    onApply,
     selectedRecipients = [],
     isMobile = false
 }: WhatsAppNotificationsConfigProps) {
@@ -136,6 +138,12 @@ export function WhatsAppNotificationsConfig({
     const handleSave = () => {
         onSave(localSelectedRecipients);
         onClose();
+    };
+
+    const handleApply = () => {
+        if (onApply) {
+            onApply(localSelectedRecipients);
+        }
     };
 
     const selectedCount = localSelectedRecipients.length;
@@ -375,17 +383,30 @@ export function WhatsAppNotificationsConfig({
                     </div>
 
                     <DialogFooter className="px-4 py-3 border-t bg-white dark:bg-slate-900 flex-shrink-0">
-                        <Button variant="outline" onClick={onClose} className="flex-1">
-                            Cancelar
-                        </Button>
-                        <Button
-                            onClick={handleSave}
-                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                            disabled={selectedCount === 0}
-                        >
-                            <CheckCircle2 className="h-4 w-4 mr-2" />
-                            Guardar ({selectedCount})
-                        </Button>
+                        <div className="flex gap-2 w-full">
+                            <Button variant="outline" onClick={onClose} className="flex-1">
+                                Cancelar
+                            </Button>
+                            {onApply && (
+                                <Button
+                                    onClick={handleApply}
+                                    variant="outline"
+                                    className="flex-1 border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+                                    disabled={selectedCount === 0}
+                                >
+                                    <Settings className="h-4 w-4 mr-2" />
+                                    Aplicar ({selectedCount})
+                                </Button>
+                            )}
+                            <Button
+                                onClick={handleSave}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                                disabled={selectedCount === 0}
+                            >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Guardar ({selectedCount})
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -399,7 +420,35 @@ export function WhatsAppNotificationsConfig({
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
                 </div>
             ) : (
-                content
+                <div className="space-y-6">
+                    {content}
+                    
+                    {/* Botones de acción para desktop */}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                        <Button variant="outline" onClick={onClose}>
+                            Cancelar
+                        </Button>
+                        {onApply && (
+                            <Button
+                                onClick={handleApply}
+                                variant="outline"
+                                className="border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
+                                disabled={selectedCount === 0}
+                            >
+                                <Settings className="h-4 w-4 mr-2" />
+                                Aplicar ({selectedCount})
+                            </Button>
+                        )}
+                        <Button
+                            onClick={handleSave}
+                            className="bg-green-600 hover:bg-green-700 text-white"
+                            disabled={selectedCount === 0}
+                        >
+                            <CheckCircle2 className="h-4 w-4 mr-2" />
+                            Guardar ({selectedCount})
+                        </Button>
+                    </div>
+                </div>
             )}
         </div>
     );
