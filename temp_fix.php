@@ -22,3 +22,4 @@ private function filterValidChanges(array $cambios): array
         return true;
     });
 }
+

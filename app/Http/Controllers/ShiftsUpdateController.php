@@ -107,8 +107,13 @@ class ShiftsUpdateController extends Controller
         // Si hay destinatarios seleccionados, usar solo esos
         if (!empty($selectedRecipients)) {
             $selectedNumbers = [];
+            $includeAffectedEmployees = false;
+
             foreach ($selectedRecipients as $recipientId) {
-                if (isset($recipientsMap[$recipientId]) && !empty($recipientsMap[$recipientId])) {
+                if ($recipientId === 'funcionarios-afectados') {
+                    $includeAffectedEmployees = true;
+                    Log::info('📱 Opción "Funcionarios Afectados" seleccionada - se incluirán empleados con turnos modificados');
+                } elseif (isset($recipientsMap[$recipientId]) && !empty($recipientsMap[$recipientId])) {
                     $selectedNumbers[] = $recipientsMap[$recipientId];
                 }
             }
@@ -116,6 +121,7 @@ class ShiftsUpdateController extends Controller
             Log::info('📱 Usando destinatarios WhatsApp seleccionados:', [
                 'selected_recipients' => $selectedRecipients,
                 'selected_numbers' => $selectedNumbers,
+                'include_affected_employees' => $includeAffectedEmployees,
                 'total_count' => count($selectedNumbers)
             ]);
 

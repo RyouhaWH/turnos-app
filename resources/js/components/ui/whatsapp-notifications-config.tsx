@@ -25,6 +25,10 @@ interface WhatsAppNotificationsConfigProps {
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
 const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
+    // Opción especial para funcionarios afectados
+    { id: 'funcionarios-afectados', name: 'Funcionarios Afectados', phone: 'Automático', role: 'Especial' },
+
+    // Supervisores y Central
     { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
@@ -298,35 +302,53 @@ export function WhatsAppNotificationsConfig({
                                 <div className="w-full ">
                                     <ScrollArea className="h-[400px] w-full">
                                         <div className="space-y-2 w-full ">
-                                            {DEFAULT_RECIPIENTS.map((recipient) => (
-                                                <div
-                                                    key={recipient.id}
-                                                    className="bg-white flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800/50 transition-colors min-w-full"
-                                                >
-                                                    <Checkbox
-                                                        id={recipient.id}
-                                                        checked={localSelectedRecipients.includes(recipient.id)}
-                                                        onCheckedChange={() => handleRecipientToggle(recipient.id)}
-                                                        className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
-                                                    />
-                                                    <div className="flex-1 min-w-0 w-full">
-                                                        <div className="flex items-center justify-between gap-2 w-full">
-                                                            <label
-                                                                htmlFor={recipient.id}
-                                                                className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1"
-                                                            >
-                                                                {recipient.name}
-                                                            </label>
-                                                            <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
-                                                                <Phone className="h-3 w-3" />
-                                                                <span className="font-mono">
-                                                                    {phoneNumbers[recipient.id] || recipient.phone}
-                                                                </span>
+                                            {DEFAULT_RECIPIENTS.map((recipient) => {
+                                                const isSpecial = recipient.id === 'funcionarios-afectados';
+                                                return (
+                                                    <div
+                                                        key={recipient.id}
+                                                        className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors min-w-full ${
+                                                            isSpecial
+                                                                ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700'
+                                                                : 'bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800/50'
+                                                        }`}
+                                                    >
+                                                        <Checkbox
+                                                            id={recipient.id}
+                                                            checked={localSelectedRecipients.includes(recipient.id)}
+                                                            onCheckedChange={() => handleRecipientToggle(recipient.id)}
+                                                            className={`data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 ${
+                                                                isSpecial ? 'border-blue-300' : ''
+                                                            }`}
+                                                        />
+                                                        <div className="flex-1 min-w-0 w-full">
+                                                            <div className="flex items-center justify-between gap-2 w-full">
+                                                                <label
+                                                                    htmlFor={recipient.id}
+                                                                    className={`text-sm font-medium cursor-pointer flex-1 ${
+                                                                        isSpecial
+                                                                            ? 'text-blue-900 dark:text-blue-100 font-semibold'
+                                                                            : 'text-slate-900 dark:text-white'
+                                                                    }`}
+                                                                >
+                                                                    {recipient.name}
+                                                                    {isSpecial && (
+                                                                        <span className="ml-2 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full dark:bg-blue-800 dark:text-blue-200">
+                                                                            Automático
+                                                                        </span>
+                                                                    )}
+                                                                </label>
+                                                                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                                                    <Phone className="h-3 w-3" />
+                                                                    <span className="font-mono">
+                                                                        {phoneNumbers[recipient.id] || recipient.phone}
+                                                                    </span>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            ))}
+                                                );
+                                            })}
                                         </div>
                                     </ScrollArea>
                                 </div>
@@ -341,6 +363,7 @@ export function WhatsAppNotificationsConfig({
                                             </h4>
                                             <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
                                                 <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
+                                                <li>• <strong>Funcionarios Afectados:</strong> Envía mensajes a los empleados cuyos turnos se modificaron</li>
                                                 <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                                                 <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
                                             </ul>

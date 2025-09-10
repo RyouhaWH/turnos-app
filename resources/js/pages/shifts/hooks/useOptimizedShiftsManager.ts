@@ -130,7 +130,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función optimizada para obtener ID del empleado
     const getEmployeeId = useCallback((employee: TurnoData): string => {
-        return String(employee.employee_id || employee.id || employee.rut || employee.nombre);
+        return String(employee.employee_id || employee.id || employee.nombre);
     }, []);
 
     // Cache key generator

@@ -52,7 +52,8 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
             <PopoverContent
                 side="bottom"
                 align="end"
-                className="w-64 p-2 mt-2 bg-white border-slate-200 shadow-xl antialiased"
+                className="w-64 p-2 mt-2 bg-white border-slate-200 shadow-xl antialiased mobile-animation-fix"
+                style={{ transformOrigin: 'center top' }}
             >
                 <div className="space-y-1">
                     {/* Opción: Selector de fecha */}

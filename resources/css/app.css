@@ -513,6 +513,215 @@ textarea,
 }
 
 /* 23. Animaciones para elementos que se reordenan */
+
+/* 24. Corrección de puntos de origen para animaciones */
+/* Corregir el transform-origin para que las animaciones aparezcan desde el punto correcto */
+[data-state="open"] {
+    transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
+}
+
+/* Para dropdowns y menús */
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-sub-content"] {
+    transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
+}
+
+/* Para popovers */
+[data-slot="popover-content"] {
+    transform-origin: var(--radix-popover-content-transform-origin, center);
+}
+
+/* Para tooltips */
+[data-slot="tooltip-content"] {
+    transform-origin: var(--radix-tooltip-content-transform-origin, center);
+}
+
+/* Para select content */
+[data-slot="select-content"] {
+    transform-origin: var(--radix-select-content-transform-origin, center);
+}
+
+/* Para navigation menu */
+[data-slot="navigation-menu-content"],
+[data-slot="navigation-menu-viewport"] {
+    transform-origin: var(--radix-navigation-menu-content-transform-origin, center);
+}
+
+/* Para dialogs */
+[data-slot="dialog-content"] {
+    transform-origin: center;
+}
+
+/* Para sheets - mantener el comportamiento lateral */
+[data-slot="sheet-content"][data-side="left"] {
+    transform-origin: left center;
+}
+
+[data-slot="sheet-content"][data-side="right"] {
+    transform-origin: right center;
+}
+
+[data-slot="sheet-content"][data-side="top"] {
+    transform-origin: center top;
+}
+
+[data-slot="sheet-content"][data-side="bottom"] {
+    transform-origin: center bottom;
+}
+
+/* Asegurar que las animaciones zoom-in y zoom-out usen el origen correcto */
+.zoom-in-95,
+.zoom-out-95,
+.zoom-in-90 {
+    transform-origin: inherit;
+}
+
+/* Corregir las animaciones slide-in para que respeten el origen */
+.slide-in-from-top-2,
+.slide-in-from-bottom-2,
+.slide-in-from-left-2,
+.slide-in-from-right-2 {
+    transform-origin: inherit;
+}
+
+/* 25. Mejoras adicionales para animaciones */
+/* Asegurar que todos los elementos con animaciones tengan el origen correcto */
+.animate-in,
+.animate-out {
+    transform-origin: inherit;
+}
+
+/* Para elementos que usan data-side, usar el origen apropiado */
+[data-side="bottom"] {
+    transform-origin: center top;
+}
+
+[data-side="top"] {
+    transform-origin: center bottom;
+}
+
+[data-side="left"] {
+    transform-origin: right center;
+}
+
+[data-side="right"] {
+    transform-origin: left center;
+}
+
+/* Mejorar las animaciones de fade para que no tengan problemas de origen */
+.fade-in-0,
+.fade-out-0 {
+    transform-origin: inherit;
+}
+
+/* Asegurar que las animaciones de Radix UI funcionen correctamente */
+[data-radix-popper-content-wrapper] {
+    transform-origin: inherit;
+}
+
+/* Para elementos que se posicionan dinámicamente */
+[style*="transform-origin"] {
+    /* Respetar el transform-origin definido dinámicamente */
+}
+
+/* 26. Correcciones específicas para móvil */
+/* Asegurar que las animaciones móviles funcionen correctamente */
+@media (max-width: 768px) {
+    /* Forzar el transform-origin correcto en móvil */
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="dropdown-menu-sub-content"] {
+        transform-origin: center !important;
+    }
+
+    /* Para popovers en móvil, usar el origen del trigger */
+    [data-slot="popover-content"][data-side="bottom"] {
+        transform-origin: center top !important;
+    }
+
+    [data-slot="popover-content"][data-side="top"] {
+        transform-origin: center bottom !important;
+    }
+
+    [data-slot="popover-content"][data-side="left"] {
+        transform-origin: right center !important;
+    }
+
+    [data-slot="popover-content"][data-side="right"] {
+        transform-origin: left center !important;
+    }
+
+    /* Para sheets en móvil */
+    [data-slot="sheet-content"][data-side="left"] {
+        transform-origin: left center !important;
+    }
+
+    [data-slot="sheet-content"][data-side="right"] {
+        transform-origin: right center !important;
+    }
+
+    /* Asegurar que las animaciones de Radix UI en móvil usen el origen correcto */
+    [data-radix-popper-content-wrapper] {
+        transform-origin: inherit !important;
+    }
+
+    /* Forzar el comportamiento correcto en móvil */
+    .mobile-animation-fix {
+        transform-origin: center !important;
+    }
+
+    /* Corrección global para todas las animaciones en móvil */
+    *[data-state="open"] {
+        transform-origin: center !important;
+    }
+
+    /* Específico para elementos que aparecen desde abajo */
+    *[data-side="bottom"][data-state="open"] {
+        transform-origin: center top !important;
+    }
+
+    /* Específico para elementos que aparecen desde arriba */
+    *[data-side="top"][data-state="open"] {
+        transform-origin: center bottom !important;
+    }
+
+    /* Específico para elementos que aparecen desde la izquierda */
+    *[data-side="left"][data-state="open"] {
+        transform-origin: right center !important;
+    }
+
+    /* Específico para elementos que aparecen desde la derecha */
+    *[data-side="right"][data-state="open"] {
+        transform-origin: left center !important;
+    }
+
+    /* Corrección específica para Radix UI en móvil */
+    [data-radix-popper-content-wrapper] * {
+        transform-origin: inherit !important;
+    }
+
+    /* Forzar el comportamiento correcto en todos los portales de Radix */
+    [data-radix-portal] * {
+        transform-origin: inherit !important;
+    }
+
+    /* Corrección final para móvil - sobrescribir cualquier transform-origin problemático */
+    .animate-in,
+    .animate-out,
+    .zoom-in-95,
+    .zoom-out-95,
+    .zoom-in-90,
+    .slide-in-from-top-2,
+    .slide-in-from-bottom-2,
+    .slide-in-from-left-2,
+    .slide-in-from-right-2,
+    .slide-out-to-top,
+    .slide-out-to-bottom,
+    .slide-out-to-left,
+    .slide-out-to-right {
+        transform-origin: inherit !important;
+    }
+}
 .reorder {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

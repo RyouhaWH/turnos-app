@@ -29,7 +29,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
             <SheetTrigger asChild>
                 {children}
             </SheetTrigger>
-            <SheetContent side="left" className="w-[280px] p-0">
+            <SheetContent side="left" className="w-[280px] p-0 mobile-animation-fix" style={{ transformOrigin: 'left center' }}>
                 <SheetHeader className="p-6 border-b">
                     <SheetTitle className="text-left text-lg font-semibold">
                         Navegación
