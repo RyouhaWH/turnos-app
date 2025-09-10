@@ -612,6 +612,14 @@ export const useShiftsManager = (employee_rol_id: number) => {
             año: año,
         };
 
+        // Debug: Log de los datos que se van a enviar
+        console.log('🚀 Datos a enviar al backend:', {
+            datosAEnviar,
+            resumenDetallado: JSON.stringify(resumen, null, 2),
+            gridChanges: gridChanges,
+            fechaParaCambios: fechaParaCambios.toISOString()
+        });
+
         setIsSaving(true);
 
         fetch('/turnos-mes/actualizar', {

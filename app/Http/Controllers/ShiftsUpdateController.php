@@ -36,7 +36,13 @@ class ShiftsUpdateController extends Controller
             // Usar destinatarios seleccionados por el administrador o los por defecto
             $numerosAReportarCambios = $this->getNotificationNumbers($whatsappRecipients);
 
-            Log::info('🔄 Valores recibidos en actualización:', [
+            $mensaje = '🔄 Valores recibidos en actualización' . PHP_EOL .
+                       'Mes: ' . $mes . PHP_EOL .
+                       'Año: ' . $año . PHP_EOL .
+                       'Cambios recibidos: ' . json_encode($cambios, JSON_PRETTY_PRINT) . PHP_EOL .
+                       'WhatsApp recipients: ' . json_encode($whatsappRecipients) . PHP_EOL .
+                       'Request completo: ' . json_encode($request->all(), JSON_PRETTY_PRINT);
+            Log::info($mensaje, [
                 'mes'     => $mes,
                 'año'     => $año,
                 'cambios' => $cambios,

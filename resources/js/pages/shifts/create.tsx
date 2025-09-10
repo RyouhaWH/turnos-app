@@ -2,10 +2,11 @@ import AgGridHorizontal from '@/components/ui/excel-shift-horizontal';
 import { Toaster } from '@/components/ui/sonner';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import ListaCambios from './shift-change-list';
+import { useShiftsManager } from './hooks/useShiftsManager';
 
 const breadcrumbs: BreadcrumbItem[] = [
     {
@@ -50,39 +51,23 @@ const contarTurnos = (datos: TurnoData[]): TurnoResumen => {
 };
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
-    const { data, setData, post, processing, errors } = useForm({
-        cambios: {},
-    });
     const { props } = usePage<{ turnos: TurnoData[] }>();
     const rowData = props.turnos;
 
-    const [resumen, setResumen] = useState<Record<string, Record<string, Date>>>({});
+    // Usar el hook useShiftsManager
+    const {
+        resumen,
+        handleActualizarCambios,
+        registerChange,
+        isSaving,
+        listaCambios,
+        handleResumenUpdate
+    } = useShiftsManager(employee_rol_id);
 
-
-    // Esta función se mantiene estable entre renders
-    const handleResumenUpdate = useCallback((ResumenCambios) => {
-        setResumen(ResumenCambios);
-        setData(ResumenCambios);
-        setData({ cambios: ResumenCambios });
-    }, []);
-
-    // Aquí llamas a tu endpoint o lógica de guardar cambios en DB
-    const handleActualizarCambios = () => {
-        post(route('post-updateShifts'), {
-            onSuccess: () => {
-                setResumen({}); // limpia cambios si quieres
-                toast('✅ Cambios guardados', {
-                    description: 'Los turnos fueron actualizados correctamente.',
-                });
-            },
-            onError: (error) => {
-                console.error('❌ Error al guardar:', error);
-                toast('❌ Error al guardar', {
-                    description: 'Hubo un problema al guardar los cambios.',
-                });
-            },
-        });
-    };
+    // Esta función se mantiene estable entre renders para compatibilidad
+    const handleResumenUpdateCallback = useCallback((ResumenCambios) => {
+        handleResumenUpdate(ResumenCambios);
+    }, [handleResumenUpdate]);
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
@@ -94,7 +79,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className="ag-theme-alpine flex-1 overflow-auto rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
                         <AgGridHorizontal
                             rowData={rowData}
-                            onResumenChange={handleResumenUpdate}
+                            onResumenChange={handleResumenUpdateCallback}
                             onRowClicked={(event) => {
                                 const empleadoId = event.data.id || event.data.employee_id;
                                 setEmpleadoSeleccionado(event.data);
@@ -107,7 +92,7 @@ export default function ShiftsManager({ turnos, employee_rol_id }: any) {
                     <div className="relative w-[420px] shrink-0">
                         <div className="sticky max-h-[calc(100vh-2rem)] overflow-y-auto p-3 text-sm">
                             <h2 className="mb-2 text-center font-bold">Resumen</h2>
-                            <ListaCambios cambios={resumen} onActualizar={handleActualizarCambios} isProcesing={processing} />
+                            <ListaCambios cambios={resumen} onActualizar={handleActualizarCambios} isProcesing={isSaving} />
                         </div>
                     </div>
 
