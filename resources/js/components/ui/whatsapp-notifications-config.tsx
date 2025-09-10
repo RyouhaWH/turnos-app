@@ -19,7 +19,6 @@ interface WhatsAppNotificationsConfigProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (selectedRecipients: string[]) => void;
-    onApply?: (selectedRecipients: string[]) => void;
     selectedRecipients?: string[];
     isMobile?: boolean;
 }
@@ -49,7 +48,6 @@ export function WhatsAppNotificationsConfig({
     isOpen,
     onClose,
     onSave,
-    onApply,
     selectedRecipients = [],
     isMobile = false
 }: WhatsAppNotificationsConfigProps) {
@@ -140,11 +138,7 @@ export function WhatsAppNotificationsConfig({
         onClose();
     };
 
-    const handleApply = () => {
-        if (onApply) {
-            onApply(localSelectedRecipients);
-        }
-    };
+
 
     const selectedCount = localSelectedRecipients.length;
     const totalCount = DEFAULT_RECIPIENTS.length;
@@ -387,17 +381,6 @@ export function WhatsAppNotificationsConfig({
                             <Button variant="outline" onClick={onClose} className="flex-1">
                                 Cancelar
                             </Button>
-                            {onApply && (
-                                <Button
-                                    onClick={handleApply}
-                                    variant="outline"
-                                    className="flex-1 border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
-                                    disabled={selectedCount === 0}
-                                >
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Aplicar ({selectedCount})
-                                </Button>
-                            )}
                             <Button
                                 onClick={handleSave}
                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
@@ -428,17 +411,6 @@ export function WhatsAppNotificationsConfig({
                         <Button variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        {onApply && (
-                            <Button
-                                onClick={handleApply}
-                                variant="outline"
-                                className="border-blue-200 bg-blue-50 text-blue-700 hover:border-blue-300 hover:bg-blue-100"
-                                disabled={selectedCount === 0}
-                            >
-                                <Settings className="h-4 w-4 mr-2" />
-                                Aplicar ({selectedCount})
-                            </Button>
-                        )}
                         <Button
                             onClick={handleSave}
                             className="bg-green-600 hover:bg-green-700 text-white"
