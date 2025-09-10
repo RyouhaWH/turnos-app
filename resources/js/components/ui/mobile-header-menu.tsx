@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { MoreVertical, Eye, Users, Calendar, History, MessageSquare } from 'lucide-react';
+import { MoreVertical, Eye, Users, Calendar, History, MessageSquare, Filter } from 'lucide-react';
 import React, { useState } from 'react';
 
 interface MobileHeaderMenuProps {
@@ -10,6 +10,7 @@ interface MobileHeaderMenuProps {
     onShowDatePicker: () => void;
     onShowHistory: () => void;
     onShowWhatsApp?: () => void;
+    onShowFilter?: () => void;
     changeCount: number;
     employeeCount: number;
     availableCount: number;
@@ -24,6 +25,7 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
     onShowDatePicker,
     onShowHistory,
     onShowWhatsApp,
+    onShowFilter,
     changeCount,
     employeeCount,
     availableCount,
@@ -72,6 +74,25 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
                             <span className="text-xs text-slate-500 antialiased">{currentMonthTitle}</span>
                         </div>
                     </div>
+
+                    {/* Opción: Filtrar turnos */}
+                    {onShowFilter && (
+                        <div
+                            onClick={() => {
+                                onShowFilter();
+                                setIsOpen(false);
+                            }}
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-orange-50 cursor-pointer transition-colors"
+                        >
+                            <div className="flex items-center justify-center w-8 h-8 rounded-full bg-orange-100">
+                                <Filter className="h-4 w-4 text-orange-600" />
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="font-medium text-slate-900 antialiased">Filtrar Turnos</span>
+                                <span className="text-xs text-slate-500 antialiased">Mostrar/ocultar tipos de turno</span>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Opción: Ver resumen de cambios */}
                     {changeCount > 0 && (

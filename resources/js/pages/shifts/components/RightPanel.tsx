@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, FileText, History } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ChevronRight, FileText, History, Save, Loader2 } from 'lucide-react';
 import ListaCambios from '../shift-change-list';
 import ShiftHistoryFeed from '@/components/ui/shift-history-feed';
 import { EmployeeManagementCard } from './EmployeeManagementCard';
@@ -132,6 +133,31 @@ export const RightPanel = memo(({
                             </div>
                         </div>
                     </CardHeader>
+
+                    {/* Botón de aplicar cambios */}
+                    {Object.keys(resumen).length > 0 && hasEditPermissions && (
+                        <div className="px-4 pb-3">
+                            <Button
+                                variant="default"
+                                size="sm"
+                                onClick={() => handleActualizarCambios('')}
+                                disabled={isSaving}
+                                className="w-full flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white"
+                            >
+                                {isSaving ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                        Aplicando...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Save className="h-4 w-4" />
+                                        Aplicar cambios
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    )}
 
                     <div
                         className={`overflow-hidden transition-all duration-300 ease-in-out ${

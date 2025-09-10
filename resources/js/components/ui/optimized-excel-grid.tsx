@@ -51,6 +51,7 @@ interface OptimizedExcelGridProps {
     pendingChanges?: OptimizedGridChange[];
     showPendingChanges?: boolean;
     isProcessingChanges?: boolean;
+    hiddenShiftTypes?: Set<string>;
     className?: string;
 }
 
@@ -174,19 +175,23 @@ const addOptimizedSeparators = (data: TurnoData[]): TurnoData[] => {
     return result;
 };
 
-const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridProps>(({
-    rowData,
-    onCellValueChanged,
-    onRowClicked,
-    onGridReady,
-    editable = true,
-    month,
-    year,
-    pendingChanges = [],
-    showPendingChanges = false,
-    isProcessingChanges = false,
-    className = '',
-}, ref) => {
+const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridProps>((
+    {
+        rowData,
+        onCellValueChanged,
+        onRowClicked,
+        onGridReady,
+        editable = true,
+        month,
+        year,
+        pendingChanges = [],
+        showPendingChanges = false,
+        isProcessingChanges = false,
+        hiddenShiftTypes = new Set(),
+        className = '',
+    },
+    ref
+) => {
     const gridRef = useRef<AgGridReact<TurnoData>>(null);
     const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
@@ -327,8 +332,23 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
 
                     if (params.value) {
-                        const firstChar = String(params.value).toLowerCase().charAt(0);
-                        classes.push(`shift-${firstChar}`);
+                        const shiftValue = String(params.value).toLowerCase();
+                        // Para turnos de múltiples caracteres como LM, usar el valor completo
+                        if (shiftValue === 'lm') {
+                            classes.push('shift-lm');
+                        } else if (shiftValue === 'sa') {
+                            // SA (sin asignar) no tiene color, se mantiene transparente
+                            classes.push('shift-sa');
+                        } else {
+                            // Para turnos de un solo carácter, usar el primer carácter
+                            const firstChar = shiftValue.charAt(0);
+                            classes.push(`shift-${firstChar}`);
+                        }
+                        
+                        // Ocultar celda si el tipo de turno está en hiddenShiftTypes
+                        if (hiddenShiftTypes.has(String(params.value).toUpperCase())) {
+                            classes.push('hidden-shift');
+                        }
                     }
 
                     // Agregar clase para cambios pendientes
@@ -351,7 +371,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         });
 
         return columns;
-    }, [daysInfo, editable, collapsedGroups, isProcessingChanges, showPendingChanges, pendingChangesMap]);
+    }, [daysInfo, editable, collapsedGroups, isProcessingChanges, showPendingChanges, pendingChangesMap, hiddenShiftTypes]);
 
     // Manejar cambios de celda optimizado
     const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
@@ -506,7 +526,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .shift-v { background-color: #ffd4b3 !important; color: #ef6c00 !important; }
                 .ag-theme-alpine .shift-a { background-color: #b3e6ff !important; color: #0277bd !important; }
                 .ag-theme-alpine .shift-s { background-color: #f2b3d9 !important; color: #c2185b !important; }
-                .ag-theme-alpine .shift-lm { background-color: #ffb3b3 !important; color: #c62828 !important; }
+                .ag-theme-alpine .shift-lm { background-color: #ffcdd2 !important; color: #d32f2f !important; }
                 .ag-theme-alpine .shift-pe { background-color: #e1bee7 !important; color: #7b1fa2 !important; }
                 .ag-theme-alpine .shift-lc { background-color: #dcedc8 !important; color: #33691e !important; }
 
@@ -514,9 +534,10 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .shift-2 { background-color: #b3d9ff !important; }
                 .ag-theme-alpine .shift-3 { background-color: #d9d9d9 !important; }
 
-                /* F y L sin color en días de semana */
+                /* F, L y SA sin color en días de semana */
                 .ag-theme-alpine .shift-f,
-                .ag-theme-alpine .shift-l {
+                .ag-theme-alpine .shift-l,
+                .ag-theme-alpine .shift-sa {
                     background-color: transparent !important;
                 }
 
@@ -527,7 +548,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .weekend-cell.shift-v { background-color: #ffb74d !important; color: #ef6c00 !important; }
                 .ag-theme-alpine .weekend-cell.shift-a { background-color: #81d4fa !important; color: #0277bd !important; }
                 .ag-theme-alpine .weekend-cell.shift-s { background-color: #f48fb1 !important; color: #c2185b !important; }
-                .ag-theme-alpine .weekend-cell.shift-lm { background-color: #ef5350 !important; color: #c62828 !important; }
+                .ag-theme-alpine .weekend-cell.shift-lm { background-color: #f44336 !important; color: #ffffff !important; }
                 .ag-theme-alpine .weekend-cell.shift-pe { background-color: #ce93d8 !important; color: #7b1fa2 !important; }
                 .ag-theme-alpine .weekend-cell.shift-lc { background-color: #c5e1a5 !important; color: #33691e !important; }
 
@@ -536,8 +557,9 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .weekend-cell.shift-3 { background-color: #bcbcbc !important; color: #424242 !important; }
 
                 .ag-theme-alpine .weekend-cell.shift-f,
-                .ag-theme-alpine .weekend-cell.shift-l {
-                    background-color: #e8e8e8 !important;
+                .ag-theme-alpine .weekend-cell.shift-l,
+                .ag-theme-alpine .weekend-cell.shift-sa {
+                    background-color: transparent !important;
                     color: #666666 !important;
                 }
 
@@ -598,6 +620,11 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .processing-changes {
                     opacity: 0.7 !important;
                     pointer-events: none !important;
+                }
+
+                /* Turnos ocultos */
+                .ag-theme-alpine .hidden-shift {
+                    display: none !important;
                 }
             `}</style>
 

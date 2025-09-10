@@ -9,13 +9,15 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
-import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History, AlertTriangle, MessageSquare } from 'lucide-react';
+import { FileSpreadsheet, Loader2, Settings, Undo2, Eye, EyeOff, Save, CheckCircle2, Bell, Users, Calendar, Menu, History, AlertTriangle, MessageSquare, Filter, X } from 'lucide-react';
 import { WhatsAppNotificationsConfig } from '@/components/ui/whatsapp-notifications-config';
-import React, { Suspense, useCallback, useMemo, useState } from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
+import React, { Suspense, useCallback, useMemo, useState, useEffect } from 'react';
 import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 import { MobileFABGroup, MobileFAB } from '@/components/ui/mobile-fab';
 import { MobileDropdownMenu } from '@/components/ui/mobile-dropdown-menu';
 import { MobileHeaderMenu } from '@/components/ui/mobile-header-menu';
+import { MobileShiftFilterModal } from '@/components/ui/mobile-shift-filter-modal';
 import { usePage } from '@inertiajs/react';
 
 // Lazy loading de componentes pesados
@@ -59,6 +61,14 @@ const OptimizedLoadingGrid = () => (
 );
 
 // Componente principal optimizado
+interface ShiftType {
+    code: string;
+    name: string;
+    color: string;
+    isGroup?: boolean;
+    codes?: string[];
+}
+
 interface OptimizedShiftsManagerProps {
     turnos?: any[];
     employee_rol_id?: number;
@@ -85,6 +95,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [showMobileEmployeeModal, setShowMobileEmployeeModal] = useState(false);
     const [showMobileDatePickerModal, setShowMobileDatePickerModal] = useState(false);
     const [showMobileWhatsAppModal, setShowMobileWhatsAppModal] = useState(false);
+    const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
+    
+    // Estados para filtro de turnos
+    const [showShiftFilter, setShowShiftFilter] = useState(false);
+    const [visibleShiftTypes, setVisibleShiftTypes] = useState<Set<string>>(new Set());
 
     // Estado para destinatarios de WhatsApp seleccionados
     const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
@@ -177,12 +192,26 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         }
     }, [isMobile]);
 
+    // Función para manejar el filtro móvil
+    const handleToggleFilter = useCallback(() => {
+        if (isMobile) {
+            setShowMobileFilterModal(true);
+        } else {
+            setShowShiftFilter(!showShiftFilter);
+        }
+    }, [isMobile, showShiftFilter]);
+
     // Función para guardar la configuración de WhatsApp
     const handleSaveWhatsAppConfig = useCallback((recipients: string[]) => {
         setSelectedWhatsAppRecipients(recipients);
         // Aquí podrías guardar la configuración en localStorage o enviarla al servidor
         localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
     }, []);
+
+    // Funciones para el filtro de turnos
+    const handleToggleShiftFilter = useCallback(() => {
+        setShowShiftFilter(!showShiftFilter);
+    }, [showShiftFilter]);
 
 
     // Función para abrir el popup de confirmación
@@ -245,6 +274,81 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         clearAllEmployees,
         closeEmployeeSelector,
     } = useOptimizedShiftsManager(employee_rol_id);
+
+    // ========== FILTRO HARDCODEADO - EDITA AQUÍ LOS TIPOS DE TURNOS ==========
+    // Para agregar o quitar tipos de turnos del filtro, modifica este array:
+    const availableShiftTypes = useMemo<ShiftType[]>(() => [
+        { code: 'TURNO_1_GROUP', name: '1er turno / Mañana', color: '#ffcc80', isGroup: true, codes: ['1', 'M'] },
+        { code: 'TURNO_2_GROUP', name: '2do turno / Tarde', color: '#90caf9', isGroup: true, codes: ['2', 'T'] },
+        { code: 'TURNO_3_GROUP', name: '3er turno / Noche', color: '#9575cd', isGroup: true, codes: ['3', 'N'] },
+
+        // Agrega más tipos aquí si necesitas:
+        { code: 'V', name: 'Vacaciones', color: '#ff8a65' },
+        { code: 'A', name: 'Administrativo', color: '#4db6ac' },
+        { code: 'S', name: 'Sindical', color: '#ba68c8' },
+        { code: 'F', name: 'Franco', color: 'transparent' },
+        { code: 'L', name: 'Libre', color: 'transparent' },
+        { code: 'SA', name: 'Sin Asignar', color: '#bdbdbd' },
+        { code: 'LM', name: 'Licencia Médica', color: '#e57373' },
+        
+        // Turnos Extras (agrupados)
+        { code: 'EXTRAS_GROUP', name: 'Turnos Extras', color: '#f06292', isGroup: true, codes: ['E', 'ME', 'TE', 'NE', '1E', '2E', '3E'] },
+        // { code: 'LC', name: 'Licencia', color: '#aed581' },
+    ], []);
+    // ========================================================================
+
+    const handleToggleShiftType = useCallback((shiftType: string) => {
+        setVisibleShiftTypes(prev => {
+            const newSet = new Set(prev);
+            const shiftConfig = availableShiftTypes.find(shift => shift.code === shiftType);
+            
+            if (shiftConfig?.isGroup && shiftConfig.codes) {
+                // Manejar grupo de turnos
+                const allGroupVisible = shiftConfig.codes.every(code => newSet.has(code));
+                if (allGroupVisible) {
+                    // Si todos están visibles, ocultar todos
+                    shiftConfig.codes.forEach(code => newSet.delete(code));
+                } else {
+                    // Si no todos están visibles, mostrar todos
+                    shiftConfig.codes.forEach(code => newSet.add(code));
+                }
+            } else {
+                // Manejar turno individual
+                if (newSet.has(shiftType)) {
+                    newSet.delete(shiftType);
+                } else {
+                    newSet.add(shiftType);
+                }
+            }
+            return newSet;
+        });
+    }, [availableShiftTypes]);
+
+    // Función para obtener todos los códigos incluyendo los de grupos
+    const getAllShiftCodes = useCallback(() => {
+        const allCodes: string[] = [];
+        availableShiftTypes.forEach(shift => {
+            if (shift.isGroup && shift.codes) {
+                allCodes.push(...shift.codes);
+            } else {
+                allCodes.push(shift.code);
+            }
+        });
+        return allCodes;
+    }, [availableShiftTypes]);
+
+    const clearAllFilters = useCallback(() => {
+        setVisibleShiftTypes(new Set(getAllShiftCodes()));
+    }, [getAllShiftCodes]);
+
+    const deselectAllFilters = useCallback(() => {
+        setVisibleShiftTypes(new Set());
+    }, []);
+
+    // Inicializar todos los tipos como visibles al cargar
+    useEffect(() => {
+        setVisibleShiftTypes(new Set(getAllShiftCodes()));
+    }, [getAllShiftCodes]);
 
     // Función para manejar solicitud de cambio de fecha (ya no se usa)
     const handleDateChangeRequest = useCallback((newDate: Date) => {
@@ -325,9 +429,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             pendingChanges: listaCambios,
             showPendingChanges,
             isProcessingChanges,
+            hiddenShiftTypes: new Set(getAllShiftCodes().filter(code => !visibleShiftTypes.has(code))),
             className: 'transition-all duration-300 ease-in-out',
         }),
-        [filteredRowData, handleCellValueChanged, setGridApi, hasEditPermissions, isProcessingChanges, selectedDate, listaCambios, showPendingChanges],
+        [filteredRowData, handleCellValueChanged, setGridApi, hasEditPermissions, isProcessingChanges, selectedDate, listaCambios, showPendingChanges, visibleShiftTypes, availableShiftTypes],
     );
 
     // Memoizar props del resumen
@@ -455,6 +560,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onShowDatePicker={handleToggleDatePicker}
                                                     onShowHistory={handleToggleHistory}
                                                     onShowWhatsApp={handleToggleWhatsAppConfig}
+                                                    onShowFilter={handleToggleFilter}
                                                     changeCount={changeCount}
                                                     employeeCount={filteredRowData.length}
                                                     availableCount={filteredAvailableEmployees.length}
@@ -526,18 +632,41 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         )}
 
                                         {/* Botón de configuración WhatsApp solo para administradores */}
-                                        {!isMobile && hasAdminPermissions && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={handleToggleWhatsAppConfig}
-                                                className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300"
-                                                title="Configurar notificaciones WhatsApp"
-                                            >
-                                                <MessageSquare className="h-4 w-4" />
-                                                WhatsApp
-                                            </Button>
-                                        )}
+                        {!isMobile && hasAdminPermissions && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleToggleWhatsAppConfig}
+                                className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:bg-green-100 hover:border-green-300"
+                                title="Configurar notificaciones WhatsApp"
+                            >
+                                <MessageSquare className="h-4 w-4" />
+                                WhatsApp
+                            </Button>
+                        )}
+
+                        {/* Botón de filtro de turnos */}
+                        {!isMobile && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleToggleShiftFilter}
+                                className={`flex items-center gap-2 transition-all duration-300 ${
+                                    showShiftFilter 
+                                        ? 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100' 
+                                        : 'hover:bg-gray-50'
+                                }`}
+                                title="Filtrar tipos de turnos"
+                            >
+                                <Filter className="h-4 w-4" />
+                                Filtrar Turnos
+                                {visibleShiftTypes.size < availableShiftTypes.length && (
+                                    <span className="bg-blue-500 text-white text-xs rounded-full px-1.5 py-0.5 min-w-[1.25rem] h-5 flex items-center justify-center">
+                                        {availableShiftTypes.length - visibleShiftTypes.size}
+                                    </span>
+                                )}
+                            </Button>
+                        )}
 
                                         {/* Botón para aplicar cambios solo en desktop */}
                                         {!isMobile && changeCount > 0 && (
@@ -642,6 +771,97 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         isMobile={isMobile}
                                     />
                                 </Suspense>
+                            </div>
+                        )}
+
+                        {/* Panel de filtro de turnos - Solo desktop */}
+                        {!isMobile && showShiftFilter && (
+                            <div className="w-80 flex-shrink-0 h-full">
+                                <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
+                                    <CardHeader className="pb-3">
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="flex items-center gap-2 text-lg font-semibold">
+                                                <Filter className="h-5 w-5" />
+                                                Filtrar Turnos
+                                            </CardTitle>
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={handleToggleShiftFilter}
+                                                className="h-8 w-8 p-0"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                                            Desmarca los tipos de turnos que deseas ocultar
+                                        </p>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* Botones para manejar filtros */}
+                                        <div className="flex gap-2 flex-wrap">
+                                            {visibleShiftTypes.size < availableShiftTypes.length && (
+                                                <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={clearAllFilters}
+                                                className="min-w-0 flex-1 max-w-[120px] px-1"
+                                            >
+                                                Seleccionar todos
+                                            </Button>
+                                            )}
+                                            {visibleShiftTypes.size > 0 && (
+                                                <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={deselectAllFilters}
+                                                className="min-w-0 flex-1 max-w-[160px] border-red-200 text-red-700 hover:bg-red-50 hover:border-red-300 px-1"
+                                            >
+                                                Deseleccionar todos
+                                            </Button>
+                                            )}
+                                        </div>
+
+                                        {/* Lista de tipos de turnos */}
+                                        <ScrollArea className="h-[calc(100vh-400px)]">
+                                            <div className="space-y-3">
+                                                {availableShiftTypes.map((shiftType) => (
+                                                    <div
+                                                        key={shiftType.code}
+                                                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                                    >
+                                                        <Checkbox
+                                                            id={`shift-${shiftType.code}`}
+                                                            checked={
+                                                                shiftType.isGroup && shiftType.codes
+                                                                    ? shiftType.codes.every(code => visibleShiftTypes.has(code))
+                                                                    : visibleShiftTypes.has(shiftType.code)
+                                                            }
+                                                            onCheckedChange={() => handleToggleShiftType(shiftType.code)}
+                                                        />
+                                                        <div className="flex items-center gap-2 flex-1">
+                                                            <div
+                                                                className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600"
+                                                                style={{
+                                                                    backgroundColor: shiftType.color === 'transparent' ? '#f1f5f9' : shiftType.color,
+                                                                    border: shiftType.color === 'transparent' ? '1px dashed #94a3b8' : undefined
+                                                                }}
+                                                            />
+                                                            <label
+                                                                htmlFor={`shift-${shiftType.code}`}
+                                                                className="text-sm font-medium cursor-pointer flex-1"
+                                                            >
+                                                                {shiftType.name}
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+
+
+                                    </CardContent>
+                                </Card>
                             </div>
                         )}
 
@@ -882,6 +1102,19 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                         onSave={handleSaveWhatsAppConfig}
                         selectedRecipients={selectedWhatsAppRecipients}
                         isMobile={true}
+                    />
+                )}
+
+                {/* Modal de filtro de turnos - Mobile */}
+                {isMobile && (
+                    <MobileShiftFilterModal
+                        isOpen={showMobileFilterModal}
+                        onClose={() => setShowMobileFilterModal(false)}
+                        shiftTypes={availableShiftTypes}
+                        selectedShiftTypes={Array.from(visibleShiftTypes)}
+                        onShiftTypeToggle={handleToggleShiftType}
+                        onSelectAll={clearAllFilters}
+                        onDeselectAll={deselectAllFilters}
                     />
                 )}
 
