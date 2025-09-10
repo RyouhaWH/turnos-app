@@ -75,6 +75,28 @@ class ShiftsUpdateController extends Controller
     }
 
     /**
+     * Get phone number to name mapping
+     */
+    private function getPhoneToNameMapping(): array
+    {
+        return [
+            Employees::where('rut', '12282547-7')->first()->phone ?? '' => 'Julio Sarmiento',
+            Employees::where('rut', '10604235-7')->first()->phone ?? '' => 'Marianela Huequelef',
+            Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
+            Employees::where('rut', '18984596-0')->first()->phone ?? '' => 'Javier Alvarado',
+            Employees::where('rut', '16948150-4')->first()->phone ?? '' => 'Eduardo Esparza',
+            '981841759' => 'Dayana Chávez',
+            '964949887' => 'Central',
+            Employees::where('rut', '15987971-2')->first()->phone ?? '' => 'Manuel Verdugo',
+            Employees::where('rut', '12389084-1')->first()->phone ?? '' => 'Paola Carrasco',
+            Employees::where('rut', '16533970-3')->first()->phone ?? '' => 'César Soto',
+            '975952121' => 'Cristian Montecinos',
+            '985639782' => 'Informaciones Amzoma',
+            Employees::where('rut', '18198426-0')->first()->phone ?? '' => 'Jorge Waltemath',
+        ];
+    }
+
+    /**
      * Get notification phone numbers based on environment and selected recipients
      */
     private function getNotificationNumbers(array $selectedRecipients = []): array
@@ -373,17 +395,19 @@ class ShiftsUpdateController extends Controller
     private function sendTestMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario): void
     {
         $testNumber = "951004035"; // Tu número de prueba
+        $phoneToNameMapping = $this->getPhoneToNameMapping();
 
         $mensajePrueba = "🧪 MODO PRUEBA - WhatsApp\n\n";
         $mensajePrueba .= "📋 Destinatarios que recibirían el mensaje:\n";
 
-        // Listar todos los destinatarios que recibirían el mensaje
+        // Listar todos los destinatarios que recibirían el mensaje con sus nombres
         foreach ($numerosAReportarCambios as $numero) {
-            $mensajePrueba .= "• {$numero}\n";
+            $nombre = $phoneToNameMapping[$numero] ?? 'Desconocido';
+            $mensajePrueba .= "• {$numero} ({$nombre})\n";
         }
 
         if ($datosFuncionario['telefono']) {
-            $mensajePrueba .= "• {$datosFuncionario['telefono']} (empleado)\n";
+            $mensajePrueba .= "• {$datosFuncionario['telefono']} ({$datosFuncionario['nombre']} - empleado)\n";
         }
 
         $mensajePrueba .= "\n📱 Mensaje original:\n{$mensaje}";
