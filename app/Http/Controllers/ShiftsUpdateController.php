@@ -315,6 +315,8 @@ class ShiftsUpdateController extends Controller
             '2E'    => 'Segundo Turno Extra',
             '3E'    => 'Tercer Turno Extra',
             'E'     => 'Extra',
+            'V'     => 'Vacaciones',
+            'P'     => 'Permiso / Cumpleaño',
             'SA', 'X' => 'Sin Asignar',
             null, '', ' ' => 'Sin Turno',
             default => 'Desconocido',
