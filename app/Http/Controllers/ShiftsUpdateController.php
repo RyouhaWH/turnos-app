@@ -101,33 +101,33 @@ class ShiftsUpdateController extends Controller
      */
     private function getNotificationNumbers(array $selectedRecipients = []): array
     {
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
-        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
-        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
-        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
+        //$numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
+        //$numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
+        //$numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
+        //$numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
         $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
-        $numeroDayanaChavez        = "981841759";
-        $numeroCentral             = "964949887";
-        $numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
-        $numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone ?? '';
-        $numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone ?? '';
-        $numeroCristianMontecinos  = "975952121";
+        //$numeroDayanaChavez        = "981841759";
+        //$numeroCentral             = "964949887";
+        //$numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
+        //$numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone ?? '';
+        //$numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone ?? '';
+        //$numeroCristianMontecinos  = "975952121";
         $numeroInformacionesAmzoma = "985639782";
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone ?? '';
 
         // Mapeo de IDs a números de teléfono
         $recipientsMap = [
-            'julio-sarmiento' => $numeroJulioSarmiento,
-            'marianela-huequelef' => $numeroMarianelaHuequelef,
-            'priscila-escobar' => $numeroPriscilaEscobar,
-            'javier-alvarado' => $numeroJavierAlvarado,
+            //'julio-sarmiento' => $numeroJulioSarmiento,
+            //'marianela-huequelef' => $numeroMarianelaHuequelef,
+            //'priscila-escobar' => $numeroPriscilaEscobar,
+            //'javier-alvarado' => $numeroJavierAlvarado,
             'eduardo-esparza' => $numeroEduardoEsparza,
-            'dayana-chavez' => $numeroDayanaChavez,
-            'central' => $numeroCentral,
-            'manuel-verdugo' => $numeroMunuelVerdugo,
-            'paola-carrasco' => $numeroPaolaCarrasco,
-            'cesar-soto' => $numeroCesarSoto,
-            'cristian-montecinos' => $numeroCristianMontecinos,
+            //'dayana-chavez' => $numeroDayanaChavez,
+            //'central' => $numeroCentral,
+            //'manuel-verdugo' => $numeroMunuelVerdugo,
+            //'paola-carrasco' => $numeroPaolaCarrasco,
+            //'cesar-soto' => $numeroCesarSoto,
+            //'cristian-montecinos' => $numeroCristianMontecinos,
             'informaciones-amzoma' => $numeroInformacionesAmzoma,
             'jorge-waltemath' => $numeroJorgeWaltemath,
         ];
@@ -158,13 +158,14 @@ class ShiftsUpdateController extends Controller
 
         // Si no hay destinatarios seleccionados, usar la lógica por defecto
         if (app()->environment('production')) {
-            return [
-                $numeroInformacionesAmzoma, $numeroJorgeWaltemath, $numeroJulioSarmiento,
-                $numeroMarianelaHuequelef, $numeroPriscilaEscobar, $numeroJavierAlvarado,
-                $numeroEduardoEsparza, $numeroDayanaChavez, $numeroCentral,
-                $numeroMunuelVerdugo, $numeroPaolaCarrasco, $numeroCesarSoto,
-                $numeroCristianMontecinos,
-            ];
+            return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath, $numeroEduardoEsparza];
+            // return [
+            //     $numeroInformacionesAmzoma, $numeroJorgeWaltemath, $numeroJulioSarmiento,
+            //     $numeroMarianelaHuequelef, $numeroPriscilaEscobar, $numeroJavierAlvarado,
+            //     $numeroEduardoEsparza, $numeroDayanaChavez, $numeroCentral,
+            //     $numeroMunuelVerdugo, $numeroPaolaCarrasco, $numeroCesarSoto,
+            //     $numeroCristianMontecinos,
+            // ];
         }
 
         return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath];
