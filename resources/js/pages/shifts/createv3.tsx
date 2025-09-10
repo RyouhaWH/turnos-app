@@ -331,6 +331,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             { code: 'L', name: 'Libre', color: 'transparent' },
             { code: 'SA', name: 'Sin Asignar', color: '#bdbdbd' },
             { code: 'LM', name: 'Licencia Médica', color: '#e57373' },
+            { code: 'P', name: 'Permiso / Cumpleaño', color: '#ff8a65' },
+
 
             // Turnos Extras (agrupados)
             { code: 'EXTRAS_GROUP', name: 'Turnos Extras', color: '#f06292', isGroup: true, codes: ['E', 'ME', 'TE', 'NE', '1E', '2E', '3E'] },
