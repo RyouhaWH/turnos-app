@@ -1200,10 +1200,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                             <div className="py-4">
                                 <h4 className="mb-3 text-sm font-medium">Resumen de cambios:</h4>
-                                <ScrollArea className="max-h-48 rounded-md border p-3">
-                                    <div className="space-y-2">
+                                <div className="max-h-32 sm:max-h-40 md:max-h-48 overflow-y-auto rounded-md border p-3">
                                         {formatChangesForDisplay().map((change, index) => (
-                                            <div key={index} className="flex items-center justify-between rounded-md bg-slate-50 p-2">
+                                            <div key={index} className="my-2 flex items-center justify-between rounded-md bg-slate-50 p-2">
                                                 <div>
                                                     <span className="font-medium text-slate-900">{change.empleado}</span>
                                                     <span className="ml-2 text-slate-500">• {change.fecha}</span>
@@ -1220,8 +1219,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 </Badge>
                                             </div>
                                         ))}
-                                    </div>
-                                </ScrollArea>
+                                </div>
                             </div>
 
                             {/* Sección de destinatarios de WhatsApp */}
@@ -1237,8 +1235,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         )}
                                     </h4>
                                     <div className="rounded-md border bg-green-50 p-2 sm:p-3">
-                                        <ScrollArea className="max-h-24 sm:max-h-32 md:max-h-40 lg:max-h-48">
-                                            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 pr-4">
+                                        <div className="max-h-20 sm:max-h-24 md:max-h-32 lg:max-h-40 overflow-y-auto">
+                                            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 pr-2">
                                                 {formatWhatsAppRecipients().map((recipient, index) => (
                                                     <div key={index} className="flex items-center rounded-md bg-green-100 p-1.5 sm:p-2">
                                                         <div className="flex items-center gap-2">
@@ -1248,7 +1246,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     </div>
                                                 ))}
                                             </div>
-                                        </ScrollArea>
+                                        </div>
                                         {whatsappTestingMode && (
                                             <div className="mt-2 rounded-md bg-yellow-100 p-2">
                                                 <p className="text-xs text-yellow-800">
