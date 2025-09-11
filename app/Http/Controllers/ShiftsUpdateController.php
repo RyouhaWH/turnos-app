@@ -116,7 +116,7 @@ class ShiftsUpdateController extends Controller
     {
         // Números reales (comentados para evitar envíos accidentales)
         //$numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
-        //$numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
+        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
         //$numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
         //$numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
         //$numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
@@ -135,7 +135,7 @@ class ShiftsUpdateController extends Controller
         // Mapeo de IDs a números de teléfono
         $recipientsMap = [
             'julio-sarmiento'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'marianela-huequelef'  => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'marianela-huequelef'  => $testingMode ? $testNumber : $numeroMarianelaHuequelef,
             'priscila-escobar'     => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
             'javier-alvarado'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
             'eduardo-esparza'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
