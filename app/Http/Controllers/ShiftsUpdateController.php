@@ -494,14 +494,15 @@ class ShiftsUpdateController extends Controller
             }
         }
 
-        // Send to employee
-        if ($datosFuncionario['telefono']) {
+        // Send to employee ONLY if they are in the notification list
+        if ($datosFuncionario['telefono'] && in_array($datosFuncionario['telefono'], $numerosAReportarCambios)) {
             try {
-                Log::info('🔍 DEBUG - Enviando a empleado:', [
+                Log::info('🔍 DEBUG - Enviando a empleado (está en lista de notificaciones):', [
                     'testing_mode' => $testingMode,
                     'telefono_empleado' => $datosFuncionario['telefono'],
                     'test_number' => $testNumber,
-                    'numero_final_calculado' => $testingMode ? $testNumber : $datosFuncionario['telefono']
+                    'numero_final_calculado' => $testingMode ? $testNumber : $datosFuncionario['telefono'],
+                    'esta_en_lista' => true
                 ]);
 
                 $mensajeFinal = $testingMode ?
@@ -528,6 +529,12 @@ class ShiftsUpdateController extends Controller
                     'error'           => $e->getMessage(),
                 ]);
             }
+        } else {
+            Log::info('🔍 DEBUG - NO enviando a empleado:', [
+                'telefono_empleado' => $datosFuncionario['telefono'] ?? 'No disponible',
+                'esta_en_lista' => $datosFuncionario['telefono'] ? in_array($datosFuncionario['telefono'], $numerosAReportarCambios) : false,
+                'numeros_a_reportar' => $numerosAReportarCambios
+            ]);
         }
     }
 
