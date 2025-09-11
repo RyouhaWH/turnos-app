@@ -174,6 +174,18 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             ];
         }
     });
+
+    // Estado para modo testing de WhatsApp
+    const [whatsappTestingMode, setWhatsappTestingMode] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem('whatsapp-testing-mode');
+            return saved ? JSON.parse(saved) : false;
+        } catch (error) {
+            console.error('Error al cargar modo testing WhatsApp:', error);
+            return false;
+        }
+    });
+
     // Estados para el modal de confirmación de cambio de fecha (ya no se usan)
     // const [showDateChangeConfirmModal, setShowDateChangeConfirmModal] = useState(false);
     // const [pendingDateChange, setPendingDateChange] = useState<Date | null>(null);
@@ -243,10 +255,12 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     }, [isMobile, showShiftFilter]);
 
     // Función para guardar la configuración de WhatsApp
-    const handleSaveWhatsAppConfig = useCallback((recipients: string[]) => {
+    const handleSaveWhatsAppConfig = useCallback((recipients: string[], testingMode: boolean) => {
         setSelectedWhatsAppRecipients(recipients);
-        // Aquí podrías guardar la configuración en localStorage o enviarla al servidor
+        setWhatsappTestingMode(testingMode);
+        // Guardar la configuración en localStorage
         localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
+        localStorage.setItem('whatsapp-testing-mode', JSON.stringify(testingMode));
     }, []);
 
 
@@ -424,7 +438,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const handleConfirmChanges = useCallback(async () => {
         setShowConfirmDialog(false);
         // Usar una cadena vacía como comentario por defecto y pasar los destinatarios de WhatsApp
-        await handleActualizarCambios('', selectedWhatsAppRecipients);
+        await handleActualizarCambios('', selectedWhatsAppRecipients, whatsappTestingMode);
     }, [handleActualizarCambios, selectedWhatsAppRecipients]);
 
     // Función para formatear los cambios para mostrar en el popup
@@ -1132,6 +1146,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     onClose={() => setShowWhatsAppConfig(false)}
                                     onSave={handleSaveWhatsAppConfig}
                                     selectedRecipients={selectedWhatsAppRecipients}
+                                    initialTestingMode={whatsappTestingMode}
                                     isMobile={false}
                                 />
                             </DialogContent>
@@ -1145,6 +1160,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             onClose={() => setShowMobileWhatsAppModal(false)}
                             onSave={handleSaveWhatsAppConfig}
                             selectedRecipients={selectedWhatsAppRecipients}
+                            initialTestingMode={whatsappTestingMode}
                             isMobile={true}
                         />
                     )}

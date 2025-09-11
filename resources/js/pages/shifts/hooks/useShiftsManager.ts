@@ -598,7 +598,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
 
 
 
-    const handleActualizarCambios = useCallback((comentarioNuevo: string) => {
+    const handleActualizarCambios = useCallback((comentarioNuevo: string, whatsappTestingMode: boolean = false) => {
         setComentario(comentarioNuevo);
 
         const fechaParaCambios = originalChangeDate || selectedDate;
@@ -610,6 +610,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             comentario: comentarioNuevo,
             mes: mes,
             año: año,
+            whatsapp_testing_mode: whatsappTestingMode,
         };
 
         // Debug: Log de los datos que se van a enviar
@@ -617,7 +618,8 @@ export const useShiftsManager = (employee_rol_id: number) => {
             datosAEnviar,
             resumenDetallado: JSON.stringify(resumen, null, 2),
             gridChanges: gridChanges,
-            fechaParaCambios: fechaParaCambios.toISOString()
+            fechaParaCambios: fechaParaCambios.toISOString(),
+            testingMode: whatsappTestingMode
         });
 
         setIsSaving(true);
@@ -652,7 +654,11 @@ export const useShiftsManager = (employee_rol_id: number) => {
             setOriginalChangeDate(null);
             setShowPendingChanges(false);
 
-            toast.success('Cambios guardados exitosamente', {
+            const successMessage = whatsappTestingMode ? 
+                'Cambios guardados exitosamente (Modo Testing - WhatsApp)' : 
+                'Cambios guardados exitosamente';
+
+            toast.success(successMessage, {
                 description: 'Los turnos fueron actualizados correctamente.',
                 duration: 3000,
             });

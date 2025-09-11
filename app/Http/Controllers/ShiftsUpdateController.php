@@ -18,36 +18,39 @@ class ShiftsUpdateController extends Controller
     public function updateShifts(Request $request)
     {
         Log::info('🚀 INICIO: updateShifts llamado', [
-            'user_id' => Auth::id(),
-            'user_name' => Auth::user()?->name,
+            'user_id'        => Auth::id(),
+            'user_name'      => Auth::user()?->name,
             'request_method' => $request->method(),
-            'request_url' => $request->fullUrl(),
+            'request_url'    => $request->fullUrl(),
         ]);
 
         try {
             DB::beginTransaction();
 
-            $cambios                 = $request->input('cambios');
-            $mes                     = $request->input('mes', now()->month);
-            $año                    = $request->input('año', now()->year);
-            $actualUser              = Auth::id();
-            $whatsappRecipients      = $request->input('whatsapp_recipients', []);
+            $cambios            = $request->input('cambios');
+            $mes                = $request->input('mes', now()->month);
+            $año               = $request->input('año', now()->year);
+            $actualUser         = Auth::id();
+            $whatsappRecipients = $request->input('whatsapp_recipients', []);
+            $testingMode        = $request->input('whatsapp_testing_mode', false);
 
             // Usar destinatarios seleccionados por el administrador o los por defecto
-            $numerosAReportarCambios = $this->getNotificationNumbers($whatsappRecipients);
+            $numerosAReportarCambios = $this->getNotificationNumbers($whatsappRecipients, $testingMode);
 
             $mensaje = '🔄 Valores recibidos en actualización' . PHP_EOL .
-                       'Mes: ' . $mes . PHP_EOL .
-                       'Año: ' . $año . PHP_EOL .
-                       'Cambios recibidos: ' . json_encode($cambios, JSON_PRETTY_PRINT) . PHP_EOL .
-                       'WhatsApp recipients: ' . json_encode($whatsappRecipients) . PHP_EOL .
-                       'Request completo: ' . json_encode($request->all(), JSON_PRETTY_PRINT);
+            'Mes: ' . $mes . PHP_EOL .
+            'Año: ' . $año . PHP_EOL .
+            'Cambios recibidos: ' . json_encode($cambios, JSON_PRETTY_PRINT) . PHP_EOL .
+            'WhatsApp recipients: ' . json_encode($whatsappRecipients) . PHP_EOL .
+            'Testing mode: ' . ($testingMode ? 'true' : 'false') . PHP_EOL .
+            'Request completo: ' . json_encode($request->all(), JSON_PRETTY_PRINT);
             Log::info($mensaje, [
-                'mes'     => $mes,
-                'año'     => $año,
-                'cambios' => $cambios,
+                'mes'                 => $mes,
+                'año'                 => $año,
+                'cambios'             => $cambios,
                 'whatsapp_recipients' => $whatsappRecipients,
-                'request_all' => $request->all(),
+                'testing_mode'        => $testingMode,
+                'request_all'         => $request->all(),
             ]);
 
             if (! is_array($cambios) || empty($cambios)) {
@@ -55,7 +58,7 @@ class ShiftsUpdateController extends Controller
             }
 
             $cambiosPorFuncionario = $this->processShiftsChanges($cambios, $mes, $año, $actualUser);
-            $this->sendConsolidatedMessages($cambiosPorFuncionario, $numerosAReportarCambios);
+            $this->sendConsolidatedMessages($cambiosPorFuncionario, $numerosAReportarCambios, $testingMode);
 
             DB::commit();
 
@@ -85,13 +88,13 @@ class ShiftsUpdateController extends Controller
             Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
             Employees::where('rut', '18984596-0')->first()->phone ?? '' => 'Javier Alvarado',
             Employees::where('rut', '16948150-4')->first()->phone ?? '' => 'Eduardo Esparza',
-            '981841759' => 'Dayana Chávez',
-            '964949887' => 'Central',
+            '981841759'                                                 => 'Dayana Chávez',
+            '964949887'                                                 => 'Central',
             Employees::where('rut', '15987971-2')->first()->phone ?? '' => 'Manuel Verdugo',
             Employees::where('rut', '12389084-1')->first()->phone ?? '' => 'Paola Carrasco',
             Employees::where('rut', '16533970-3')->first()->phone ?? '' => 'César Soto',
-            '975952121' => 'Cristian Montecinos',
-            '985639782' => 'Informaciones Amzoma',
+            '975952121'                                                 => 'Cristian Montecinos',
+            '985639782'                                                 => 'Informaciones Amzoma',
             Employees::where('rut', '18198426-0')->first()->phone ?? '' => 'Jorge Waltemath',
         ];
     }
@@ -99,13 +102,14 @@ class ShiftsUpdateController extends Controller
     /**
      * Get notification phone numbers based on environment and selected recipients
      */
-    private function getNotificationNumbers(array $selectedRecipients = []): array
+    private function getNotificationNumbers(array $selectedRecipients = [], bool $testingMode = false): array
     {
+        // Números reales (comentados para evitar envíos accidentales)
         //$numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
         //$numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
         //$numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
         //$numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
-        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
+        //$numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
         //$numeroDayanaChavez        = "981841759";
         //$numeroCentral             = "964949887";
         //$numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
@@ -115,42 +119,46 @@ class ShiftsUpdateController extends Controller
         $numeroInformacionesAmzoma = "985639782";
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone ?? '';
 
+        // Número de prueba
+        $testNumber = "951004035";
+
         // Mapeo de IDs a números de teléfono
         $recipientsMap = [
-            //'julio-sarmiento' => $numeroJulioSarmiento,
-            //'marianela-huequelef' => $numeroMarianelaHuequelef,
-            //'priscila-escobar' => $numeroPriscilaEscobar,
-            //'javier-alvarado' => $numeroJavierAlvarado,
-            'eduardo-esparza' => $numeroEduardoEsparza,
-            //'dayana-chavez' => $numeroDayanaChavez,
-            //'central' => $numeroCentral,
-            //'manuel-verdugo' => $numeroMunuelVerdugo,
-            //'paola-carrasco' => $numeroPaolaCarrasco,
-            //'cesar-soto' => $numeroCesarSoto,
-            //'cristian-montecinos' => $numeroCristianMontecinos,
-            'informaciones-amzoma' => $numeroInformacionesAmzoma,
-            'jorge-waltemath' => $numeroJorgeWaltemath,
+            'julio-sarmiento'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'marianela-huequelef'  => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'priscila-escobar'     => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'javier-alvarado'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'eduardo-esparza'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'dayana-chavez'        => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'central'              => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'manuel-verdugo'       => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'paola-carrasco'       => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'cesar-soto'           => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'cristian-montecinos'  => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'informaciones-amzoma' => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
         ];
 
         // Si hay destinatarios seleccionados, usar solo esos
-        if (!empty($selectedRecipients)) {
-            $selectedNumbers = [];
+        if (! empty($selectedRecipients)) {
+            $selectedNumbers          = [];
             $includeAffectedEmployees = false;
 
             foreach ($selectedRecipients as $recipientId) {
                 if ($recipientId === 'funcionarios-afectados') {
                     $includeAffectedEmployees = true;
                     Log::info('📱 Opción "Funcionarios Afectados" seleccionada - se incluirán empleados con turnos modificados');
-                } elseif (isset($recipientsMap[$recipientId]) && !empty($recipientsMap[$recipientId])) {
+                } elseif (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
                     $selectedNumbers[] = $recipientsMap[$recipientId];
                 }
             }
 
             Log::info('📱 Usando destinatarios WhatsApp seleccionados:', [
-                'selected_recipients' => $selectedRecipients,
-                'selected_numbers' => $selectedNumbers,
+                'selected_recipients'        => $selectedRecipients,
+                'selected_numbers'           => $selectedNumbers,
                 'include_affected_employees' => $includeAffectedEmployees,
-                'total_count' => count($selectedNumbers)
+                'total_count'                => count($selectedNumbers),
+                'testing_mode'               => $testingMode,
             ]);
 
             return $selectedNumbers;
@@ -158,14 +166,11 @@ class ShiftsUpdateController extends Controller
 
         // Si no hay destinatarios seleccionados, usar la lógica por defecto
         if (app()->environment('production')) {
-            return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath, $numeroEduardoEsparza];
-            // return [
-            //     $numeroInformacionesAmzoma, $numeroJorgeWaltemath, $numeroJulioSarmiento,
-            //     $numeroMarianelaHuequelef, $numeroPriscilaEscobar, $numeroJavierAlvarado,
-            //     $numeroEduardoEsparza, $numeroDayanaChavez, $numeroCentral,
-            //     $numeroMunuelVerdugo, $numeroPaolaCarrasco, $numeroCesarSoto,
-            //     $numeroCristianMontecinos,
-            // ];
+            if ($testingMode) {
+                // En modo testing, enviar a múltiples instancias del número de prueba
+                return [$testNumber, $testNumber, $testNumber]; // Simular múltiples destinatarios
+            }
+            return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath];
         }
 
         return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath];
@@ -184,7 +189,7 @@ class ShiftsUpdateController extends Controller
 
             Log::info("🔍 Procesando empleado {$employeeId}:", [
                 'employee_data' => $employeeData,
-                'turnos' => $turnos
+                'turnos'        => $turnos,
             ]);
 
             foreach ($turnos as $dia => $turno) {
@@ -274,10 +279,10 @@ class ShiftsUpdateController extends Controller
     private function updateOrCreateShift($empleado, $fecha, $nuevoTurno)
     {
         Log::info("💾 Actualizando/creando turno:", [
-            'employee_id' => $empleado->id,
+            'employee_id'   => $empleado->id,
             'employee_name' => $empleado->name,
-            'fecha' => $fecha,
-            'nuevo_turno' => $nuevoTurno
+            'fecha'         => $fecha,
+            'nuevo_turno'   => $nuevoTurno,
         ]);
 
         $result = EmployeeShifts::updateOrCreate(
@@ -286,10 +291,10 @@ class ShiftsUpdateController extends Controller
         );
 
         Log::info("✅ Turno guardado en DB:", [
-            'shift_id' => $result->id,
+            'shift_id'    => $result->id,
             'employee_id' => $result->employee_id,
-            'date' => $result->date,
-            'shift' => $result->shift
+            'date'        => $result->date,
+            'shift'       => $result->shift,
         ]);
 
         return $result;
@@ -355,7 +360,7 @@ class ShiftsUpdateController extends Controller
     /**
      * Send consolidated messages to notification numbers
      */
-    private function sendConsolidatedMessages(array $cambiosPorFuncionario, array $numerosAReportarCambios): void
+    private function sendConsolidatedMessages(array $cambiosPorFuncionario, array $numerosAReportarCambios, bool $testingMode = false): void
     {
         foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
             if (empty($datosFuncionario['cambios'])) {
@@ -371,14 +376,10 @@ class ShiftsUpdateController extends Controller
 
             // Actualizar los cambios con solo los válidos
             $datosFuncionario['cambios'] = $cambiosValidos;
-            $mensaje = $this->buildConsolidatedMessage($datosFuncionario);
+            $mensaje                     = $this->buildConsolidatedMessage($datosFuncionario);
 
-            // Verificar si estamos en local o producción
-            if ($this->isTestMode()) {
-                $this->sendTestMessages($mensaje, $numerosAReportarCambios, $datosFuncionario);
-            } else {
-                $this->sendProductionMessages($mensaje, $numerosAReportarCambios, $datosFuncionario);
-            }
+            // Siempre usar sendProductionMessages, pero con números de prueba si está en testing mode
+            $this->sendProductionMessages($mensaje, $numerosAReportarCambios, $datosFuncionario, $testingMode);
         }
     }
 
@@ -395,7 +396,7 @@ class ShiftsUpdateController extends Controller
      */
     private function sendTestMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario): void
     {
-        $testNumber = "951004035"; // Tu número de prueba
+        $testNumber         = "951004035"; // Tu número de prueba
         $phoneToNameMapping = $this->getPhoneToNameMapping();
 
         $mensajePrueba = "🧪 MODO PRUEBA - WhatsApp\n\n";
@@ -415,10 +416,10 @@ class ShiftsUpdateController extends Controller
 
         // Log del mensaje de prueba
         Log::info('🧪 Mensaje de prueba WhatsApp', [
-            'destinatarios' => $numerosAReportarCambios,
+            'destinatarios'     => $numerosAReportarCambios,
             'empleado_telefono' => $datosFuncionario['telefono'] ?? null,
-            'mensaje' => $mensaje,
-            'test_number' => $testNumber
+            'mensaje'           => $mensaje,
+            'test_number'       => $testNumber,
         ]);
 
         // Enviar solo al número de prueba
@@ -429,12 +430,12 @@ class ShiftsUpdateController extends Controller
             ]);
 
             Log::info('✅ Mensaje de prueba enviado exitosamente', [
-                'test_number' => $testNumber
+                'test_number' => $testNumber,
             ]);
         } catch (\Exception $e) {
             Log::error('❌ Error enviando mensaje de prueba', [
-                'error' => $e->getMessage(),
-                'test_number' => $testNumber
+                'error'       => $e->getMessage(),
+                'test_number' => $testNumber,
             ]);
         }
     }
@@ -442,23 +443,35 @@ class ShiftsUpdateController extends Controller
     /**
      * Send production messages
      */
-    private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario): void
+    private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, bool $testingMode = false): void
     {
+        $testNumber = "951004035";
+
         // Send to notification contacts
         foreach ($numerosAReportarCambios as $numero) {
             try {
+                $mensajeFinal = $testingMode ?
+                    "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría a: {$numero}\n\n📱 Mensaje original:\n{$mensaje}" :
+                    $mensaje;
+
+                $numeroFinal = $testingMode ? $testNumber : $numero;
+
                 Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => $mensaje,
-                    'numero'  => "56" . $numero,
+                    'mensaje' => $mensajeFinal,
+                    'numero'  => "56" . $numeroFinal,
                 ]);
 
                 Log::info('✅ Mensaje enviado a destinatario', [
-                    'numero' => $numero
+                    'numero_original' => $numero,
+                    'numero_enviado'  => $numeroFinal,
+                    'testing_mode'    => $testingMode,
                 ]);
             } catch (\Exception $e) {
                 Log::error('❌ Error enviando mensaje a destinatario', [
-                    'numero' => $numero,
-                    'error' => $e->getMessage()
+                    'numero_original' => $numero,
+                    'numero_enviado'  => $testingMode ? $testNumber : $numero,
+                    'testing_mode'    => $testingMode,
+                    'error'           => $e->getMessage(),
                 ]);
             }
         }
@@ -466,18 +479,28 @@ class ShiftsUpdateController extends Controller
         // Send to employee
         if ($datosFuncionario['telefono']) {
             try {
+                $mensajeFinal = $testingMode ?
+                    "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría al empleado: {$datosFuncionario['telefono']}\n\n📱 Mensaje original:\n{$mensaje}" :
+                    $mensaje;
+
+                $numeroFinal = $testingMode ? $testNumber : $datosFuncionario['telefono'];
+
                 Http::post('http://localhost:3001/send-message', [
-                    'mensaje' => $mensaje,
-                    'numero'  => "56" . $datosFuncionario['telefono'],
+                    'mensaje' => $mensajeFinal,
+                    'numero'  => "56" . $numeroFinal,
                 ]);
 
                 Log::info('✅ Mensaje enviado a empleado', [
-                    'numero' => $datosFuncionario['telefono']
+                    'numero_original' => $datosFuncionario['telefono'],
+                    'numero_enviado'  => $numeroFinal,
+                    'testing_mode'    => $testingMode,
                 ]);
             } catch (\Exception $e) {
                 Log::error('❌ Error enviando mensaje a empleado', [
-                    'numero' => $datosFuncionario['telefono'],
-                    'error' => $e->getMessage()
+                    'numero_original' => $datosFuncionario['telefono'],
+                    'numero_enviado'  => $testingMode ? $testNumber : $datosFuncionario['telefono'],
+                    'testing_mode'    => $testingMode,
+                    'error'           => $e->getMessage(),
                 ]);
             }
         }
@@ -509,7 +532,7 @@ class ShiftsUpdateController extends Controller
 
         return array_filter($cambios, function ($cambio) use ($turnosNoNotificables) {
             $turnoAnterior = $cambio['turno_anterior'];
-            $turnoNuevo = $cambio['turno_nuevo'];
+            $turnoNuevo    = $cambio['turno_nuevo'];
 
             // No notificar si ambos turnos son no notificables
             if (in_array($turnoAnterior, $turnosNoNotificables) && in_array($turnoNuevo, $turnosNoNotificables)) {
@@ -541,5 +564,3 @@ class ShiftsUpdateController extends Controller
         return $fullName;
     }
 }
-
-

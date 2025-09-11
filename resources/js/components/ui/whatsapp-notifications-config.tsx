@@ -18,9 +18,10 @@ interface WhatsAppRecipient {
 interface WhatsAppNotificationsConfigProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (selectedRecipients: string[]) => void;
+    onSave: (selectedRecipients: string[], testingMode: boolean) => void;
     selectedRecipients?: string[];
     isMobile?: boolean;
+    initialTestingMode?: boolean;
 }
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
@@ -49,7 +50,8 @@ export function WhatsAppNotificationsConfig({
     onClose,
     onSave,
     selectedRecipients = [],
-    isMobile = false
+    isMobile = false,
+    initialTestingMode = false,
 }: WhatsAppNotificationsConfigProps) {
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
@@ -63,6 +65,7 @@ export function WhatsAppNotificationsConfig({
         selectedRecipients.length > 0 ? selectedRecipients : DEFAULT_RECIPIENTS.map(r => r.id)
     );
     const [isLoading, setIsLoading] = useState(false);
+    const [testingMode, setTestingMode] = useState<boolean>(initialTestingMode);
 
     // Estado para los números de teléfono actualizados
     const [phoneNumbers, setPhoneNumbers] = useState<Record<string, string>>({});
@@ -134,7 +137,7 @@ export function WhatsAppNotificationsConfig({
     };
 
     const handleSave = () => {
-        onSave(localSelectedRecipients);
+        onSave(localSelectedRecipients, testingMode);
         onClose();
     };
 
@@ -300,6 +303,28 @@ export function WhatsAppNotificationsConfig({
                                     </Button>
                                 </div>
 
+                                {/* Checkbox de Modo Testing */}
+                                <div className="flex items-center space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
+                                    <Checkbox
+                                        id="testing-mode"
+                                        checked={testingMode}
+                                        onCheckedChange={(checked) => setTestingMode(checked as boolean)}
+                                        className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                                    />
+                                    <label htmlFor="testing-mode" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                        🧪 Modo Testing - Enviar todos los mensajes a mi número (951004035)
+                                    </label>
+                                </div>
+
+                                {testingMode && (
+                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-700">
+                                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                                            <strong>Modo Testing Activado:</strong> Todos los mensajes de WhatsApp se enviarán a tu número de prueba, 
+                                            pero se simulará el comportamiento de producción (múltiples destinatarios).
+                                        </p>
+                                    </div>
+                                )}
+
                                 {/* Lista de destinatarios sin agrupación */}
                                 <div className="w-full ">
                                     <ScrollArea className="h-[400px] w-full">
@@ -405,7 +430,7 @@ export function WhatsAppNotificationsConfig({
             ) : (
                 <div className="space-y-6">
                     {content}
-                    
+
                     {/* Botones de acción para desktop */}
                     <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
                         <Button variant="outline" onClick={onClose}>

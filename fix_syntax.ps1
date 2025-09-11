@@ -3,3 +3,4 @@ $content = $content -replace '\$turnosNoNotificables\$turnosNoNotificables', '$t
 Set-Content 'app/Http/Controllers/ShiftsUpdateController.php' -Value $content
 Write-Host "Sintaxis corregida"
 
+

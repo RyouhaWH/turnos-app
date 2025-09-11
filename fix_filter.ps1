@@ -4,3 +4,4 @@ $content = $content -replace "\$turnosNoNotificables = \['SA', 'X', null, '', ' 
 Set-Content 'app/Http/Controllers/ShiftsUpdateController.php' -Value $content
 Write-Host "Corrección aplicada exitosamente"
 
+

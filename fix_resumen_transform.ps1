@@ -31,3 +31,4 @@ $content = $content -replace '// Buscar el empleado en rowData para obtener su I
 Set-Content 'resources/js/pages/shifts/hooks/useOptimizedShiftsManager.ts' -Value $content
 Write-Host "Transformación del resumen mejorada"
 
+

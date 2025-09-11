@@ -37,3 +37,4 @@ $content = $content -replace 'const turnosOrdenados = turnosArray\.sort\(sortByA
 Set-Content 'resources/js/pages/shifts/hooks/useOptimizedShiftsManager.ts' -Value $content
 Write-Host "Debug logging agregado"
 
+

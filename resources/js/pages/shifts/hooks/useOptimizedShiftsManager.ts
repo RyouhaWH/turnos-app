@@ -610,7 +610,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
 
     // Función para guardar cambios optimizada
-    const handleActualizarCambios = useCallback(async (comentarioNuevo: string, whatsappRecipients?: string[]) => {
+    const handleActualizarCambios = useCallback(async (comentarioNuevo: string, whatsappRecipients?: string[], whatsappTestingMode?: boolean) => {
         if (Object.keys(resumen).length === 0) {
             toast.warning('No hay cambios para guardar');
             return;
@@ -648,6 +648,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             mes,
             año,
             whatsapp_recipients: whatsappRecipients || [],
+            whatsapp_testing_mode: whatsappTestingMode || false,
         };
 
         try {
