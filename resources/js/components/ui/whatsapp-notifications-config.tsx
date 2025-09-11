@@ -319,7 +319,7 @@ export function WhatsAppNotificationsConfig({
                                 {testingMode && (
                                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-700">
                                         <p className="text-sm text-blue-800 dark:text-blue-200">
-                                            <strong>Modo Testing Activado:</strong> Todos los mensajes de WhatsApp se enviarán a tu número de prueba, 
+                                            <strong>Modo Testing Activado:</strong> Todos los mensajes de WhatsApp se enviarán a tu número de prueba,
                                             pero se simulará el comportamiento de producción (múltiples destinatarios).
                                         </p>
                                     </div>

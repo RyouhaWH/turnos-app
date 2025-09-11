@@ -718,7 +718,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         <MessageSquare className="h-4 w-4" />
                                                         WhatsApp
                                                     </Button>
-                                                    
+
                                                     {/* Checkbox de Modo Testing */}
                                                     <div className="flex items-center space-x-2">
                                                         <Checkbox
@@ -730,8 +730,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                             }}
                                                             className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
                                                         />
-                                                        <label 
-                                                            htmlFor="whatsapp-testing-mode-desktop" 
+                                                        <label
+                                                            htmlFor="whatsapp-testing-mode-desktop"
                                                             className="text-xs font-medium text-yellow-700 cursor-pointer"
                                                             title="Enviar todos los mensajes de WhatsApp a mi número de prueba (951004035)"
                                                         >

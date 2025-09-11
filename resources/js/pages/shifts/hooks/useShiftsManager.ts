@@ -654,8 +654,8 @@ export const useShiftsManager = (employee_rol_id: number) => {
             setOriginalChangeDate(null);
             setShowPendingChanges(false);
 
-            const successMessage = whatsappTestingMode ? 
-                'Cambios guardados exitosamente (Modo Testing - WhatsApp)' : 
+            const successMessage = whatsappTestingMode ?
+                'Cambios guardados exitosamente (Modo Testing - WhatsApp)' :
                 'Cambios guardados exitosamente';
 
             toast.success(successMessage, {
