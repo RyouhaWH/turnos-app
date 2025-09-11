@@ -445,20 +445,20 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     // Función para obtener el nombre completo del turno
     const getTurnoLabel = useCallback((turno: string) => {
         if (!turno || turno === '' || turno === ' ') return 'Sin Turno';
-        
+
         const labels: Record<string, string> = {
             // Turnos básicos
             'M': 'Mañana',
-            'T': 'Tarde', 
+            'T': 'Tarde',
             'N': 'Noche',
             'F': 'Franco',
             'L': 'Libre',
-            
+
             // Turnos numéricos
             '1': '1er Turno',
             '2': '2do Turno',
             '3': '3er Turno',
-            
+
             // Turnos extra
             'ME': 'Mañana Extra',
             'TE': 'Tarde Extra',
@@ -466,7 +466,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             '1E': '1er Turno Extra',
             '2E': '2do Turno Extra',
             '3E': '3er Turno Extra',
-            
+
             // Días especiales
             'A': 'Administrativo',
             'V': 'Vacaciones',
@@ -475,7 +475,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             'SA': 'Sin Asignar',
             'X': 'Sin Asignar',
         };
-        
+
         return labels[turno] || turno;
     }, []);
 
@@ -492,18 +492,18 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         listaCambios.forEach((change) => {
             const dayNumber = parseInt(change.day);
             const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
-            
+
             const oldTurnoLabel = getTurnoLabel(change.oldValue);
             const newTurnoLabel = getTurnoLabel(change.newValue);
-            
+
             // Crear descripción del cambio
             let turnoDescription = '';
             if (change.oldValue && change.newValue) {
-                turnoDescription = `${oldTurnoLabel} → ${newTurnoLabel}`;
+                turnoDescription = `Turno: ${oldTurnoLabel} → ${newTurnoLabel}`;
             } else if (change.newValue) {
-                turnoDescription = `Asignar: ${newTurnoLabel}`;
+                turnoDescription = `Turno: Asignar ${newTurnoLabel}`;
             } else {
-                turnoDescription = `Eliminar: ${oldTurnoLabel}`;
+                turnoDescription = `Turno: Eliminar ${oldTurnoLabel}`;
             }
 
             changesList.push({
@@ -1186,7 +1186,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                     {/* Dialog de confirmación para aplicar cambios */}
                     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                        <DialogContent className="mx-auto max-h-[90vh] w-full max-w-[90vw] lg:max-w-[1200px] p-6">
+                        <DialogContent className="mx-auto max-h-[90vh] w-full max-w-[90vw] lg:max-w-[1200px] p-3 sm:p-4 lg:p-6">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1237,8 +1237,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         )}
                                     </h4>
                                     <div className="rounded-md border bg-green-50 p-3">
-                                        <ScrollArea className="max-h-48 lg:max-h-56">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pr-4">
+                                        <ScrollArea className="max-h-32 sm:max-h-40 md:max-h-48 lg:max-h-56">
+                                            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pr-4">
                                                 {formatWhatsAppRecipients().map((recipient, index) => (
                                                     <div key={index} className="flex items-center rounded-md bg-green-100 p-2">
                                                         <div className="flex items-center gap-2">
