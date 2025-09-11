@@ -1186,7 +1186,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                     {/* Dialog de confirmación para aplicar cambios */}
                     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                        <DialogContent className="mx-auto max-h-[85vh] w-full max-w-[95vw] lg:max-w-[1200px] p-2 sm:p-3 lg:p-6">
+                        <DialogContent className="mx-auto max-h-[80vh] w-full max-w-[95vw] lg:max-w-[1200px] p-2 sm:p-3 lg:p-6">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="h-5 w-5 text-green-600" />
