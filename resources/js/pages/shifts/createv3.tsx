@@ -1186,7 +1186,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                     {/* Dialog de confirmación para aplicar cambios */}
                     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                        <DialogContent className="mx-auto max-h-[90vh] w-full max-w-[90vw] lg:max-w-[1200px] p-3 sm:p-4 lg:p-6">
+                        <DialogContent className="mx-auto max-h-[85vh] w-full max-w-[95vw] lg:max-w-[1200px] p-2 sm:p-3 lg:p-6">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1236,11 +1236,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             </Badge>
                                         )}
                                     </h4>
-                                    <div className="rounded-md border bg-green-50 p-3">
-                                        <ScrollArea className="max-h-32 sm:max-h-40 md:max-h-48 lg:max-h-56">
-                                            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pr-4">
+                                    <div className="rounded-md border bg-green-50 p-2 sm:p-3">
+                                        <ScrollArea className="max-h-24 sm:max-h-32 md:max-h-40 lg:max-h-48">
+                                            <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1.5 sm:gap-2 pr-4">
                                                 {formatWhatsAppRecipients().map((recipient, index) => (
-                                                    <div key={index} className="flex items-center rounded-md bg-green-100 p-2">
+                                                    <div key={index} className="flex items-center rounded-md bg-green-100 p-1.5 sm:p-2">
                                                         <div className="flex items-center gap-2">
                                                             <Phone className="h-3 w-3 text-green-600" />
                                                             <span className="font-medium text-slate-900">{recipient.name}</span>
