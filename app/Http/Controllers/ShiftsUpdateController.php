@@ -159,7 +159,8 @@ class ShiftsUpdateController extends Controller
                     $includeAffectedEmployees = true;
                     Log::info('📱 Opción "Funcionarios Afectados" seleccionada - se incluirán empleados con turnos modificados');
                 } elseif (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
-                    $selectedNumbers[] = $recipientsMap[$recipientId];
+                    // $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
+                    $selectedNumbers[] = $testingMode ? $testNumber : $numeroJorgeWaltemath;
                 }
             }
 
@@ -457,6 +458,13 @@ class ShiftsUpdateController extends Controller
     {
         $testNumber = "951004035";
 
+        Log::info('🔍 DEBUG - sendProductionMessages llamado:', [
+            'testing_mode' => $testingMode,
+            'test_number' => $testNumber,
+            'numeros_a_reportar' => $numerosAReportarCambios,
+            'empleado_telefono' => $datosFuncionario['telefono'] ?? 'No disponible'
+        ]);
+
         // Send to notification contacts
         foreach ($numerosAReportarCambios as $numero) {
             try {
@@ -489,6 +497,13 @@ class ShiftsUpdateController extends Controller
         // Send to employee
         if ($datosFuncionario['telefono']) {
             try {
+                Log::info('🔍 DEBUG - Enviando a empleado:', [
+                    'testing_mode' => $testingMode,
+                    'telefono_empleado' => $datosFuncionario['telefono'],
+                    'test_number' => $testNumber,
+                    'numero_final_calculado' => $testingMode ? $testNumber : $datosFuncionario['telefono']
+                ]);
+
                 $mensajeFinal = $testingMode ?
                     "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría al empleado: {$datosFuncionario['telefono']}\n\n📱 Mensaje original:\n{$mensaje}" :
                     $mensaje;
