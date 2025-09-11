@@ -34,6 +34,16 @@ class ShiftsUpdateController extends Controller
             $whatsappRecipients = $request->input('whatsapp_recipients', []);
             $testingMode        = $request->input('whatsapp_testing_mode', false);
 
+            // Validar que solo administradores puedan usar el modo testing
+            if ($testingMode && !Auth::user()->hasRole('Administrador')) {
+                Log::warning('⚠️ Usuario no administrador intentó usar modo testing', [
+                    'user_id' => Auth::id(),
+                    'user_name' => Auth::user()?->name,
+                    'testing_mode_requested' => $testingMode
+                ]);
+                $testingMode = false; // Forzar a false para usuarios no administradores
+            }
+
             // Usar destinatarios seleccionados por el administrador o los por defecto
             $numerosAReportarCambios = $this->getNotificationNumbers($whatsappRecipients, $testingMode);
 
