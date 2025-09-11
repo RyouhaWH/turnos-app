@@ -115,17 +115,17 @@ class ShiftsUpdateController extends Controller
     private function getNotificationNumbers(array $selectedRecipients = [], bool $testingMode = false): array
     {
         // Números reales (comentados para evitar envíos accidentales)
-        //$numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
+        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
         $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
-        //$numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
-        //$numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
-        //$numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
-        //$numeroDayanaChavez        = "981841759";
-        //$numeroCentral             = "964949887";
-        //$numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
-        //$numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone ?? '';
-        //$numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone ?? '';
-        //$numeroCristianMontecinos  = "975952121";
+        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
+        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
+        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
+        $numeroDayanaChavez        = "981841759";
+        $numeroCentral             = "964949887";
+        $numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
+        $numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone ?? '';
+        $numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone ?? '';
+        $numeroCristianMontecinos  = "975952121";
         $numeroInformacionesAmzoma = "985639782";
         $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone ?? '';
 
@@ -134,17 +134,17 @@ class ShiftsUpdateController extends Controller
 
         // Mapeo de IDs a números de teléfono
         $recipientsMap = [
-            'julio-sarmiento'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'julio-sarmiento'      => $testingMode ? $testNumber : $numeroJulioSarmiento,
             'marianela-huequelef'  => $testingMode ? $testNumber : $numeroMarianelaHuequelef,
-            'priscila-escobar'     => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'javier-alvarado'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'eduardo-esparza'      => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'dayana-chavez'        => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'central'              => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'manuel-verdugo'       => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'paola-carrasco'       => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'cesar-soto'           => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'cristian-montecinos'  => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
+            'priscila-escobar'     => $testingMode ? $testNumber : $numeroPriscilaEscobar,
+            'javier-alvarado'      => $testingMode ? $testNumber : $numeroJavierAlvarado,
+            'eduardo-esparza'      => $testingMode ? $testNumber : $numeroEduardoEsparza,
+            'dayana-chavez'        => $testingMode ? $testNumber : $numeroDayanaChavez,
+            'central'              => $testingMode ? $testNumber : $numeroCentral,
+            'manuel-verdugo'       => $testingMode ? $testNumber : $numeroMunuelVerdugo,
+            'paola-carrasco'       => $testingMode ? $testNumber : $numeroPaolaCarrasco,
+            'cesar-soto'           => $testingMode ? $testNumber : $numeroCesarSoto,
+            'cristian-montecinos'  => $testingMode ? $testNumber : $numeroCristianMontecinos,
             'informaciones-amzoma' => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
             'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
         ];
@@ -159,8 +159,7 @@ class ShiftsUpdateController extends Controller
                     $includeAffectedEmployees = true;
                     Log::info('📱 Opción "Funcionarios Afectados" seleccionada - se incluirán empleados con turnos modificados');
                 } elseif (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
-                    // $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
-                    $selectedNumbers[] = $testingMode ? $testNumber : $numeroJorgeWaltemath;
+                    $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
                 }
             }
 
@@ -317,8 +316,13 @@ class ShiftsUpdateController extends Controller
     private function addChangeToEmployee($empleado, $fecha, $turnoAnterior, $turnoNuevo, &$cambiosPorFuncionario): void
     {
         if (! isset($cambiosPorFuncionario[$empleado->id])) {
+            // Usar first_name + paternal_lastname si están disponibles, sino usar name completo
+            $nombreParaMostrar = $empleado->first_name && $empleado->paternal_lastname 
+                ? $empleado->first_name . ' ' . $empleado->paternal_lastname
+                : $empleado->name;
+                
             $cambiosPorFuncionario[$empleado->id] = [
-                'nombre'   => $empleado->name,
+                'nombre'   => $nombreParaMostrar,
                 'telefono' => $empleado->phone,
                 'cambios'  => [],
             ];
@@ -509,7 +513,7 @@ class ShiftsUpdateController extends Controller
                     "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría al empleado: {$datosFuncionario['telefono']}\n\n📱 Mensaje original:\n{$mensaje}" :
                     $mensaje;
 
-                $numeroFinal = $testingMode ? $testNumber : $datosFuncionario['telefono'];
+                $numeroFinal = $testingMode ? $testNumber : "951004035";
 
                 Http::post('http://localhost:3001/send-message', [
                     'mensaje' => $mensajeFinal,
@@ -582,17 +586,11 @@ class ShiftsUpdateController extends Controller
 
     /**
      * Extract first name and paternal surname from full name
+     * Nota: Ahora el nombre ya viene formateado correctamente desde addChangeToEmployee
      */
     private function getShortName(string $fullName): string
     {
-        $nombres = explode(' ', trim($fullName));
-
-        if (count($nombres) >= 2) {
-            // Primer nombre + primer apellido (apellido paterno)
-            return $nombres[0] . ' ' . $nombres[1];
-        }
-
-        // Si solo hay un nombre, devolverlo tal como está
+        // El nombre ya viene formateado como "Nombre Paternal_surname"
         return $fullName;
     }
 }
