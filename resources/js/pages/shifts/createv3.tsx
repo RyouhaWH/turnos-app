@@ -24,6 +24,7 @@ import {
     History,
     Loader2,
     MessageSquare,
+    Phone,
     Save,
     Undo2,
     Users,
@@ -471,6 +472,44 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
         return changesList.sort((a, b) => a.day - b.day);
     }, [resumen, selectedDate]);
+
+    // Función para generar la lista de destinatarios de WhatsApp
+    const formatWhatsAppRecipients = useCallback(() => {
+        const recipientsList: Array<{
+            id: string;
+            name: string;
+            phone: string;
+            role?: string;
+        }> = [];
+
+        // Lista de destinatarios basada en los números del ShiftsUpdateController
+        const availableRecipients = [
+            { id: 'funcionarios-afectados', name: 'Funcionarios Afectados', phone: 'Automático', role: 'Especial' },
+            { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'javier-alvarado', name: 'Javier Alvarado', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'dayana-chavez', name: 'Dayana Chavez', phone: '981841759', role: 'Supervisor' },
+            { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
+            { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'paola-carrasco', name: 'Paola Carrasco', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'cesar-soto', name: 'Cesar Soto', phone: 'Se obtiene de BD', role: 'Supervisor' },
+            { id: 'cristian-montecinos', name: 'Cristian Montecinos', phone: '975952121', role: 'Supervisor' },
+            { id: 'informaciones-amzoma', name: 'Informaciones Amzoma', phone: '985639782', role: 'Central' },
+            { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', role: 'Supervisor' },
+        ];
+
+        // Filtrar solo los destinatarios seleccionados
+        selectedWhatsAppRecipients.forEach(recipientId => {
+            const recipient = availableRecipients.find(r => r.id === recipientId);
+            if (recipient) {
+                recipientsList.push(recipient);
+            }
+        });
+
+        return recipientsList;
+    }, [selectedWhatsAppRecipients]);
 
     // Memoizar el manejador de cambios de celda
     const handleCellValueChanged = useCallback(
@@ -1137,6 +1176,48 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     </div>
                                 </ScrollArea>
                             </div>
+
+                            {/* Sección de destinatarios de WhatsApp */}
+                            {(selectedWhatsAppRecipients.length > 0 || whatsappTestingMode) && (
+                                <div className="py-4">
+                                    <h4 className="mb-3 flex items-center gap-2 text-sm font-medium">
+                                        <MessageSquare className="h-4 w-4 text-green-600" />
+                                        Destinatarios de WhatsApp:
+                                        {whatsappTestingMode && (
+                                            <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-300">
+                                                🧪 Modo Testing
+                                            </Badge>
+                                        )}
+                                    </h4>
+                                    <div className="rounded-md border bg-green-50 p-3">
+                                        <div className="space-y-2">
+                                            {formatWhatsAppRecipients().map((recipient, index) => (
+                                                <div key={index} className="flex items-center justify-between rounded-md bg-white p-2">
+                                                    <div className="flex items-center gap-2">
+                                                        <Phone className="h-3 w-3 text-green-600" />
+                                                        <span className="font-medium text-slate-900">{recipient.name}</span>
+                                                        {recipient.role && (
+                                                            <Badge variant="outline" className="text-xs">
+                                                                {recipient.role}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-slate-500">
+                                                        {whatsappTestingMode ? '951004035' : recipient.phone}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                            {whatsappTestingMode && (
+                                                <div className="mt-2 rounded-md bg-yellow-100 p-2">
+                                                    <p className="text-xs text-yellow-800">
+                                                        🧪 <strong>Modo Testing:</strong> Todos los mensajes se enviarán a tu número de prueba (951004035)
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             <DialogFooter className="pb-2">
                                 <Button variant="outline" onClick={() => setShowConfirmDialog(false)} disabled={isSaving}>
