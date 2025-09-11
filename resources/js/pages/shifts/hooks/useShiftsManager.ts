@@ -144,11 +144,23 @@ export const useShiftsManager = (employee_rol_id: number) => {
         if (oldValue === newValue) return;
 
         const employeeId = getEmployeeIdByNameAndRut(employee, rut);
+        
+        // Buscar el empleado en rowData para obtener first_name y paternal_lastname
+        const employeeData = rowData.find(emp => 
+            (emp.employee_id || emp.id) == employeeId || 
+            emp.nombre === employee || 
+            emp.rut === rut
+        );
+        
+        // Formatear el nombre usando first_name + paternal_lastname si están disponibles
+        const formattedName = employeeData?.first_name && employeeData?.paternal_lastname
+            ? `${employeeData.first_name} ${employeeData.paternal_lastname}`
+            : employee;
 
         const change: GridChange = {
             id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             employeeId,
-            employeeName: employee,
+            employeeName: formattedName,
             employeeRut: rut,
             day,
             oldValue,
@@ -166,7 +178,7 @@ export const useShiftsManager = (employee_rol_id: number) => {
             if (!newResumen[employeeId]) {
                 newResumen[employeeId] = {
                     rut: rut,
-                    nombre: employee,
+                    nombre: formattedName,
                     employee_id: employeeId,
                     turnos: {}
                 };
