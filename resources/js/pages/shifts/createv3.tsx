@@ -1202,7 +1202,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 <h4 className="mb-3 text-sm font-medium">Resumen de cambios:</h4>
                                 <div className="max-h-32 sm:max-h-40 md:max-h-48 overflow-y-auto rounded-md border p-3">
                                         {formatChangesForDisplay().map((change, index) => (
-                                            <div key={index} className="my-2 flex items-center justify-between rounded-md bg-slate-50 p-2">
+                                            <div key={index} className="my-2 flex md:flex-row flex-col items-center justify-between rounded-md bg-slate-50 p-2">
                                                 <div>
                                                     <span className="font-medium text-slate-900">{change.empleado}</span>
                                                     <span className="ml-2 text-slate-500">• {change.fecha}</span>

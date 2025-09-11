@@ -317,10 +317,10 @@ class ShiftsUpdateController extends Controller
     {
         if (! isset($cambiosPorFuncionario[$empleado->id])) {
             // Usar first_name + paternal_lastname si están disponibles, sino usar name completo
-            $nombreParaMostrar = $empleado->first_name && $empleado->paternal_lastname 
+            $nombreParaMostrar = $empleado->first_name && $empleado->paternal_lastname
                 ? $empleado->first_name . ' ' . $empleado->paternal_lastname
                 : $empleado->name;
-                
+
             $cambiosPorFuncionario[$empleado->id] = [
                 'nombre'   => $nombreParaMostrar,
                 'telefono' => $empleado->phone,
