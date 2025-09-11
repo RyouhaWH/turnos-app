@@ -707,16 +707,38 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                                             {/* Botón de configuración WhatsApp solo para administradores */}
                                             {!isMobile && hasAdminPermissions && (
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={handleToggleWhatsAppConfig}
-                                                    className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100"
-                                                    title="Configurar notificaciones WhatsApp"
-                                                >
-                                                    <MessageSquare className="h-4 w-4" />
-                                                    WhatsApp
-                                                </Button>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={handleToggleWhatsAppConfig}
+                                                        className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100"
+                                                        title="Configurar notificaciones WhatsApp"
+                                                    >
+                                                        <MessageSquare className="h-4 w-4" />
+                                                        WhatsApp
+                                                    </Button>
+                                                    
+                                                    {/* Checkbox de Modo Testing */}
+                                                    <div className="flex items-center space-x-2">
+                                                        <Checkbox
+                                                            id="whatsapp-testing-mode-desktop"
+                                                            checked={whatsappTestingMode}
+                                                            onCheckedChange={(checked) => {
+                                                                setWhatsappTestingMode(checked as boolean);
+                                                                localStorage.setItem('whatsapp-testing-mode', JSON.stringify(checked));
+                                                            }}
+                                                            className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                                                        />
+                                                        <label 
+                                                            htmlFor="whatsapp-testing-mode-desktop" 
+                                                            className="text-xs font-medium text-yellow-700 cursor-pointer"
+                                                            title="Enviar todos los mensajes de WhatsApp a mi número de prueba (951004035)"
+                                                        >
+                                                            🧪 Testing
+                                                        </label>
+                                                    </div>
+                                                </div>
                                             )}
 
                                             {/* Botón de filtro de turnos */}
