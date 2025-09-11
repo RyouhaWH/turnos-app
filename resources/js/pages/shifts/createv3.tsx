@@ -442,6 +442,43 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         await handleActualizarCambios('', selectedWhatsAppRecipients, whatsappTestingMode);
     }, [handleActualizarCambios, selectedWhatsAppRecipients]);
 
+    // Función para obtener el nombre completo del turno
+    const getTurnoLabel = useCallback((turno: string) => {
+        if (!turno || turno === '' || turno === ' ') return 'Sin Turno';
+        
+        const labels: Record<string, string> = {
+            // Turnos básicos
+            'M': 'Mañana',
+            'T': 'Tarde', 
+            'N': 'Noche',
+            'F': 'Franco',
+            'L': 'Libre',
+            
+            // Turnos numéricos
+            '1': '1er Turno',
+            '2': '2do Turno',
+            '3': '3er Turno',
+            
+            // Turnos extra
+            'ME': 'Mañana Extra',
+            'TE': 'Tarde Extra',
+            'NE': 'Noche Extra',
+            '1E': '1er Turno Extra',
+            '2E': '2do Turno Extra',
+            '3E': '3er Turno Extra',
+            
+            // Días especiales
+            'A': 'Administrativo',
+            'V': 'Vacaciones',
+            'P': 'Permiso / Cumpleaño',
+            'S': 'Suspensión',
+            'SA': 'Sin Asignar',
+            'X': 'Sin Asignar',
+        };
+        
+        return labels[turno] || turno;
+    }, []);
+
     // Función para formatear los cambios para mostrar en el popup
     const formatChangesForDisplay = useCallback(() => {
         const changesList: Array<{
@@ -451,27 +488,37 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             day: number;
         }> = [];
 
-        Object.entries(resumen).forEach(([employeeId, employeeData]: [string, any]) => {
-            if (employeeData && employeeData.turnos) {
-                Object.entries(employeeData.turnos).forEach(([day, turno]) => {
-                    const dayNumber = parseInt(day);
-                    const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
-
-                    changesList.push({
-                        empleado: employeeData.nombre || 'Empleado desconocido',
-                        fecha: date.toLocaleDateString('es-CL', {
-                            day: 'numeric',
-                            month: 'short',
-                        }),
-                        turno: String(turno) || 'Eliminar',
-                        day: dayNumber,
-                    });
-                });
+        // Usar listaCambios que tiene la información de oldValue y newValue
+        listaCambios.forEach((change) => {
+            const dayNumber = parseInt(change.day);
+            const date = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), dayNumber);
+            
+            const oldTurnoLabel = getTurnoLabel(change.oldValue);
+            const newTurnoLabel = getTurnoLabel(change.newValue);
+            
+            // Crear descripción del cambio
+            let turnoDescription = '';
+            if (change.oldValue && change.newValue) {
+                turnoDescription = `${oldTurnoLabel} → ${newTurnoLabel}`;
+            } else if (change.newValue) {
+                turnoDescription = `Asignar: ${newTurnoLabel}`;
+            } else {
+                turnoDescription = `Eliminar: ${oldTurnoLabel}`;
             }
+
+            changesList.push({
+                empleado: change.employeeName,
+                fecha: date.toLocaleDateString('es-CL', {
+                    day: 'numeric',
+                    month: 'short',
+                }),
+                turno: turnoDescription,
+                day: dayNumber,
+            });
         });
 
         return changesList.sort((a, b) => a.day - b.day);
-    }, [resumen, selectedDate]);
+    }, [listaCambios, selectedDate, getTurnoLabel]);
 
     // Función para generar la lista de destinatarios de WhatsApp
     const formatWhatsAppRecipients = useCallback(() => {
@@ -1139,7 +1186,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                     {/* Dialog de confirmación para aplicar cambios */}
                     <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-                        <DialogContent className="mx-auto max-h-[80vh] w-full max-w-[95vw]">
+                        <DialogContent className="mx-auto max-h-[90vh] w-full max-w-[90vw] lg:max-w-[1200px] p-6">
                             <DialogHeader>
                                 <DialogTitle className="flex items-center gap-2">
                                     <CheckCircle2 className="h-5 w-5 text-green-600" />
@@ -1153,7 +1200,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                             <div className="py-4">
                                 <h4 className="mb-3 text-sm font-medium">Resumen de cambios:</h4>
-                                <ScrollArea className="h-64 rounded-md border p-3">
+                                <ScrollArea className="max-h-48 rounded-md border p-3">
                                     <div className="space-y-2">
                                         {formatChangesForDisplay().map((change, index) => (
                                             <div key={index} className="flex items-center justify-between rounded-md bg-slate-50 p-2">
@@ -1190,31 +1237,25 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         )}
                                     </h4>
                                     <div className="rounded-md border bg-green-50 p-3">
-                                        <div className="space-y-2">
-                                            {formatWhatsAppRecipients().map((recipient, index) => (
-                                                <div key={index} className="flex items-center justify-between rounded-md bg-white p-2">
-                                                    <div className="flex items-center gap-2">
-                                                        <Phone className="h-3 w-3 text-green-600" />
-                                                        <span className="font-medium text-slate-900">{recipient.name}</span>
-                                                        {recipient.role && (
-                                                            <Badge variant="outline" className="text-xs">
-                                                                {recipient.role}
-                                                            </Badge>
-                                                        )}
+                                        <ScrollArea className="max-h-48 lg:max-h-56">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pr-4">
+                                                {formatWhatsAppRecipients().map((recipient, index) => (
+                                                    <div key={index} className="flex items-center rounded-md bg-green-100 p-2">
+                                                        <div className="flex items-center gap-2">
+                                                            <Phone className="h-3 w-3 text-green-600" />
+                                                            <span className="font-medium text-slate-900">{recipient.name}</span>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-xs text-slate-500">
-                                                        {whatsappTestingMode ? '951004035' : recipient.phone}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                            {whatsappTestingMode && (
-                                                <div className="mt-2 rounded-md bg-yellow-100 p-2">
-                                                    <p className="text-xs text-yellow-800">
-                                                        🧪 <strong>Modo Testing:</strong> Todos los mensajes se enviarán a tu número de prueba (951004035)
-                                                    </p>
-                                                </div>
-                                            )}
-                                        </div>
+                                                ))}
+                                            </div>
+                                        </ScrollArea>
+                                        {whatsappTestingMode && (
+                                            <div className="mt-2 rounded-md bg-yellow-100 p-2">
+                                                <p className="text-xs text-yellow-800">
+                                                    🧪 <strong>Modo Testing:</strong> Todos los mensajes se enviarán a tu número de prueba (951004035)
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}
