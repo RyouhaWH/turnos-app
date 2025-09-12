@@ -3,7 +3,7 @@
 # Script para manejar el worker de colas de Laravel
 # Uso: ./queue-worker.sh {start|stop|restart|status}
 
-APP_DIR="/var/www/turnos-app"  # Cambia esta ruta por la de tu proyecto
+APP_DIR="/var/www/amzoma/current"  # Ruta del proyecto en producción
 PHP_BIN="/usr/bin/php"        # Ruta al PHP de tu servidor
 WORKER_PID_FILE="/var/run/laravel-queue-worker.pid"
 LOG_FILE="/var/log/laravel-queue-worker.log"

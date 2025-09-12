@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=www-data
 Group=www-data
-WorkingDirectory=/var/www/turnos-app
+WorkingDirectory=/var/www/amzoma/current
 ExecStart=/usr/bin/php artisan queue:work --queue=default --tries=3 --timeout=60 --memory=512 --sleep=3 --max-jobs=1000 --max-time=3600
 Restart=always
 RestartSec=5

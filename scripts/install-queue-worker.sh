@@ -8,7 +8,7 @@ set -e
 echo "🚀 Instalando y configurando el worker de colas de Laravel..."
 
 # Variables configurables
-APP_DIR="/var/www/turnos-app"
+APP_DIR="/var/www/amzoma/current"
 SERVICE_NAME="laravel-queue-worker"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,7 +40,7 @@ echo "⚙️  Instalando servicio de systemd..."
 cp "$SCRIPT_DIR/laravel-queue-worker.service" "$SERVICE_FILE"
 
 # Actualizar la ruta en el archivo de servicio
-sed -i "s|/var/www/turnos-app|$APP_DIR|g" "$SERVICE_FILE"
+sed -i "s|/var/www/amzoma/current|$APP_DIR|g" "$SERVICE_FILE"
 
 # Configurar el usuario correcto (detectar automáticamente)
 WEB_USER=$(stat -c '%U' "$APP_DIR")
