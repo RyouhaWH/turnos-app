@@ -76,7 +76,7 @@ const OptimizedDateHeader = React.memo((props: any) => {
 
     return (
         <div className={`flex h-full flex-col items-center justify-center p-1 text-center ${
-            dayInfo.isFinDeSemana ? 'bg-slate-50 dark:bg-slate-800' : ''
+            dayInfo.isFinDeSemana ? '' : ''
         }`}>
             <div className="text-sm font-bold leading-tight">{dayInfo.day}</div>
             <div className="text-xs leading-tight opacity-80">{dayInfo.nombre}</div>
@@ -111,6 +111,8 @@ const getDayInfo = (day: number, month: number, year: number) => {
         fecha: date,
         nombre: diasCortos[diaSemana],
         isFinDeSemana: diaSemana === 0 || diaSemana === 6,
+        isSabado: diaSemana === 6,
+        isDomingo: diaSemana === 0,
         diaSemana,
     };
 };
@@ -261,12 +263,10 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 cellStyle: (params) => {
                     if (params.data?.isSeparator) {
                         return {
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            backgroundColor: '#f9fafb',
-                            color: '#4b5563',
-                            borderTop: '1px solid #e5e7eb',
-                            borderBottom: '1px solid #e5e7eb',
+                            fontSize: '10px',
+                            fontWeight: '500',
+                            //borderTop: '1px solid #e5e7eb',
+                            //borderBottom: '1px solid #e5e7eb',
                             textAlign: 'center',
                             cursor: params.data?.isGroupHeader ? 'pointer' : 'default',
                         };
@@ -311,10 +311,10 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     if (params.data?.isSeparator || isProcessingChanges) return false;
                     return editable;
                 },
-                width: 50,
-                minWidth: 50,
-                maxWidth: 50,
-                flex: 0,
+                width: 40,
+                minWidth: 30,
+                maxWidth: 75,
+                flex: 1,
                 lockPosition: true,
                 suppressMovable: true,
                 resizable: false,
@@ -330,6 +330,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     }
 
                     if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
+                    if (dayInfo.isDomingo) classes.push('day-d');
+                    if (dayInfo.isSabado) classes.push('day-s');
 
                     if (params.value) {
                         const shiftValue = String(params.value).toLowerCase();
@@ -337,14 +339,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                         if (shiftValue === 'lm') {
                             classes.push('shift-lm');
                         } else if (shiftValue === 'sa') {
-                            // SA (sin asignar) no tiene color, se mantiene transparente
                             classes.push('shift-sa');
                         } else {
                             // Para turnos de un solo carácter, usar el primer carácter
                             const firstChar = shiftValue.charAt(0);
                             classes.push(`shift-${firstChar}`);
                         }
-                        
+
                         // Ocultar celda si el tipo de turno está en hiddenShiftTypes
                         if (hiddenShiftTypes.has(String(params.value).toUpperCase())) {
                             classes.push('hidden-shift');
@@ -559,13 +560,22 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .weekend-cell.shift-f,
                 .ag-theme-alpine .weekend-cell.shift-l,
                 .ag-theme-alpine .weekend-cell.shift-sa {
-                    background-color: transparent !important;
+                    background-color: #fafafa !important;
                     color: #666666 !important;
                 }
+                // .ag-theme-alpine .weekend-cell.day-s {
+                //     border-left: 2px solid #2b2b2b !important;
+                // }
+                // .ag-theme-alpine .weekend-cell.day-d {
+                //     border-right: 2px solid #2b2b2b !important;
+                // }
 
                 .ag-theme-alpine .weekend-header {
                     background-color: #f5f5f5 !important;
                     font-weight: 600 !important;
+                }
+                .ag-theme-alpine .weekend-cell{
+                    opacity: 1 !important;
                 }
 
                 /* Cambios pendientes */
@@ -595,7 +605,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     border-bottom: 1px solid #e5e7eb !important;
                     color: #4b5563 !important;
                     font-weight: 600 !important;
-                    font-size: 11px !important;
+                    font-size: 10px !important;
                     pointer-events: none !important;
                     height: 24px !important;
                 }
@@ -606,7 +616,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     border-bottom: 1px solid #e5e7eb !important;
                     color: #4b5563 !important;
                     font-weight: 600 !important;
-                    font-size: 11px !important;
+                    font-size: 10px !important;
                     height: 24px !important;
                     cursor: pointer !important;
                 }
@@ -644,7 +654,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 getRowId={getRowId}
                 getRowClass={getRowClass}
                 getRowHeight={(params) => {
-                    return params.data?.isSeparator ? 24 : 32;
+                    return params.data?.isSeparator ? 20 : 24;
                 }}
                 headerHeight={50}
                 suppressLoadingOverlay={true}

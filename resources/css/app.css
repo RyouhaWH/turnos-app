@@ -150,61 +150,60 @@
 
 /* En tu archivo CSS global o en el componente */
 .ag-theme-alpine .cell-modified {
-  background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
-  border: 1px solid #f59e0b !important;
-  position: relative;
+    background: linear-gradient(135deg, #fef3c7, #fde68a) !important;
+    border: 1px solid #f59e0b !important;
+    border-radius: 4px;
+    position: relative;
 }
 
 .ag-theme-alpine .cell-modified::after {
-  content: '●';
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  color: #f59e0b;
-  font-size: 10px;
+    content: '●';
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 10px;
 }
 
 .ag-custom-header .ag-header-cell-label {
-  white-space: pre-line !important;
-  text-align: center;
-  justify-content: center;
-  line-height: 1.6;
-  font-size: .8rem;
-  font-weight: 600;
+    white-space: pre-line !important;
+    text-align: center;
+    justify-content: center;
+    line-height: 1.6;
+    font-size: 0.8rem;
+    font-weight: 600;
 }
 
-/* .ag-cell {
-  border-right: 1px solid #ccc;
-  border-bottom: 1px solid #ccc;
-} */
+.ag-cell {
+    border: none;
+    /* border-right: 1px solid #ccc; */
+    /* border-bottom: 1px solid #ccc; */
+}
 
 .ag-header-cell {
-  border-right: .1rem solid #a001;
+    border-right: 0.1rem solid #a001;
 }
 .ag-header-cell-text {
-  z-index: 99999;
+    z-index: 99999;
 }
 
 .ag-row {
-  border-bottom: .001rem solid #0a01;
+    border-bottom: 0.001rem solid #0a01;
+    /* border-bottom: none !important */
 }
 
 .ag-theme-alpine .ag-custom-header .ag-header-cell-label {
-  white-space: pre-line !important;
-  text-align: center;
-  justify-content: baseline;
-  line-height: 1.6;
-  font-size: 0.7rem;
+    white-space: pre-line !important;
+    text-align: center;
+    justify-content: baseline;
+    line-height: 1.6;
+    font-size: 0.7rem;
 }
 
 .ag-theme-alpine .ag-cell {
-  padding-top: 4px !important;
-  padding-bottom: 4px !important;
-  padding-left: 4px !important;
-  padding-right:4px !important;
-  font-size: 13px;
+    padding-left: 2px !important;
+    padding-right: 2px !important;
+    font-size: 11px;
 }
-
 
 @layer base {
     * {
@@ -218,12 +217,12 @@
 
 /* Estilos para el carrusel móvil */
 .scrollbar-hide {
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
+    scrollbar-width: none; /* Firefox */
 }
 
 .scrollbar-hide::-webkit-scrollbar {
-    display: none;  /* Safari and Chrome */
+    display: none; /* Safari and Chrome */
 }
 
 /* Snap scroll para el carrusel */
@@ -499,7 +498,8 @@ textarea,
 }
 
 @keyframes pulse {
-    0%, 100% {
+    0%,
+    100% {
         opacity: 1;
     }
     50% {
@@ -516,56 +516,56 @@ textarea,
 
 /* 24. Corrección de puntos de origen para animaciones */
 /* Corregir el transform-origin para que las animaciones aparezcan desde el punto correcto */
-[data-state="open"] {
+[data-state='open'] {
     transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
 }
 
 /* Para dropdowns y menús */
-[data-slot="dropdown-menu-content"],
-[data-slot="dropdown-menu-sub-content"] {
+[data-slot='dropdown-menu-content'],
+[data-slot='dropdown-menu-sub-content'] {
     transform-origin: var(--radix-dropdown-menu-content-transform-origin, center);
 }
 
 /* Para popovers */
-[data-slot="popover-content"] {
+[data-slot='popover-content'] {
     transform-origin: var(--radix-popover-content-transform-origin, center);
 }
 
 /* Para tooltips */
-[data-slot="tooltip-content"] {
+[data-slot='tooltip-content'] {
     transform-origin: var(--radix-tooltip-content-transform-origin, center);
 }
 
 /* Para select content */
-[data-slot="select-content"] {
+[data-slot='select-content'] {
     transform-origin: var(--radix-select-content-transform-origin, center);
 }
 
 /* Para navigation menu */
-[data-slot="navigation-menu-content"],
-[data-slot="navigation-menu-viewport"] {
+[data-slot='navigation-menu-content'],
+[data-slot='navigation-menu-viewport'] {
     transform-origin: var(--radix-navigation-menu-content-transform-origin, center);
 }
 
 /* Para dialogs */
-[data-slot="dialog-content"] {
+[data-slot='dialog-content'] {
     transform-origin: center;
 }
 
 /* Para sheets - mantener el comportamiento lateral */
-[data-slot="sheet-content"][data-side="left"] {
+[data-slot='sheet-content'][data-side='left'] {
     transform-origin: left center;
 }
 
-[data-slot="sheet-content"][data-side="right"] {
+[data-slot='sheet-content'][data-side='right'] {
     transform-origin: right center;
 }
 
-[data-slot="sheet-content"][data-side="top"] {
+[data-slot='sheet-content'][data-side='top'] {
     transform-origin: center top;
 }
 
-[data-slot="sheet-content"][data-side="bottom"] {
+[data-slot='sheet-content'][data-side='bottom'] {
     transform-origin: center bottom;
 }
 
@@ -592,19 +592,19 @@ textarea,
 }
 
 /* Para elementos que usan data-side, usar el origen apropiado */
-[data-side="bottom"] {
+[data-side='bottom'] {
     transform-origin: center top;
 }
 
-[data-side="top"] {
+[data-side='top'] {
     transform-origin: center bottom;
 }
 
-[data-side="left"] {
+[data-side='left'] {
     transform-origin: right center;
 }
 
-[data-side="right"] {
+[data-side='right'] {
     transform-origin: left center;
 }
 
@@ -620,7 +620,7 @@ textarea,
 }
 
 /* Para elementos que se posicionan dinámicamente */
-[style*="transform-origin"] {
+[style*='transform-origin'] {
     /* Respetar el transform-origin definido dinámicamente */
 }
 
@@ -628,35 +628,35 @@ textarea,
 /* Asegurar que las animaciones móviles funcionen correctamente */
 @media (max-width: 768px) {
     /* Forzar el transform-origin correcto en móvil */
-    [data-slot="popover-content"],
-    [data-slot="dropdown-menu-content"],
-    [data-slot="dropdown-menu-sub-content"] {
+    [data-slot='popover-content'],
+    [data-slot='dropdown-menu-content'],
+    [data-slot='dropdown-menu-sub-content'] {
         transform-origin: center !important;
     }
 
     /* Para popovers en móvil, usar el origen del trigger */
-    [data-slot="popover-content"][data-side="bottom"] {
+    [data-slot='popover-content'][data-side='bottom'] {
         transform-origin: center top !important;
     }
 
-    [data-slot="popover-content"][data-side="top"] {
+    [data-slot='popover-content'][data-side='top'] {
         transform-origin: center bottom !important;
     }
 
-    [data-slot="popover-content"][data-side="left"] {
+    [data-slot='popover-content'][data-side='left'] {
         transform-origin: right center !important;
     }
 
-    [data-slot="popover-content"][data-side="right"] {
+    [data-slot='popover-content'][data-side='right'] {
         transform-origin: left center !important;
     }
 
     /* Para sheets en móvil */
-    [data-slot="sheet-content"][data-side="left"] {
+    [data-slot='sheet-content'][data-side='left'] {
         transform-origin: left center !important;
     }
 
-    [data-slot="sheet-content"][data-side="right"] {
+    [data-slot='sheet-content'][data-side='right'] {
         transform-origin: right center !important;
     }
 
@@ -671,27 +671,27 @@ textarea,
     }
 
     /* Corrección global para todas las animaciones en móvil */
-    *[data-state="open"] {
+    *[data-state='open'] {
         transform-origin: center !important;
     }
 
     /* Específico para elementos que aparecen desde abajo */
-    *[data-side="bottom"][data-state="open"] {
+    *[data-side='bottom'][data-state='open'] {
         transform-origin: center top !important;
     }
 
     /* Específico para elementos que aparecen desde arriba */
-    *[data-side="top"][data-state="open"] {
+    *[data-side='top'][data-state='open'] {
         transform-origin: center bottom !important;
     }
 
     /* Específico para elementos que aparecen desde la izquierda */
-    *[data-side="left"][data-state="open"] {
+    *[data-side='left'][data-state='open'] {
         transform-origin: right center !important;
     }
 
     /* Específico para elementos que aparecen desde la derecha */
-    *[data-side="right"][data-state="open"] {
+    *[data-side='right'][data-state='open'] {
         transform-origin: left center !important;
     }
 

@@ -754,8 +754,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onClick={handleToggleEmployeePanel}
                                                     className={`flex items-center gap-2 transition-all duration-300 ${
                                                         showEmployeePanel
-                                                            ? 'hover:bg-slate-100'
-                                                            : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100'
+                                                            ? 'hover:bg-slate-100 dark:hover:bg-green-800'
+                                                            : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700'
                                                     }`}
                                                     title={showEmployeePanel ? 'Ocultar gestión de empleados' : 'Mostrar gestión de empleados'}
                                                 >
@@ -772,8 +772,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onClick={handleToggleSummary}
                                                     className={`flex items-center gap-2 transition-all duration-300 ${
                                                         showSummary
-                                                            ? 'hover:bg-slate-100'
-                                                            : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100'
+                                                            ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
+                                                            : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
                                                     }`}
                                                     title={showSummary ? 'Ocultar resumen' : 'Mostrar resumen de cambios'}
                                                 >
@@ -835,8 +835,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onClick={handleToggleShiftFilter}
                                                     className={`flex items-center gap-2 transition-all duration-300 ${
                                                         showShiftFilter
-                                                            ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100'
-                                                            : 'hover:bg-gray-50'
+                                                            ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                                     }`}
                                                     title="Filtrar tipos de turnos"
                                                 >
@@ -857,7 +857,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     size="sm"
                                                     onClick={handleOpenConfirmDialog}
                                                     disabled={isProcessingChanges || isSaving}
-                                                    className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700"
+                                                    className="flex items-center gap-2 bg-green-600 text-white hover:bg-green-700 dark:bg-green-800 dark:text-green-100 dark:hover:bg-green-700"
                                                 >
                                                     {isSaving ? (
                                                         <>

@@ -770,19 +770,6 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                         position: relative !important;
                     }
 
-                    .ag-theme-alpine .pending-change::after {
-                        content: "⏳" !important;
-                        position: absolute !important;
-                        top: -2px !important;
-                        right: -2px !important;
-                        background-color: #f59e0b !important;
-                        color: white !important;
-                        font-size: 8px !important;
-                        padding: 1px 2px !important;
-                        border-radius: 2px !important;
-                        line-height: 1 !important;
-                    }
-
                     /* Estilos para filas separadoras - más delgadas */
                     .ag-theme-alpine .separator-cell {
                         background-color: #f9fafb !important;

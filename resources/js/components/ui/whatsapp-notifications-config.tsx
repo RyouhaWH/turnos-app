@@ -312,7 +312,7 @@ export function WhatsAppNotificationsConfig({
                                         className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
                                     />
                                     <label htmlFor="testing-mode" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                                        🧪 Modo Testing - Enviar todos los mensajes a mi número (951004035)
+                                        🧪 Modo Testing - Para realizar pruebas de envío de mensajes
                                     </label>
                                 </div>
 
@@ -337,7 +337,7 @@ export function WhatsAppNotificationsConfig({
                                                         className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors min-w-full ${
                                                             isSpecial
                                                                 ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700'
-                                                                : 'bg-white border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800/50'
+                                                                : 'bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-800/50'
                                                         }`}
                                                     >
                                                         <Checkbox
