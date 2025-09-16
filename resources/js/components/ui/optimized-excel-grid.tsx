@@ -56,6 +56,7 @@ interface OptimizedExcelGridProps {
     hiddenShiftTypes?: Set<string>;
     className?: string;
     showTotals?: boolean; // Nueva prop para mostrar totales
+    selectedTotalsShiftTypes?: Set<string>; // Tipos de turnos seleccionados para totales
 }
 
 export interface OptimizedExcelGridRef {
@@ -121,26 +122,31 @@ const getDayInfo = (day: number, month: number, year: number) => {
 };
 
 // Función para calcular totales por tipo de turno
-const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[]): TurnoData[] => {
+const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[], selectedShiftTypes: Set<string>): TurnoData[] => {
     if (!data || data.length === 0 || daysInData.length === 0) return [];
 
-    // Obtener todos los tipos de turnos únicos
-    const shiftTypes = new Set<string>();
+    // Obtener todos los tipos de turnos únicos presentes en los datos
+    const availableShiftTypes = new Set<string>();
     data.forEach(row => {
         if (!row.isSeparator) {
             daysInData.forEach(day => {
                 const value = String(row[day.toString()] || '').toUpperCase().trim();
                 if (value && value !== '') {
-                    shiftTypes.add(value);
+                    availableShiftTypes.add(value);
                 }
             });
         }
     });
 
+    // Filtrar solo los tipos de turnos seleccionados que están disponibles en los datos
+    const shiftTypesToShow = Array.from(availableShiftTypes).filter(shiftType => 
+        selectedShiftTypes.size === 0 || selectedShiftTypes.has(shiftType)
+    );
+
     // Crear filas de totales para cada tipo de turno
     const totalsRows: TurnoData[] = [];
-    
-    Array.from(shiftTypes).sort().forEach(shiftType => {
+
+    shiftTypesToShow.sort().forEach(shiftType => {
         const totalsRow: TurnoData = {
             id: `totals-${shiftType}`,
             nombre: `${shiftType}`,
@@ -154,7 +160,7 @@ const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[]): Tu
         daysInData.forEach(day => {
             const dayStr = day.toString();
             let count = 0;
-            
+
             data.forEach(row => {
                 if (!row.isSeparator) {
                     const value = String(row[dayStr] || '').toUpperCase().trim();
@@ -163,7 +169,7 @@ const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[]): Tu
                     }
                 }
             });
-            
+
             (totalsRow as any)[dayStr] = count > 0 ? count.toString() : '';
         });
 
@@ -248,6 +254,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         hiddenShiftTypes = new Set(),
         className = '',
         showTotals = false,
+        selectedTotalsShiftTypes = new Set(),
     },
     ref
 ) => {
@@ -279,8 +286,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         // Agregar totales si está habilitado
         if (showTotals && filteredData.length > 0) {
             const daysInData = extractDaysFromData(filteredData);
-            const totalsRows = calculateTotalsByShiftType(filteredData, daysInData);
-            
+            const totalsRows = calculateTotalsByShiftType(filteredData, daysInData, selectedTotalsShiftTypes);
+
             if (totalsRows.length > 0) {
                 // Crear separador de totales
                 const totalsSeparator: TurnoData = {
@@ -305,7 +312,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         }
 
         return filteredData;
-    }, [rowData, collapsedGroups, showTotals]);
+    }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes]);
 
     // Extraer días y generar información
     const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
@@ -778,7 +785,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 getRowClass={getRowClass}
                 getRowHeight={(params) => {
                     if (params.data?.isTotalsRow) return 22;
-                    return params.data?.isSeparator ? 24 : 32;
+                    return params.data?.isSeparator ? 20 : 24;
                 }}
                 headerHeight={50}
                 suppressLoadingOverlay={true}

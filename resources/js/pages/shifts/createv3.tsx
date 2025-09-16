@@ -103,6 +103,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [showMobileHistoryModal, setShowMobileHistoryModal] = useState(false);
     const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false);
     const [showTotals, setShowTotals] = useState(false);
+    const [selectedTotalsShiftTypes, setSelectedTotalsShiftTypes] = useState<Set<string>>(new Set());
+    const [showTotalsSelector, setShowTotalsSelector] = useState(false);
 
     // Estados para popups móviles
     const [showMobileSummaryModal, setShowMobileSummaryModal] = useState(false);
@@ -212,6 +214,42 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const handleToggleTotals = useCallback(() => {
         setShowTotals(prev => !prev);
     }, []);
+
+    const handleToggleTotalsShiftType = useCallback((shiftType: string) => {
+        setSelectedTotalsShiftTypes(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(shiftType)) {
+                newSet.delete(shiftType);
+            } else {
+                newSet.add(shiftType);
+            }
+            return newSet;
+        });
+    }, []);
+
+    const handleSelectAllTotalsShiftTypes = useCallback(() => {
+        const allShiftTypes = getAllShiftCodes();
+        setSelectedTotalsShiftTypes(new Set(allShiftTypes.map(String)));
+    }, []);
+
+    const handleClearAllTotalsShiftTypes = useCallback(() => {
+        setSelectedTotalsShiftTypes(new Set());
+    }, []);
+
+    // Cerrar selector de totales cuando se hace click fuera
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Element;
+            if (!target.closest('.totals-selector-container')) {
+                setShowTotalsSelector(false);
+            }
+        };
+
+        if (showTotalsSelector) {
+            document.addEventListener('mousedown', handleClickOutside);
+            return () => document.removeEventListener('mousedown', handleClickOutside);
+        }
+    }, [showTotalsSelector]);
 
     const handleToggleEmployeePanel = useCallback(() => {
         if (isMobile) {
@@ -586,6 +624,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             hiddenShiftTypes: new Set(getAllShiftCodes().filter((code) => !visibleShiftTypes.has(code))),
             className: 'transition-all duration-300 ease-in-out',
             showTotals,
+            selectedTotalsShiftTypes,
         }),
         [
             filteredRowData,
@@ -599,6 +638,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             visibleShiftTypes,
             availableShiftTypes,
             showTotals,
+            selectedTotalsShiftTypes,
         ],
     );
 
@@ -836,29 +876,107 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                                             {/* Botón para mostrar/ocultar totales */}
                                             {!isMobile && (
-                                                <Button
-                                                    variant={showTotals ? 'ghost' : 'outline'}
-                                                    size="sm"
-                                                    onClick={handleToggleTotals}
-                                                    className={`flex items-center gap-2 transition-all duration-300 ${
-                                                        showTotals
-                                                            ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
-                                                            : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
-                                                    }`}
-                                                    title={showTotals ? 'Ocultar totales' : 'Mostrar totales por tipo de turno'}
-                                                >
-                                                    {showTotals ? (
-                                                        <>
-                                                            <EyeOff className="h-4 w-4" />
-                                                            Ocultar totales
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <FileSpreadsheet className="h-4 w-4" />
-                                                            Mostrar totales
-                                                        </>
+                                                <div className="flex items-center gap-2">
+                                                    <Button
+                                                        variant={showTotals ? 'ghost' : 'outline'}
+                                                        size="sm"
+                                                        onClick={handleToggleTotals}
+                                                        className={`flex items-center gap-2 transition-all duration-300 ${
+                                                            showTotals
+                                                                ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
+                                                                : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
+                                                        }`}
+                                                        title={showTotals ? 'Ocultar totales' : 'Mostrar totales por tipo de turno'}
+                                                    >
+                                                        {showTotals ? (
+                                                            <>
+                                                                <EyeOff className="h-4 w-4" />
+                                                                Ocultar totales
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <FileSpreadsheet className="h-4 w-4" />
+                                                                Mostrar totales
+                                                            </>
+                                                        )}
+                                                    </Button>
+
+                                                    {/* Selector de tipos de turnos para totales */}
+                                                    {showTotals && (
+                                                        <div className="relative totals-selector-container">
+                                                            <Button
+                                                                variant="outline"
+                                                                size="sm"
+                                                                onClick={() => setShowTotalsSelector(!showTotalsSelector)}
+                                                                className="flex items-center gap-2 border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700"
+                                                                title="Seleccionar tipos de turnos para totales"
+                                                            >
+                                                                <Filter className="h-4 w-4" />
+                                                                Filtrar ({selectedTotalsShiftTypes.size})
+                                                            </Button>
+
+                                                            {/* Dropdown del selector */}
+                                                            {showTotalsSelector && (
+                                                                <div className="absolute right-0 top-full z-50 mt-2 w-80 rounded-lg border border-slate-200 bg-white p-4 shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                                                                    <div className="mb-3 flex items-center justify-between">
+                                                                        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                                            Tipos de turnos para totales
+                                                                        </h3>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={() => setShowTotalsSelector(false)}
+                                                                            className="h-6 w-6 p-0"
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </div>
+
+                                                                    <div className="mb-3 flex gap-2">
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={handleSelectAllTotalsShiftTypes}
+                                                                            className="text-xs"
+                                                                        >
+                                                                            Seleccionar todos
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={handleClearAllTotalsShiftTypes}
+                                                                            className="text-xs"
+                                                                        >
+                                                                            Limpiar
+                                                                        </Button>
+                                                                    </div>
+
+                                                                    <div className="max-h-60 space-y-2 overflow-y-auto">
+                                                                        {availableShiftTypes.map((shiftType) => {
+                                                                            const shiftTypeStr = String(shiftType);
+                                                                            return (
+                                                                                <div key={shiftTypeStr} className="flex items-center space-x-2">
+                                                                                    <Checkbox
+                                                                                        id={`totals-${shiftTypeStr}`}
+                                                                                        checked={selectedTotalsShiftTypes.has(shiftTypeStr)}
+                                                                                        onCheckedChange={() => handleToggleTotalsShiftType(shiftTypeStr)}
+                                                                                        className="h-4 w-4"
+                                                                                    />
+                                                                                    <label
+                                                                                        htmlFor={`totals-${shiftTypeStr}`}
+                                                                                        className="flex-1 cursor-pointer text-sm text-slate-700 dark:text-slate-300"
+                                                                                    >
+                                                                                        {shiftTypeStr} - {getTurnoLabel(shiftTypeStr)}
+                                                                                    </label>
+                                                                                </div>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     )}
-                                                </Button>
+                                                </div>
                                             )}
 
                                             {/* Botón de filtro de turnos */}
