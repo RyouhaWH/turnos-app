@@ -191,8 +191,8 @@ export function WhatsAppNotificationsConfig({
                     {Object.entries(recipientsByRole).map(([role, recipients]) => (
                         <div key={role} className="space-y-3">
                             <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                                <Users className="h-4 w-4 text-slate-500 dark:text-slate-300" />
+                                <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">
                                     {role}
                                 </h4>
                                 <Badge variant="secondary" className="text-xs">
@@ -204,7 +204,7 @@ export function WhatsAppNotificationsConfig({
                                 {recipients.map((recipient) => (
                                     <div
                                         key={recipient.id}
-                                        className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+                                        className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition-colors bg-white dark:bg-slate-800/80"
                                     >
                                         <Checkbox
                                             id={recipient.id}
@@ -216,11 +216,11 @@ export function WhatsAppNotificationsConfig({
                                             <div className="flex items-center justify-between gap-2">
                                                 <label
                                                     htmlFor={recipient.id}
-                                                    className="text-sm font-medium text-slate-900 dark:text-white cursor-pointer flex-1"
+                                                    className="text-sm font-medium text-slate-900 dark:text-slate-100 cursor-pointer flex-1"
                                                 >
                                                     {recipient.name}
                                                 </label>
-                                                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+                                                <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                                                     <Phone className="h-3 w-3" />
                                                     <span className="font-mono">
                                                         {phoneNumbers[recipient.id] || recipient.phone}
@@ -237,14 +237,14 @@ export function WhatsAppNotificationsConfig({
             </ScrollArea>
 
             {/* Información adicional */}
-            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-800/40">
                 <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+                    <AlertCircle className="h-5 w-5 text-blue-600 dark:text-blue-300 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
-                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                        <h4 className="text-sm font-medium text-blue-800 dark:text-blue-100 mb-1">
                             Información importante
                         </h4>
-                        <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
+                        <ul className="text-xs text-blue-700 dark:text-blue-200 space-y-1">
                             <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
                             <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                             <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
@@ -435,7 +435,7 @@ export function WhatsAppNotificationsConfig({
                     {content}
 
                     {/* Botones de acción para desktop */}
-                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-600">
                         <Button variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>

@@ -25,7 +25,9 @@ interface TurnoData {
     employee_id?: string | number;
     isSeparator?: boolean;
     isGroupHeader?: boolean;
-    groupType?: 'amzoma' | 'municipal';
+    groupType?: 'amzoma' | 'municipal' | 'totals';
+    isTotalsRow?: boolean;
+    shiftType?: string;
     [key: string]: string | boolean | number | undefined;
 }
 
@@ -53,6 +55,7 @@ interface OptimizedExcelGridProps {
     isProcessingChanges?: boolean;
     hiddenShiftTypes?: Set<string>;
     className?: string;
+    showTotals?: boolean; // Nueva prop para mostrar totales
 }
 
 export interface OptimizedExcelGridRef {
@@ -115,6 +118,59 @@ const getDayInfo = (day: number, month: number, year: number) => {
         isDomingo: diaSemana === 0,
         diaSemana,
     };
+};
+
+// Función para calcular totales por tipo de turno
+const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[]): TurnoData[] => {
+    if (!data || data.length === 0 || daysInData.length === 0) return [];
+
+    // Obtener todos los tipos de turnos únicos
+    const shiftTypes = new Set<string>();
+    data.forEach(row => {
+        if (!row.isSeparator) {
+            daysInData.forEach(day => {
+                const value = String(row[day.toString()] || '').toUpperCase().trim();
+                if (value && value !== '') {
+                    shiftTypes.add(value);
+                }
+            });
+        }
+    });
+
+    // Crear filas de totales para cada tipo de turno
+    const totalsRows: TurnoData[] = [];
+    
+    Array.from(shiftTypes).sort().forEach(shiftType => {
+        const totalsRow: TurnoData = {
+            id: `totals-${shiftType}`,
+            nombre: `${shiftType}`,
+            isSeparator: true,
+            isGroupHeader: false,
+            isTotalsRow: true,
+            shiftType: shiftType,
+        };
+
+        // Calcular totales para cada día
+        daysInData.forEach(day => {
+            const dayStr = day.toString();
+            let count = 0;
+            
+            data.forEach(row => {
+                if (!row.isSeparator) {
+                    const value = String(row[dayStr] || '').toUpperCase().trim();
+                    if (value === shiftType) {
+                        count++;
+                    }
+                }
+            });
+            
+            (totalsRow as any)[dayStr] = count > 0 ? count.toString() : '';
+        });
+
+        totalsRows.push(totalsRow);
+    });
+
+    return totalsRows;
 };
 
 // Función para agregar separadores optimizada
@@ -191,6 +247,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         isProcessingChanges = false,
         hiddenShiftTypes = new Set(),
         className = '',
+        showTotals = false,
     },
     ref
 ) => {
@@ -206,9 +263,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     const processedRowData = useMemo(() => {
         const dataWithSeparators = addOptimizedSeparators(rowData);
 
-        if (collapsedGroups.size === 0) return dataWithSeparators;
-
-        const filteredData: TurnoData[] = [];
+        let filteredData: TurnoData[] = [];
         let skipUntilNextGroup = false;
 
         dataWithSeparators.forEach((row) => {
@@ -221,8 +276,36 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         });
 
+        // Agregar totales si está habilitado
+        if (showTotals && filteredData.length > 0) {
+            const daysInData = extractDaysFromData(filteredData);
+            const totalsRows = calculateTotalsByShiftType(filteredData, daysInData);
+            
+            if (totalsRows.length > 0) {
+                // Crear separador de totales
+                const totalsSeparator: TurnoData = {
+                    id: 'totals-separator',
+                    nombre: '▼ TOTAL',
+                    isSeparator: true,
+                    isGroupHeader: true,
+                    groupType: 'totals',
+                };
+
+                // Agregar campos de días vacíos al separador
+                const sampleRow = filteredData[0];
+                Object.keys(sampleRow).forEach(key => {
+                    if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
+                        (totalsSeparator as any)[key] = '';
+                    }
+                });
+
+                filteredData.push(totalsSeparator);
+                filteredData.push(...totalsRows);
+            }
+        }
+
         return filteredData;
-    }, [rowData, collapsedGroups]);
+    }, [rowData, collapsedGroups, showTotals]);
 
     // Extraer días y generar información
     const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
@@ -257,10 +340,20 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 sortable: true,
                 filter: false,
                 cellClass: (params: CellClassParams) => {
+                    if (params.data?.isTotalsRow) return 'totals-name-cell';
                     if (params.data?.isSeparator) return 'separator-name-cell';
                     return 'employee-name-cell';
                 },
                 cellStyle: (params) => {
+                    if (params.data?.isTotalsRow) {
+                        return {
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            textAlign: 'center',
+                            backgroundColor: '#f8fafc',
+                            color: '#1e293b',
+                        } as any;
+                    }
                     if (params.data?.isSeparator) {
                         return {
                             fontSize: '10px',
@@ -269,13 +362,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                             //borderBottom: '1px solid #e5e7eb',
                             textAlign: 'center',
                             cursor: params.data?.isGroupHeader ? 'pointer' : 'default',
-                        };
+                        } as any;
                     }
                     return {
                         fontSize: '12px',
                         textAlign: 'start',
                         padding: '4px 8px',
-                    };
+                    } as any;
                 },
                 valueGetter: (params) => {
                     if (params.data?.isGroupHeader) {
@@ -308,7 +401,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 headerComponent: OptimizedDateHeader,
                 headerComponentParams: { dayInfo },
                 editable: (params) => {
-                    if (params.data?.isSeparator || isProcessingChanges) return false;
+                    if (params.data?.isSeparator || params.data?.isTotalsRow || isProcessingChanges) return false;
                     return editable;
                 },
                 width: 40,
@@ -323,6 +416,11 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
                 cellClass: (params: CellClassParams) => {
                     const classes = [];
+
+                    if (params.data?.isTotalsRow) {
+                        classes.push('totals-cell');
+                        return classes.join(' ');
+                    }
 
                     if (params.data?.isSeparator) {
                         classes.push('separator-cell');
@@ -376,7 +474,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
     // Manejar cambios de celda optimizado
     const handleCellChange = useCallback((e: CellValueChangedEvent<TurnoData>) => {
-        if (!e?.data || !e.colDef?.field || e.data.isSeparator || isProcessingChanges) return;
+        if (!e?.data || !e.colDef?.field || e.data.isSeparator || e.data.isTotalsRow || isProcessingChanges) return;
 
         const employeeName = String(e.data.nombre || '');
         const employeeRut = String(e.data.rut || '');
@@ -409,7 +507,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         // Manejar click en headers de grupo
         if (event.data?.isGroupHeader && event.colDef?.field === 'nombre') {
             const groupType = event.data.groupType;
-            if (groupType) {
+            if (groupType && groupType !== 'totals') { // No permitir colapsar totales
                 setCollapsedGroups(prev => {
                     const newSet = new Set(prev);
                     if (newSet.has(groupType)) {
@@ -456,7 +554,9 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     const getRowClass = useCallback((params: RowClassParams<TurnoData>) => {
         const classes = [];
 
-        if (params.data?.isSeparator) {
+        if (params.data?.isTotalsRow) {
+            classes.push('totals-row');
+        } else if (params.data?.isSeparator) {
             classes.push('separator-row');
         }
 
@@ -607,7 +707,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     font-weight: 600 !important;
                     font-size: 10px !important;
                     pointer-events: none !important;
-                    height: 24px !important;
+                    height: 20px !important;
                 }
 
                 .ag-theme-alpine .separator-name-cell {
@@ -636,6 +736,29 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .hidden-shift {
                     display: none !important;
                 }
+
+                /* Filas de totales */
+                .ag-theme-alpine .totals-row {
+                    background-color: #f8fafc !important;
+                }
+
+                .ag-theme-alpine .totals-cell {
+                    background-color: #f1f5f9 !important;
+                    color: #1e293b !important;
+                    font-weight: 600 !important;
+                    font-size: 11px !important;
+                    text-align: center !important;
+                    border: 1px solid #e2e8f0 !important;
+                }
+
+                .ag-theme-alpine .totals-name-cell {
+                    background-color: #f1f5f9 !important;
+                    color: #1e293b !important;
+                    font-weight: 600 !important;
+                    font-size: 11px !important;
+                    text-align: center !important;
+                    border: 1px solid #e2e8f0 !important;
+                }
             `}</style>
 
             <AgGridReact
@@ -654,7 +777,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 getRowId={getRowId}
                 getRowClass={getRowClass}
                 getRowHeight={(params) => {
-                    return params.data?.isSeparator ? 20 : 24;
+                    if (params.data?.isTotalsRow) return 22;
+                    return params.data?.isSeparator ? 24 : 32;
                 }}
                 headerHeight={50}
                 suppressLoadingOverlay={true}

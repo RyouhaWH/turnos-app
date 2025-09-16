@@ -102,6 +102,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [showConfirmDialog, setShowConfirmDialog] = useState(false);
     const [showMobileHistoryModal, setShowMobileHistoryModal] = useState(false);
     const [showWhatsAppConfig, setShowWhatsAppConfig] = useState(false);
+    const [showTotals, setShowTotals] = useState(false);
 
     // Estados para popups móviles
     const [showMobileSummaryModal, setShowMobileSummaryModal] = useState(false);
@@ -207,6 +208,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             }
         }
     }, [isMobile, showSummary]);
+
+    const handleToggleTotals = useCallback(() => {
+        setShowTotals(prev => !prev);
+    }, []);
 
     const handleToggleEmployeePanel = useCallback(() => {
         if (isMobile) {
@@ -580,6 +585,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             isProcessingChanges,
             hiddenShiftTypes: new Set(getAllShiftCodes().filter((code) => !visibleShiftTypes.has(code))),
             className: 'transition-all duration-300 ease-in-out',
+            showTotals,
         }),
         [
             filteredRowData,
@@ -592,6 +598,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             showPendingChanges,
             visibleShiftTypes,
             availableShiftTypes,
+            showTotals,
         ],
     );
 
@@ -798,7 +805,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={handleToggleWhatsAppConfig}
-                                                        className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100"
+                                                        className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700 dark:hover:text-green-100"
                                                         title="Configurar notificaciones WhatsApp"
                                                     >
                                                         <MessageSquare className="h-4 w-4" />
@@ -806,7 +813,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     </Button>
 
                                                     {/* Checkbox de Modo Testing */}
-                                                    <div className="flex items-center space-x-2">
+                                                    <div className="flex items-center space-x-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-all duration-300 dark:border-slate-700 dark:hover:border-slate-600 dark:bg-slate-800 dark:hover:text-slate-100 border border-slate-200 py-2 px-3">
                                                         <Checkbox
                                                             id="whatsapp-testing-mode-desktop"
                                                             checked={whatsappTestingMode}
@@ -814,17 +821,44 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                                 setWhatsappTestingMode(checked as boolean);
                                                                 localStorage.setItem('whatsapp-testing-mode', JSON.stringify(checked));
                                                             }}
-                                                            className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                                                            className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600 dark:border-gray-700 dark:data-[state=checked]:bg-yellow-600 dark:data-[state=checked]:border-yellow-600"
                                                         />
                                                         <label
                                                             htmlFor="whatsapp-testing-mode-desktop"
-                                                            className="text-xs font-medium text-yellow-700 cursor-pointer"
+                                                            className="text-xs font-medium text-yellow-700 cursor-pointer dark:text-yellow-100"
                                                             title="Enviar todos los mensajes de WhatsApp a mi número de prueba (951004035)"
                                                         >
                                                             🧪 Testing
                                                         </label>
                                                     </div>
                                                 </div>
+                                            )}
+
+                                            {/* Botón para mostrar/ocultar totales */}
+                                            {!isMobile && (
+                                                <Button
+                                                    variant={showTotals ? 'ghost' : 'outline'}
+                                                    size="sm"
+                                                    onClick={handleToggleTotals}
+                                                    className={`flex items-center gap-2 transition-all duration-300 ${
+                                                        showTotals
+                                                            ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
+                                                            : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
+                                                    }`}
+                                                    title={showTotals ? 'Ocultar totales' : 'Mostrar totales por tipo de turno'}
+                                                >
+                                                    {showTotals ? (
+                                                        <>
+                                                            <EyeOff className="h-4 w-4" />
+                                                            Ocultar totales
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <FileSpreadsheet className="h-4 w-4" />
+                                                            Mostrar totales
+                                                        </>
+                                                    )}
+                                                </Button>
                                             )}
 
                                             {/* Botón de filtro de turnos */}
