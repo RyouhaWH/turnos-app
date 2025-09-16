@@ -304,24 +304,27 @@ export function WhatsAppNotificationsConfig({
                                 </div>
 
                                 {/* Checkbox de Modo Testing */}
-                                <div className="flex items-center space-x-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/20 dark:border-yellow-700">
+                                <div className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/30 dark:border-yellow-600 shadow-sm">
                                     <Checkbox
                                         id="testing-mode"
                                         checked={testingMode}
                                         onCheckedChange={(checked) => setTestingMode(checked as boolean)}
-                                        className="h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded data-[state=checked]:bg-yellow-600 data-[state=checked]:border-yellow-600"
+                                        className="h-5 w-5 text-yellow-600 focus:ring-yellow-500 border-2 border-yellow-400 rounded data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 dark:border-yellow-500 dark:data-[state=checked]:bg-yellow-400 dark:data-[state=checked]:border-yellow-400"
                                     />
-                                    <label htmlFor="testing-mode" className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                                    <label htmlFor="testing-mode" className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 cursor-pointer">
                                         🧪 Modo Testing - Para realizar pruebas de envío de mensajes
                                     </label>
                                 </div>
 
                                 {testingMode && (
-                                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-900/20 dark:border-blue-700">
-                                        <p className="text-sm text-blue-800 dark:text-blue-200">
-                                            <strong>Modo Testing Activado:</strong> Todos los mensajes de WhatsApp se enviarán a tu número de prueba,
-                                            pero se simulará el comportamiento de producción (múltiples destinatarios).
-                                        </p>
+                                    <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg dark:bg-blue-900/40 dark:border-blue-500 shadow-sm">
+                                        <div className="flex items-start gap-2">
+                                            <div className="text-lg">⚠️</div>
+                                            <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                                                <strong>Modo Testing Activado:</strong> Todos los mensajes de WhatsApp se enviarán a tu número de prueba,
+                                                pero se simulará el comportamiento de producción (múltiples destinatarios).
+                                            </p>
+                                        </div>
                                     </div>
                                 )}
 
