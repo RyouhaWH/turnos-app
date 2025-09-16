@@ -121,6 +121,27 @@ const getDayInfo = (day: number, month: number, year: number) => {
     };
 };
 
+// Función para aplicar cambios pendientes a los datos
+const applyPendingChangesToData = (data: TurnoData[], pendingChanges: OptimizedGridChange[]): TurnoData[] => {
+    if (!pendingChanges || pendingChanges.length === 0) return data;
+
+    // Crear una copia de los datos para no modificar el original
+    const dataWithChanges = data.map(row => ({ ...row }));
+
+    // Aplicar cada cambio pendiente
+    pendingChanges.forEach(change => {
+        const targetRow = dataWithChanges.find(row => 
+            String(row.employee_id || row.id || '') === change.employeeId
+        );
+
+        if (targetRow && change.day) {
+            (targetRow as any)[change.day] = change.newValue;
+        }
+    });
+
+    return dataWithChanges;
+};
+
 // Función para calcular totales por tipo de turno
 const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[], selectedShiftTypes: Set<string>): TurnoData[] => {
     if (!data || data.length === 0 || daysInData.length === 0) return [];
@@ -139,7 +160,7 @@ const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[], sel
     });
 
     // Filtrar solo los tipos de turnos seleccionados que están disponibles en los datos
-    const shiftTypesToShow = Array.from(availableShiftTypes).filter(shiftType => 
+    const shiftTypesToShow = Array.from(availableShiftTypes).filter(shiftType =>
         selectedShiftTypes.size === 0 || selectedShiftTypes.has(shiftType)
     );
 
@@ -283,36 +304,40 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         });
 
+        // Aplicar cambios pendientes a los datos para calcular totales actualizados
+        const dataWithPendingChanges = applyPendingChangesToData(filteredData, pendingChanges);
+
         // Agregar totales si está habilitado
-        if (showTotals && filteredData.length > 0) {
-            const daysInData = extractDaysFromData(filteredData);
-            const totalsRows = calculateTotalsByShiftType(filteredData, daysInData, selectedTotalsShiftTypes);
+        if (showTotals && dataWithPendingChanges.length > 0) {
+            const daysInData = extractDaysFromData(dataWithPendingChanges);
+            const totalsRows = calculateTotalsByShiftType(dataWithPendingChanges, daysInData, selectedTotalsShiftTypes);
 
             if (totalsRows.length > 0) {
                 // Crear separador de totales
+                const hasPendingChanges = pendingChanges && pendingChanges.length > 0;
                 const totalsSeparator: TurnoData = {
                     id: 'totals-separator',
-                    nombre: '▼ TOTAL',
+                    nombre: hasPendingChanges ? '▼ TOTAL (Actualizado)' : '▼ TOTAL',
                     isSeparator: true,
                     isGroupHeader: true,
                     groupType: 'totals',
                 };
 
                 // Agregar campos de días vacíos al separador
-                const sampleRow = filteredData[0];
+                const sampleRow = dataWithPendingChanges[0];
                 Object.keys(sampleRow).forEach(key => {
                     if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
                         (totalsSeparator as any)[key] = '';
                     }
                 });
 
-                filteredData.push(totalsSeparator);
-                filteredData.push(...totalsRows);
+                dataWithPendingChanges.push(totalsSeparator);
+                dataWithPendingChanges.push(...totalsRows);
             }
         }
 
-        return filteredData;
-    }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes]);
+        return dataWithPendingChanges;
+    }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
 
     // Extraer días y generar información
     const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
@@ -348,7 +373,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 filter: false,
                 cellClass: (params: CellClassParams) => {
                     if (params.data?.isTotalsRow) return 'totals-name-cell';
-                    if (params.data?.isSeparator) return 'separator-name-cell';
+                    if (params.data?.isSeparator) {
+                        const classes = ['separator-name-cell'];
+                        if (params.data?.groupType === 'totals') {
+                            classes.push('totals-separator');
+                        }
+                        return classes.join(' ');
+                    }
                     return 'employee-name-cell';
                 },
                 cellStyle: (params) => {
@@ -765,6 +796,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     font-size: 11px !important;
                     text-align: center !important;
                     border: 1px solid #e2e8f0 !important;
+                }
+
+                /* Separador de totales con cambios pendientes */
+                .ag-theme-alpine .totals-separator {
+                    background-color: #fef3c7 !important;
+                    color: #92400e !important;
+                    border: 1px solid #f59e0b !important;
                 }
             `}</style>
 
