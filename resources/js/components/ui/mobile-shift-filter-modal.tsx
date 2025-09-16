@@ -87,14 +87,15 @@ export const MobileShiftFilterModal: React.FC<MobileShiftFilterModalProps> = ({
                                     key={shiftType.code}
                                     className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors ${
                                         isSelected
-                                            ? 'bg-white border-slate-200'
-                                            : 'bg-slate-50 border-slate-100'
+                                            ? 'bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700'
+                                            : 'bg-slate-50 border-slate-100 dark:bg-slate-800 dark:border-slate-700'
                                     }`}
                                 >
                                     <Checkbox
                                         id={`shift-type-${shiftType.code}`}
                                         checked={isSelected}
                                         onCheckedChange={() => onShiftTypeToggle(shiftType.code)}
+                                        className="dark:bg-slate-600 dark:border-slate-500 dark:text-slate-50"
                                     />
                                     <label
                                         htmlFor={`shift-type-${shiftType.code}`}
@@ -110,7 +111,7 @@ export const MobileShiftFilterModal: React.FC<MobileShiftFilterModalProps> = ({
                                             />
                                             <span
                                                 className={`font-medium ${
-                                                    isSelected ? 'text-slate-900' : 'text-slate-500'
+                                                    isSelected ? 'text-slate-900 dark:text-slate-100' : 'text-slate-500 dark:text-slate-400'
                                                 }`}
                                             >
                                                 {shiftType.name}
@@ -119,7 +120,7 @@ export const MobileShiftFilterModal: React.FC<MobileShiftFilterModalProps> = ({
                                         {shiftType.description && (
                                             <p
                                                 className={`text-xs mt-1 ${
-                                                    isSelected ? 'text-slate-600' : 'text-slate-400'
+                                                    isSelected ? 'text-slate-600 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'
                                                 }`}
                                             >
                                                 {shiftType.description}
@@ -136,7 +137,7 @@ export const MobileShiftFilterModal: React.FC<MobileShiftFilterModalProps> = ({
                 <div className="flex-shrink-0 pt-4 border-t">
                     <Button
                         onClick={onClose}
-                        className="w-full"
+                        className="w-full dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600 dark:hover:text-slate-100 dark:border-slate-600 dark:hover:border-slate-600"
                         variant="default"
                     >
                         Aplicar Filtros

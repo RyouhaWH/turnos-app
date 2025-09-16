@@ -992,7 +992,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         variant="outline"
                                                         size="sm"
                                                         onClick={deselectAllFilters}
-                                                        className="max-w-[160px] min-w-0 flex-1 border-red-200 px-1 text-red-700 hover:border-red-300 hover:bg-red-50"
+                                                        className="dark:bg-red-800 dark:text-red-100 dark:hover:bg-red-700 dark:hover:text-red-100 dark:border-red-700 dark:hover:border-red-700"
                                                     >
                                                         Deseleccionar todos
                                                     </Button>
@@ -1319,82 +1319,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             onDeselectAll={deselectAllFilters}
                         />
                     )}
-
-                    {/* Dialog de confirmación para cambio de fecha con cambios pendientes (ya no se usa) */}
-                    {/*
-                <Dialog open={showDateChangeConfirmModal} onOpenChange={setShowDateChangeConfirmModal}>
-                    <DialogContent className="max-w-[95vw] max-h-[80vh] w-full h-auto p-2 mx-auto flex flex-col">
-                        <DialogHeader>
-                            <DialogTitle className="flex items-center gap-2">
-                                <AlertTriangle className="h-5 w-5 text-amber-600" />
-                                Cambios Pendientes
-                            </DialogTitle>
-                            <DialogDescription>
-                                Tienes {changeCount} cambio{changeCount !== 1 ? 's' : ''} sin guardar en el mes actual.
-                                ¿Qué deseas hacer antes de cambiar de mes?
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="py-4">
-                            <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
-                                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                                <div className="flex-1">
-                                    <h4 className="text-sm font-medium text-amber-800 dark:text-amber-200 mb-2">
-                                        Cambio de mes solicitado
-                                    </h4>
-                                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                                        Se cambiará a: <span className="font-medium">
-                                            {pendingDateChange ? pendingDateChange.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' }) : ''}
-                                        </span>
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <DialogFooter className="pb-2">
-                            <Button
-                                variant="outline"
-                                onClick={handleCancelDateChange}
-                                disabled={isDiscardingChanges}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={handleConfirmDateChangeWithDiscard}
-                                disabled={isDiscardingChanges}
-                                className="border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-900/20"
-                            >
-                                {isDiscardingChanges ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Descartando...
-                                    </>
-                                ) : (
-                                    'Descartar Cambios'
-                                )}
-                            </Button>
-                            <Button
-                                onClick={handleConfirmDateChangeWithSave}
-                                disabled={isSaving || isDiscardingChanges}
-                                className="bg-green-600 hover:bg-green-700"
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                        Guardando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Save className="h-4 w-4 mr-2" />
-                                        Guardar y Cambiar
-                                    </>
-                                )}
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                */}
 
                     {/* Toast optimizado */}
                     <Toaster
