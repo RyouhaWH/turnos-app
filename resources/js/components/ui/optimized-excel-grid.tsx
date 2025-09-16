@@ -130,7 +130,7 @@ const applyPendingChangesToData = (data: TurnoData[], pendingChanges: OptimizedG
 
     // Aplicar cada cambio pendiente
     pendingChanges.forEach(change => {
-        const targetRow = dataWithChanges.find(row => 
+        const targetRow = dataWithChanges.find(row =>
             String(row.employee_id || row.id || '') === change.employeeId
         );
 
@@ -304,13 +304,12 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         });
 
-        // Aplicar cambios pendientes a los datos para calcular totales actualizados
-        const dataWithPendingChanges = applyPendingChangesToData(filteredData, pendingChanges);
-
         // Agregar totales si está habilitado
-        if (showTotals && dataWithPendingChanges.length > 0) {
-            const daysInData = extractDaysFromData(dataWithPendingChanges);
-            const totalsRows = calculateTotalsByShiftType(dataWithPendingChanges, daysInData, selectedTotalsShiftTypes);
+        if (showTotals && filteredData.length > 0) {
+            // Aplicar cambios pendientes SOLO para el cálculo de totales, sin modificar los datos principales
+            const dataForTotalsCalculation = applyPendingChangesToData(filteredData, pendingChanges);
+            const daysInData = extractDaysFromData(dataForTotalsCalculation);
+            const totalsRows = calculateTotalsByShiftType(dataForTotalsCalculation, daysInData, selectedTotalsShiftTypes);
 
             if (totalsRows.length > 0) {
                 // Crear separador de totales
@@ -324,19 +323,20 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 };
 
                 // Agregar campos de días vacíos al separador
-                const sampleRow = dataWithPendingChanges[0];
+                const sampleRow = filteredData[0];
                 Object.keys(sampleRow).forEach(key => {
                     if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
                         (totalsSeparator as any)[key] = '';
                     }
                 });
 
-                dataWithPendingChanges.push(totalsSeparator);
-                dataWithPendingChanges.push(...totalsRows);
+                // Agregar separador y totales a los datos principales (sin cambios pendientes aplicados)
+                filteredData.push(totalsSeparator);
+                filteredData.push(...totalsRows);
             }
         }
 
-        return dataWithPendingChanges;
+        return filteredData;
     }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
 
     // Extraer días y generar información
