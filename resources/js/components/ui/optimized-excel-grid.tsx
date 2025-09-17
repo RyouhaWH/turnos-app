@@ -125,23 +125,27 @@ const getDayInfo = (day: number, month: number, year: number) => {
 const applyPendingChangesToData = (data: TurnoData[], pendingChanges: OptimizedGridChange[]): TurnoData[] => {
     if (!pendingChanges || pendingChanges.length === 0) return data;
 
-    // Crear una copia profunda de los datos para no modificar el original
+    // Crear una copia completa preservando todas las referencias críticas
     const dataWithChanges = data.map(row => {
+        // Copia completa del objeto
         const newRow = { ...row };
-        // Copiar todas las propiedades dinámicas (días del mes)
-        Object.keys(row).forEach(key => {
-            if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id', 'isSeparator', 'isGroupHeader', 'groupType', 'isTotalsRow', 'shiftType'].includes(key)) {
+        
+        // Asegurar que todas las propiedades se copien correctamente
+        for (const key in row) {
+            if (row.hasOwnProperty(key)) {
                 (newRow as any)[key] = (row as any)[key];
             }
-        });
+        }
+        
         return newRow;
     });
 
-    // Aplicar cada cambio pendiente
+    // Aplicar cada cambio pendiente manteniendo las referencias exactas
     pendingChanges.forEach(change => {
-        const targetRow = dataWithChanges.find(row =>
-            String(row.employee_id || row.id || '') === change.employeeId
-        );
+        const targetRow = dataWithChanges.find(row => {
+            const rowEmployeeId = String(row.employee_id || row.id || '');
+            return rowEmployeeId === change.employeeId;
+        });
 
         if (targetRow && change.day) {
             (targetRow as any)[change.day] = change.newValue;
@@ -313,12 +317,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         });
 
+        // Aplicar cambios pendientes a los datos para mostrar en la grilla (necesario para undo)
+        const dataWithPendingChanges = applyPendingChangesToData(filteredData, pendingChanges);
+
         // Agregar totales si está habilitado
-        if (showTotals && filteredData.length > 0) {
-            // Crear una copia temporal solo para calcular totales (incluyendo cambios pendientes)
-            const dataForTotalsCalculation = applyPendingChangesToData(filteredData, pendingChanges);
-            const daysInData = extractDaysFromData(dataForTotalsCalculation);
-            const totalsRows = calculateTotalsByShiftType(dataForTotalsCalculation, daysInData, selectedTotalsShiftTypes);
+        if (showTotals && dataWithPendingChanges.length > 0) {
+            const daysInData = extractDaysFromData(dataWithPendingChanges);
+            const totalsRows = calculateTotalsByShiftType(dataWithPendingChanges, daysInData, selectedTotalsShiftTypes);
 
             if (totalsRows.length > 0) {
                 // Crear separador de totales
@@ -332,20 +337,19 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 };
 
                 // Agregar campos de días vacíos al separador
-                const sampleRow = filteredData[0];
+                const sampleRow = dataWithPendingChanges[0];
                 Object.keys(sampleRow).forEach(key => {
                     if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
                         (totalsSeparator as any)[key] = '';
                     }
                 });
 
-                // Agregar separador y totales a los datos principales (sin cambios pendientes aplicados)
-                filteredData.push(totalsSeparator);
-                filteredData.push(...totalsRows);
+                dataWithPendingChanges.push(totalsSeparator);
+                dataWithPendingChanges.push(...totalsRows);
             }
         }
 
-        return filteredData;
+        return dataWithPendingChanges;
     }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
 
     // Extraer días y generar información
@@ -508,25 +512,6 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
 
                     return classes.join(' ');
-                },
-                valueGetter: (params) => {
-                    // Si es una fila de totales o separador, mostrar el valor normal
-                    if (params.data?.isTotalsRow || params.data?.isSeparator) {
-                        return (params.data as any)[fieldName];
-                    }
-
-                    // Para filas normales, verificar si hay cambios pendientes
-                    if (params.data && fieldName) {
-                        const employeeId = String(params.data.employee_id || params.data.id || '');
-                        const key = `${employeeId}-${fieldName}`;
-                        const pendingChange = pendingChangesMap.get(key);
-                        
-                        if (pendingChange) {
-                            return pendingChange.newValue;
-                        }
-                    }
-
-                    return (params.data as any)[fieldName];
                 },
                 valueParser: (params) => {
                     const value = String(params.newValue || '').toUpperCase().trim();
