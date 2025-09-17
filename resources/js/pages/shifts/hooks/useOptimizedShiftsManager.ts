@@ -70,12 +70,24 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         clearAllChanges: simpleClearAllChanges,
         setGridApi: setSimpleUndoGridApi,
         getGridApi: getSimpleUndoGridApi,
+        setOnUndoCallback,
     } = useSimpleUndo();
 
     // Función para establecer Grid API solo en sistema simple
     const setGridApi = useCallback((api: any) => {
         setSimpleUndoGridApi(api);
     }, [setSimpleUndoGridApi]);
+
+    // Callback para sincronizar undo con gridChanges
+    const handleUndoCallback = useCallback((changeId: string) => {
+        // Remover el cambio de gridChanges cuando se deshace
+        setGridChanges(prev => prev.filter(change => change.id !== changeId));
+    }, []);
+
+    // Establecer el callback en el hook de undo
+    useEffect(() => {
+        setOnUndoCallback(handleUndoCallback);
+    }, [setOnUndoCallback, handleUndoCallback]);
 
     // Estados principales optimizados
     const [rowData, setRowData] = useState<TurnoData[]>([]);
@@ -231,12 +243,15 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         const employeeId = getEmployeeId({ nombre: employee, rut } as TurnoData);
 
+        // Generar ID único para ambos sistemas
+        const changeId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
         // 1. Registrar en el sistema simple de undo (para deshacer directo en grid)
-        recordChange(employeeId, employee, day, normalizedOldValue, normalizedNewValue);
+        recordChange(employeeId, employee, day, normalizedOldValue, normalizedNewValue, changeId);
 
         // 2. Registrar en el sistema complejo (para historial y backend)
         const change: OptimizedGridChange = {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: changeId,
             employeeId,
             employeeName: employee,
             employeeRut: rut,

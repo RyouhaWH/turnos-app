@@ -524,7 +524,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                         const employeeId = String(params.data.employee_id || params.data.id || '');
                         const key = `${employeeId}-${fieldName}`;
                         const pendingChange = pendingChangesMap.get(key);
-                        
+
                         if (pendingChange) {
                             return pendingChange.newValue || '';
                         }

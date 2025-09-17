@@ -15,13 +15,14 @@ interface SimpleChange {
 export const useSimpleUndo = () => {
     const [changes, setChanges] = useState<SimpleChange[]>([]);
     const gridApiRef = useRef<any>(null);
+    const onUndoCallback = useRef<((changeId: string) => void) | null>(null);
 
     // Registrar un cambio
-    const recordChange = useCallback((employeeId: string, employeeName: string, day: string, oldValue: string, newValue: string) => {
+    const recordChange = useCallback((employeeId: string, employeeName: string, day: string, oldValue: string, newValue: string, changeId?: string) => {
         if (oldValue === newValue) return;
 
         const change: SimpleChange = {
-            id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            id: changeId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
             employeeId,
             employeeName,
             day,
@@ -71,6 +72,11 @@ export const useSimpleUndo = () => {
 
                     // Remover el cambio de la lista
                     setChanges(prev => prev.slice(0, -1));
+
+                    // Notificar al hook padre que se deshizo un cambio
+                    if (onUndoCallback.current) {
+                        onUndoCallback.current(lastChange.id);
+                    }
 
                     toast.success('Cambio deshecho', {
                         description: `${lastChange.employeeName} - Día ${lastChange.day}`,
@@ -138,6 +144,11 @@ export const useSimpleUndo = () => {
 ('Grid API establecida:', !!api);
     }, []);
 
+    // Establecer callback para notificar undo
+    const setOnUndoCallback = useCallback((callback: (changeId: string) => void) => {
+        onUndoCallback.current = callback;
+    }, []);
+
     return {
         changes,
         changeCount: changes.length,
@@ -146,6 +157,7 @@ export const useSimpleUndo = () => {
         undoLastChange,
         clearAllChanges,
         setGridApi,
-        getGridApi: () => gridApiRef.current // Exponer acceso al Grid API
+        getGridApi: () => gridApiRef.current, // Exponer acceso al Grid API
+        setOnUndoCallback, // Nueva función para establecer callback
     };
 };
