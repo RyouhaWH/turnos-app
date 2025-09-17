@@ -816,8 +816,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .totals-cell {
                     background-color: #f1f5f9 !important;
                     color: #1e293b !important;
-                    font-weight: 600 !important;
-                    font-size: 11px !important;
+                    font-weight: 500 !important;
+                    font-size: 10px !important;
                     text-align: center !important;
                     border: 1px solid #e2e8f0 !important;
                 }

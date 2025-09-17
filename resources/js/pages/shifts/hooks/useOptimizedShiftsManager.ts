@@ -1,296 +1,266 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
-import { useDebounce } from '@/hooks/useDebounce';
 import { useSimpleUndo } from './useSimpleUndo';
+import { useDebounce } from '@/hooks/useDebounce';
 
-interface TurnoData {
-    id: string;
+// Importar tipos
+export interface TurnoData {
+    id?: number;
+    employee_id?: number;
     nombre: string;
-    amzoma?: boolean | string | number;
+    rut: string;
     first_name?: string;
     paternal_lastname?: string;
-    rut?: string;
-    employee_id?: string | number;
-    [key: string]: string | boolean | number | undefined;
+    maternal_lastname?: string;
+    amzoma?: boolean | string | number;
+    [key: string]: any; // Para los días dinámicos
 }
 
-// Sistema optimizado de cambios con mejor tracking
-interface OptimizedGridChange {
+interface GridChange {
     id: string;
-    employeeId: string;
+    employeeId: string | number;
     employeeName: string;
     employeeRut: string;
     day: string;
     oldValue: string;
     newValue: string;
     timestamp: number;
-    applied: boolean; // Track if change has been applied to grid
     undone: boolean; // Track if change has been undone (for history display)
-    batch?: string; // Group related changes
 }
 
-// Cache para datos
-interface DataCache {
-    [key: string]: {
-        data: TurnoData[];
-        timestamp: number;
-        month: number;
-        year: number;
+interface ChangeItem {
+    id: string;
+    employeeId: string | number;
+    employeeName: string;
+    employeeRut: string;
+    day: string;
+    oldValue: string;
+    newValue: string;
+    timestamp: number;
+}
+
+export interface CambiosPorFuncionario {
+    [empleadoId: string]: {
+        rut: string;
+        nombre: string;
+        employee_id: string | number;
+        paternal_lastname?: string;
+        maternal_lastname?: string;
+        turnos: Record<string, string>;
     };
 }
 
-// Hook optimizado para gestión de turnos
 export const useOptimizedShiftsManager = (employee_rol_id: number) => {
-    const { data, setData, post, processing, errors } = useForm({
-        cambios: {},
-        comentario: '',
-        mes: new Date().getMonth() + 1,
-        año: new Date().getFullYear(),
-    });
-
-    const { props } = usePage<{ turnos?: TurnoData[]; auth: { user: any } }>();
-
-    // Cache refs para mejor performance
-    const dataCache = useRef<DataCache>({});
+    // Obtener datos iniciales de Inertia
+    const { props } = usePage<{ turnos: TurnoData[]; auth: { user: any } }>();
 
     // Verificar permisos
-    const user = props?.auth?.user;
-    const hasEditPermissions = user?.roles?.some((role: any) =>
-        role.name === 'Supervisor' || role.name === 'Administrador'
-    ) || false;
+    const user = props.auth?.user;
+    const hasEditPermissions = user?.roles?.some((role: any) => role.name === 'Supervisor' || role.name === 'Administrador') || false;
+
+    // Ordenar datos iniciales: primero Municipal, luego Amzoma, ambos alfabéticamente
+    const datosInicialesOrdenados = useMemo(() => {
+        console.log('🔍 Props recibidas:', props);
+        console.log('📊 Turnos en props:', props.turnos?.length || 0);
+
+        if (!props.turnos || !Array.isArray(props.turnos)) {
+            console.warn('⚠️ No hay datos de turnos en props o no es un array');
+            return [];
+        }
+
+        console.log('✅ Datos de turnos válidos, ordenando...');
+        return props.turnos.sort((a: TurnoData, b: TurnoData) => {
+            // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
+            const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
+            const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
+
+            if (!isAmzomaA && isAmzomaB) return -1;
+            if (isAmzomaA && !isAmzomaB) return 1;
+
+            // Si ambos tienen el mismo estado de amzoma, ordenar alfabéticamente
+            const nombreA = a.first_name && a.paternal_lastname
+                ? `${String(a.first_name).split(' ')[0]} ${String(a.paternal_lastname)}`.toLowerCase()
+                : String(a.nombre || '').toLowerCase();
+            const nombreB = b.first_name && b.paternal_lastname
+                ? `${String(b.first_name).split(' ')[0]} ${String(b.paternal_lastname)}`.toLowerCase()
+                : String(b.nombre || '').toLowerCase();
+
+            return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+        });
+    }, [props.turnos]);
+
+    // Estados principales
+    const [rowData, setRowData] = useState<TurnoData[]>(datosInicialesOrdenados);
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [resumen, setResumen] = useState<CambiosPorFuncionario>({});
+    const [showPendingChanges, setShowPendingChanges] = useState(false);
+    const [originalChangeDate, setOriginalChangeDate] = useState<Date | null>(null);
+    const [isProcessingChanges, setIsProcessingChanges] = useState(false);
+    const [gridChanges, setGridChanges] = useState<GridChange[]>([]);
+    const [loading, setLoading] = useState(false);
+
+    // Estados para búsqueda y filtrado
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
     // Hook simple para undo que funciona directamente con el grid
     const {
         changes: simpleChanges,
-        changeCount: simpleChangeCount,
         canUndo: simpleCanUndo,
         recordChange,
         undoLastChange: simpleUndoLastChange,
+        undoSpecificChange: simpleUndoSpecificChange,
+        getChangeIds: getSimpleChangeIds,
         clearAllChanges: simpleClearAllChanges,
-        setGridApi: setSimpleUndoGridApi,
+        setGridApi: setSimpleGridApi,
         getGridApi: getSimpleUndoGridApi,
-        setOnUndoCallback,
+        setOnUndoCallback: setSimpleOnUndoCallback,
     } = useSimpleUndo();
 
-    // Función para establecer Grid API solo en sistema simple
-    const setGridApi = useCallback((api: any) => {
-        setSimpleUndoGridApi(api);
-    }, [setSimpleUndoGridApi]);
-
     // Callback para sincronizar undo con gridChanges
-    const handleUndoCallback = useCallback((changeId: string) => {
-        // Remover el cambio de gridChanges cuando se deshace
-        setGridChanges(prev => prev.filter(change => change.id !== changeId));
+    const onSimpleUndo = useCallback((changeId: string) => {
+        console.log('🔄 Sincronizando undo simple con gridChanges:', changeId);
+        // Aquí podríamos sincronizar con gridChanges si es necesario
     }, []);
 
     // Establecer el callback en el hook de undo
     useEffect(() => {
-        setOnUndoCallback(handleUndoCallback);
-    }, [setOnUndoCallback, handleUndoCallback]);
+        setSimpleOnUndoCallback(onSimpleUndo);
+    }, [onSimpleUndo, setSimpleOnUndoCallback]);
 
-    // Estados principales optimizados
-    const [rowData, setRowData] = useState<TurnoData[]>([]);
+    // Estados adicionales
     const [originalData, setOriginalData] = useState<TurnoData[]>([]); // Backup para undo
-    const [gridChanges, setGridChanges] = useState<OptimizedGridChange[]>([]);
-    const [resumen, setResumen] = useState<Record<string, any>>({});
-    const [selectedDate, setSelectedDate] = useState(new Date());
-    const [loading, setLoading] = useState(false);
-    const [isProcessingChanges, setIsProcessingChanges] = useState(false);
+    const [isUndoing, setIsUndoing] = useState(false);
 
-    // Estados de UI
-    const [searchInputTerm, setSearchInputTerm] = useState('');
-    const debouncedSearchTerm = useDebounce(searchInputTerm.trim(), 250);
-    const [selectedEmployees, setSelectedEmployees] = useState<Set<string>>(new Set());
-    const [availableEmployees, setAvailableEmployees] = useState<TurnoData[]>([]);
+    // Form de Inertia
+    const { data, setData, post, processing, errors } = useForm<{
+        changes: CambiosPorFuncionario;
+        employee_rol_id: number;
+        fecha: string;
+        comentario: string;
+    }>({
+        changes: {},
+        employee_rol_id: employee_rol_id,
+        fecha: '',
+        comentario: '',
+    });
 
-    // Estados de cambios
-    const [originalChangeDate, setOriginalChangeDate] = useState<Date | null>(null);
-    const [showPendingChanges, setShowPendingChanges] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-
-    // Título del mes derivado
-    const currentMonthTitle = useMemo(() => {
-        return selectedDate.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' });
-    }, [selectedDate]);
-
-    // Función de ordenamiento optimizada
-    const sortByAmzomaAndName = useCallback((a: TurnoData, b: TurnoData) => {
-        const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
-        const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
-
-        if (!isAmzomaA && isAmzomaB) return -1;
-        if (isAmzomaA && !isAmzomaB) return 1;
-
-        const nombreA = a.first_name && a.paternal_lastname
-            ? `${String(a.first_name).split(' ')[0]} ${String(a.paternal_lastname)}`.toLowerCase()
-            : String(a.nombre || '').toLowerCase();
-        const nombreB = b.first_name && b.paternal_lastname
-            ? `${String(b.first_name).split(' ')[0]} ${String(b.paternal_lastname)}`.toLowerCase()
-            : String(b.nombre || '').toLowerCase();
-
-        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    // Función para obtener ID del empleado
+    const getEmployeeId = useCallback((employee: TurnoData): string | number => {
+        return employee.employee_id || employee.id || `temp_${employee.nombre}_${employee.rut}`;
     }, []);
 
-    // Datos iniciales ordenados con memoización
-    const datosInicialesOrdenados = useMemo(() => {
-        if (!props?.turnos || !Array.isArray(props.turnos)) {
-            return [];
-        }
-        return [...props.turnos].sort(sortByAmzomaAndName);
-    }, [props?.turnos, sortByAmzomaAndName]);
+    // Función principal para registrar cambios
+    const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string, changeId?: string) => {
+        console.log('🔄 registerChange llamado:', { employee, rut, day, oldValue, newValue });
 
-    // Función optimizada para obtener ID del empleado
-    const getEmployeeId = useCallback((employee: TurnoData): string => {
-        return String(employee.employee_id || employee.id || employee.nombre);
-    }, []);
-
-    // Cache key generator
-    const getCacheKey = useCallback((year: number, month: number) => {
-        return `${employee_rol_id}-${year}-${month}`;
-    }, [employee_rol_id]);
-
-    // Función optimizada de carga de datos con cache
-    const loadDataOptimized = useCallback(async (fecha: Date, showToast = false) => {
-        const year = fecha.getFullYear();
-        const month = fecha.getMonth() + 1;
-        const cacheKey = getCacheKey(year, month);
-
-        // Verificar cache primero
-        const cached = dataCache.current[cacheKey];
-        const cacheAge = cached ? Date.now() - cached.timestamp : Infinity;
-        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
-
-        if (cached && cacheAge < CACHE_DURATION) {
-            setRowData([...cached.data]);
-            setOriginalData([...cached.data]);
-            setAvailableEmployees([...cached.data]);
-
-            if (showToast) {
-                toast.success('Datos cargados desde cache', {
-                    description: `${cached.data.length} empleados cargados`,
-                    duration: 2000,
-                });
-            }
+        if (oldValue === newValue) {
+            console.log('⚠️ Valores iguales, no registrando cambio');
             return;
         }
 
-        try {
-            setLoading(true);
+        // Buscar empleado por nombre primero, luego por RUT si está disponible
+        let employeeData = rowData.find(emp => emp.nombre === employee);
 
-            const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-
-            const data = await response.json();
-            const turnosArray = Object.values(data) as TurnoData[];
-            const turnosOrdenados = turnosArray.sort(sortByAmzomaAndName);
-
-            // Guardar en cache
-            dataCache.current[cacheKey] = {
-                data: turnosOrdenados,
-                timestamp: Date.now(),
-                month,
-                year,
-            };
-
-            // Limpiar cache antiguo (mantener solo últimos 3 meses)
-            const cacheKeys = Object.keys(dataCache.current);
-            if (cacheKeys.length > 3) {
-                const oldestKey = cacheKeys.reduce((oldest, key) => {
-                    return dataCache.current[key].timestamp < dataCache.current[oldest].timestamp ? key : oldest;
-                });
-                delete dataCache.current[oldestKey];
-            }
-
-            setRowData([...turnosOrdenados]);
-            setOriginalData([...turnosOrdenados]);
-            setAvailableEmployees([...turnosOrdenados]);
-
-
-            if (showToast) {
-                toast.success('Turnos cargados correctamente', {
-                    description: `Se cargaron ${turnosOrdenados.length} empleados para ${fecha.toLocaleDateString('es-CL', { year: 'numeric', month: 'long' })}`,
-                    duration: 3000,
-                });
-            }
-
-        } catch (error) {
-            console.error('Error al cargar turnos:', error);
-            if (showToast) {
-                toast.error('Error al cargar turnos', {
-                    description: 'Hubo un problema al cargar los turnos del mes seleccionado.',
-                    duration: 4000,
-                });
-            }
-        } finally {
-            setLoading(false);
+        // Si no se encuentra por nombre y hay RUT, buscar por RUT
+        if (!employeeData && rut && rut.trim() !== '') {
+            employeeData = rowData.find(emp => emp.rut === rut);
         }
-    }, [employee_rol_id, getCacheKey, sortByAmzomaAndName]);
 
+        // Si aún no se encuentra, intentar por employee_id si el employee string es un ID
+        if (!employeeData && !isNaN(Number(employee))) {
+            employeeData = rowData.find(emp => String(emp.employee_id) === employee || String(emp.id) === employee);
+        }
 
-    // Función simplificada para registrar cambios (ahora usa ambos sistemas)
-    const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string) => {
-        // Normalizar valores: convertir undefined/null a cadena vacía
-        const normalizedOldValue = String(oldValue || '').trim();
-        const normalizedNewValue = String(newValue || '').trim();
-
-        // Si no hay cambio real, no registrar
-        if (normalizedOldValue === normalizedNewValue) {
+        if (!employeeData) {
+            console.error('❌ No se encontró el empleado:', employee, rut);
+            console.log('📊 RowData disponible:', rowData.map(emp => ({
+                nombre: emp.nombre,
+                rut: emp.rut,
+                employee_id: emp.employee_id,
+                id: emp.id
+            })));
             return;
         }
 
-        const employeeId = getEmployeeId({ nombre: employee, rut } as TurnoData);
-
-        // Generar ID único para ambos sistemas
-        const changeId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const employeeId = getEmployeeId(employeeData);
+        console.log('✅ Empleado encontrado:', {
+            nombre: employeeData.nombre,
+            rut: employeeData.rut,
+            employee_id: employeeData.employee_id,
+            finalId: employeeId
+        });
 
         // 1. Registrar en el sistema simple de undo (para deshacer directo en grid)
-        recordChange(employeeId, employee, day, normalizedOldValue, normalizedNewValue, changeId);
+        console.log('📝 Registrando en sistema simple...');
+        console.log('📋 Parámetros para recordChange:', {
+            employeeId: String(employeeId),
+            employee: employee,
+            day: day,
+            oldValue: oldValue,
+            newValue: newValue,
+            changeId: changeId
+        });
 
-        // 2. Registrar en el sistema complejo (para historial y backend)
-        const change: OptimizedGridChange = {
-            id: changeId,
-            employeeId,
+        recordChange(
+            String(employeeId),
+            employee,
+            day,
+            oldValue,
+            newValue,
+            changeId
+        );
+
+        // Verificar que se registró correctamente
+        setTimeout(() => {
+            console.log('🔍 Verificando registro en sistema simple:', {
+                simpleChangesCount: simpleChanges.length,
+                canUndo: simpleCanUndo,
+                ultimoCambio: simpleChanges[simpleChanges.length - 1]
+            });
+        }, 50);
+
+        console.log('✅ Registrado en sistema simple');
+
+        // 2. Registrar en el historial completo de cambios
+        const gridChangeId = changeId || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        const newChange: GridChange = {
+            id: gridChangeId,
+            employeeId: String(employeeId),
             employeeName: employee,
             employeeRut: rut,
             day,
-            oldValue: normalizedOldValue,
-            newValue: normalizedNewValue,
+            oldValue,
+            newValue,
             timestamp: Date.now(),
-            applied: true,
             undone: false, // Inicialmente no está deshecho
         };
 
-        setGridChanges(prev => {
-            const newChanges = [...prev, change];
-            return newChanges;
-        });
+        setGridChanges(prev => [...prev, newChange]);
 
-        // Actualizar el resumen inmediatamente
+        // 3. Actualizar el resumen para mostrar al usuario
         setResumen(prev => {
             const newResumen = { ...prev };
+            const employeeIdStr = String(employeeId);
 
-            if (!newResumen[employeeId]) {
-                newResumen[employeeId] = {
-                    rut: rut,
+            if (!newResumen[employeeIdStr]) {
+                newResumen[employeeIdStr] = {
+                    rut,
                     nombre: employee,
                     employee_id: employeeId,
+                    paternal_lastname: employeeData.paternal_lastname,
+                    maternal_lastname: employeeData.maternal_lastname,
                     turnos: {}
                 };
             }
 
-            if (normalizedNewValue) {
-                newResumen[employeeId].turnos[day] = normalizedNewValue;
-            } else {
-                // Si el nuevo valor está vacío, registramos la eliminación
-                newResumen[employeeId].turnos[day] = '';
-            }
+            // Agregar o actualizar el turno
+            newResumen[employeeIdStr].turnos[day] = newValue;
 
             // Limpiar objetos vacíos
-            if (Object.keys(newResumen[employeeId].turnos || {}).length === 0) {
-                delete newResumen[employeeId];
+            if (Object.keys(newResumen[employeeIdStr].turnos || {}).length === 0) {
+                delete newResumen[employeeIdStr];
             }
 
             return newResumen;
@@ -304,66 +274,13 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     }, [getEmployeeId, originalChangeDate, selectedDate, recordChange, rowData]);
 
-    // Sistema de deshacer que usa el grid API directamente
-    const undoChange = useCallback(() => {
-        // Usar el sistema simple que actualiza directamente el grid
-        simpleUndoLastChange();
-
-        // También eliminar el último cambio de la lista para mantener consistencia con el sistema simple
-        if (gridChanges.length > 0) {
-            setGridChanges(prev => {
-                // Eliminar el último cambio (igual que el sistema simple)
-                const updated = prev.slice(0, -1);
-
-                // Reconstruir el resumen usando solo los cambios activos restantes
-                const activeChanges = updated.filter(change => !change.undone);
-                const undoneChanges = updated.filter(change => change.undone);
-
-('🔍 Cambios activos:', activeChanges.length);
-
-                // Reconstruir el resumen completamente desde los cambios activos
-                const newResumen: Record<string, any> = {};
-
-                activeChanges.forEach(change => {
-                    const employeeId = change.employeeId;
-
-                    if (!newResumen[employeeId]) {
-                        newResumen[employeeId] = {
-                            rut: change.employeeRut,
-                            nombre: change.employeeName,
-                            employee_id: employeeId,
-                            turnos: {}
-                        };
-                    }
-
-                    // Agregar el turno al resumen
-                    newResumen[employeeId].turnos[change.day] = change.newValue;
-(`✅ Agregado cambio activo al resumen: ${change.employeeName} - día ${change.day} = "${change.newValue}"`);
-                });
-
-('🔍 Estado final del resumen después de reconstruir:', Object.keys(newResumen).length, 'empleados');
-(`🧹 Resumen reconstruido: ${activeChanges.length} cambios activos`);
-
-                // Actualizar el resumen con el estado actualizado
-                setResumen(newResumen);
-
-                // Limpiar estados si no hay más cambios activos
-                if (activeChanges.length === 0) {
-                    setShowPendingChanges(false);
-                    setOriginalChangeDate(null);
-                }
-
-                return updated;
-            });
-        }
-    }, [simpleUndoLastChange, gridChanges]);
 
     // Callback para notificar cuando se han aplicado todos los cambios
     const onAllChangesApplied = useRef<(() => void) | null>(null);
 
     // Deshacer cambio específico por ID - Usar sistema simple que funciona
     const undoSpecificChange = useCallback((changeId: string) => {
-('🎯 Deshaciendo cambio específico:', changeId);
+        console.log('🎯 Deshaciendo cambio específico:', changeId);
 
         // Buscar el cambio en el historial
         const changeToUndo = gridChanges.find(change => change.id === changeId);
@@ -373,13 +290,13 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             return;
         }
 
-('✅ Cambio encontrado:', changeToUndo);
-('📝 Restaurando valor:', changeToUndo.newValue, '→', changeToUndo.oldValue);
+        console.log('✅ Cambio encontrado:', changeToUndo);
+        console.log('📝 Restaurando valor:', changeToUndo.newValue, '→', changeToUndo.oldValue);
 
         // Usar el sistema simple que funciona correctamente
         const gridApi = getSimpleUndoGridApi();
         if (gridApi) {
-('🔍 Usando sistema simple para restaurar...');
+            console.log('🔍 Usando sistema simple para restaurar...');
 
             try {
                 // Buscar la fila en el grid usando la misma lógica del sistema simple
@@ -395,7 +312,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 });
 
                 if (targetRowNode) {
-('✅ Nodo encontrado, restaurando valor específico...');
+                    console.log('✅ Nodo encontrado, restaurando valor específico...');
 
                     // Actualizar el dato directamente usando la misma lógica del sistema simple
                     const updatedData = { ...(targetRowNode as any).data };
@@ -404,7 +321,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     // Aplicar la actualización al grid
                     (targetRowNode as any).setData(updatedData);
 
-(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
+                    console.log(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
 
                     // Forzar actualización del grid
                     gridApi.refreshCells({ force: true });
@@ -424,469 +341,562 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             return;
         }
 
-        // También actualizar el rowData para mantener consistencia
-        setRowData(prevRowData => {
-            const updatedRowData = prevRowData.map(row => {
-                // Buscar por múltiples criterios para mayor precisión
-                const matchesEmployee =
-                    row.nombre === changeToUndo.employeeName ||
-                    String(row.employee_id) === String(changeToUndo.employeeId) ||
-                    String(row.id) === String(changeToUndo.employeeId);
-
-                if (matchesEmployee) {
-('✅ Empleado encontrado en rowData, restaurando valor...');
-('📊 Valor actual:', row[changeToUndo.day], '→ Valor a restaurar:', changeToUndo.oldValue);
-
-                    return {
-                        ...row,
-                        [changeToUndo.day]: changeToUndo.oldValue
-                    };
-                }
-                return row;
-            });
-
-('✅ rowData actualizado con valor restaurado');
-            return updatedRowData;
-        });
-
-        // Marcar el cambio como deshecho en lugar de eliminarlo del historial
+        // Actualizar el estado de gridChanges
         setGridChanges(prev => {
             const updated = prev.map(change =>
                 change.id === changeId
                     ? { ...change, undone: true }
                     : change
             );
-(`📋 Cambio marcado como deshecho: ${changeId}`);
+
+            // Reconstruir el resumen usando solo los cambios activos restantes
+            const activeChanges = updated.filter(change => !change.undone);
+
+            console.log('🔍 Cambios activos después de undo:', activeChanges.length);
+
+            // Reconstruir el resumen completamente desde los cambios activos
+            const newResumen: Record<string, any> = {};
+
+            activeChanges.forEach(change => {
+                const employeeId = change.employeeId;
+
+                if (!newResumen[employeeId]) {
+                    newResumen[employeeId] = {
+                        rut: change.employeeRut,
+                        nombre: change.employeeName,
+                        employee_id: employeeId,
+                        turnos: {}
+                    };
+                }
+
+                // Agregar el turno al resumen
+                newResumen[employeeId].turnos[change.day] = change.newValue;
+                console.log(`✅ Agregado cambio activo al resumen: ${change.employeeName} - día ${change.day} = "${change.newValue}"`);
+            });
+
+            console.log('🔍 Estado final del resumen después de reconstruir:', Object.keys(newResumen).length, 'empleados');
+            console.log(`🧹 Resumen reconstruido: ${activeChanges.length} cambios activos`);
+
+            // Actualizar el resumen con el estado actualizado
+            setResumen(newResumen);
+
+            // Limpiar estados si no hay más cambios activos
+            if (activeChanges.length === 0) {
+                setShowPendingChanges(false);
+                setOriginalChangeDate(null);
+            }
+
             return updated;
         });
 
-        // Actualizar resumen eliminando completamente este cambio
-        setResumen(prev => {
-            const newResumen = { ...prev };
-            const employeeKey = changeToUndo.employeeId;
-
-            if (newResumen[employeeKey]?.turnos) {
-                // Simplemente eliminar el día del resumen (no restaurar valor anterior)
-                delete newResumen[employeeKey].turnos[changeToUndo.day];
-(`🗑️ Eliminado cambio del resumen para día ${changeToUndo.day}`);
-
-                // Si no quedan turnos, eliminar el empleado del resumen
-                if (Object.keys(newResumen[employeeKey].turnos).length === 0) {
-                    delete newResumen[employeeKey];
-(`🗑️ Eliminado empleado del resumen: ${changeToUndo.employeeName}`);
-                }
-            }
-
-            return newResumen;
-        });
-
-        // Si no quedan cambios, limpiar estado
-        const remainingChanges = gridChanges.filter(change => change.id !== changeId);
-        if (remainingChanges.length === 0) {
-            setShowPendingChanges(false);
-            setOriginalChangeDate(null);
-('🧹 Estado limpiado - no quedan cambios pendientes');
-        }
-
-        toast.success('Cambio específico deshecho', {
-            description: `${changeToUndo.employeeName} - ${changeToUndo.day}: restaurado a "${changeToUndo.oldValue || 'vacío'}"`,
-            duration: 3000,
-        });
-
-('🎉 Cambio específico deshecho exitosamente');
-    }, [gridChanges, getSimpleUndoGridApi]);
-
-    // Función para deshacer múltiples cambios con callback
-    const undoSpecificChangesWithCallback = useCallback((changeIds: string[], onComplete?: () => void) => {
-('🎯 Deshaciendo múltiples cambios:', changeIds);
-
-        // Establecer el callback
-        onAllChangesApplied.current = onComplete || null;
-
-        // Contador de cambios pendientes
-        let pendingChanges = changeIds.length;
-
-        const onChangeApplied = () => {
-            pendingChanges--;
-(`📊 Cambios restantes: ${pendingChanges}`);
-
-            if (pendingChanges === 0) {
-('✅ Todos los cambios han sido aplicados');
-                if (onAllChangesApplied.current) {
-                    onAllChangesApplied.current();
-                    onAllChangesApplied.current = null;
-                }
-            }
-        };
-
-        // Deshacer cada cambio con feedback visual
-        changeIds.forEach((changeId, index) => {
-            setTimeout(async () => {
-                const changeToUndo = gridChanges.find(change => change.id === changeId);
-                if (!changeToUndo) {
-                    console.warn('❌ Cambio no encontrado:', changeId);
-                    onChangeApplied();
-                    return;
-                }
-
-(`🔄 Deshaciendo cambio ${index + 1}/${changeIds.length}: ${changeToUndo.employeeName} - Día ${changeToUndo.day}`);
-
-                // Usar el sistema simple para deshacer
-                const gridApi = getSimpleUndoGridApi();
-                if (gridApi) {
-                    try {
-                        let targetRowNode = null;
-                        gridApi.forEachNode((node: any) => {
-                            if (node.data && (
-                                String(node.data.employee_id) === String(changeToUndo.employeeId) ||
-                                String(node.data.id) === String(changeToUndo.employeeId) ||
-                                node.data.nombre === changeToUndo.employeeName
-                            )) {
-                                targetRowNode = node;
-                            }
-                        });
-
-                        if (targetRowNode) {
-                            // Actualizar la grid inmediatamente para feedback visual
-                            const updatedData = { ...(targetRowNode as any).data };
-                            updatedData[changeToUndo.day] = changeToUndo.oldValue;
-                            (targetRowNode as any).setData(updatedData);
-                            gridApi.refreshCells({ force: true });
-
-(`✅ Grid actualizado: ${changeToUndo.employeeName} día ${changeToUndo.day} = "${changeToUndo.oldValue}"`);
-
-                            // Esperar un poco para que el usuario vea el cambio
-                            await new Promise(resolve => setTimeout(resolve, 200));
-
-                            // Marcar como deshecho
-                            setGridChanges(prev => {
-                                return prev.map(change =>
-                                    change.id === changeId
-                                        ? { ...change, undone: true }
-                                        : change
-                                );
-                            });
-
-                            // Actualizar resumen
-                            setResumen(prev => {
-                                const newResumen = { ...prev };
-                                const employeeKey = changeToUndo.employeeId;
-                                if (newResumen[employeeKey]?.turnos) {
-                                    delete newResumen[employeeKey].turnos[changeToUndo.day];
-                                    if (Object.keys(newResumen[employeeKey].turnos).length === 0) {
-                                        delete newResumen[employeeKey];
-                                    }
-                                }
-                                return newResumen;
-                            });
-
-                            // Actualizar rowData
-                            setRowData(prevRowData => {
-                                return prevRowData.map(row => {
-                                    const matchesEmployee =
-                                        row.nombre === changeToUndo.employeeName ||
-                                        String(row.employee_id) === String(changeToUndo.employeeId) ||
-                                        String(row.id) === String(changeToUndo.employeeId);
-
-                                    if (matchesEmployee) {
-                                        return {
-                                            ...row,
-                                            [changeToUndo.day]: changeToUndo.oldValue
-                                        };
-                                    }
-                                    return row;
-                                });
-                            });
-
-(`✅ Cambio ${changeId} deshecho completamente`);
-                        } else {
-                            console.error('❌ No se encontró la fila para el cambio:', changeId);
-                        }
-                    } catch (error) {
-                        console.error('❌ Error al deshacer cambio:', changeId, error);
-                    }
-                } else {
-                    console.error('❌ Grid API no disponible para cambio:', changeId);
-                }
-
-                // Notificar que este cambio se completó
-                onChangeApplied();
-            }, index * 300); // Delay más largo para permitir feedback visual
-        });
-    }, [gridChanges, getSimpleUndoGridApi]);
-
-    // Simplificar redo por ahora - implementación básica
-    const redoChange = useCallback(() => {
-        toast.info('Función de rehacer en desarrollo', {
-            description: 'Por ahora usa Ctrl+Z para deshacer cambios.',
+        toast.success('Cambio deshecho', {
+            description: `${changeToUndo.employeeName} - Día ${changeToUndo.day}`,
             duration: 2000,
         });
-    }, []);
 
+    }, [gridChanges, getSimpleUndoGridApi]);
 
-    // Función para guardar cambios optimizada
-    const handleActualizarCambios = useCallback(async (comentarioNuevo: string, whatsappRecipients?: string[], whatsappTestingMode?: boolean) => {
-        if (Object.keys(resumen).length === 0) {
-            toast.warning('No hay cambios para guardar');
+    // Sistema de deshacer que usa el sistema simple directamente
+    const undoChange = useCallback(() => {
+        console.log('🔄 undoChange llamado');
+        console.log('📊 Estado actual:', {
+            simpleChangesCount: simpleChanges.length,
+            gridChangesCount: gridChanges.length,
+            canUndo: simpleCanUndo,
+            isUndoing: isUndoing,
+            simpleChanges: simpleChanges,
+            gridChanges: gridChanges
+        });
+
+        // Establecer flag de undoing temporalmente
+        setIsUndoing(true);
+
+        // Usar directamente el sistema simple que sabemos que funciona
+        if (!simpleCanUndo) {
+            toast.warning('No hay cambios para deshacer');
             return;
         }
 
-        setIsSaving(true);
+        console.log('✅ Usando simpleUndoLastChange directamente');
 
-        const fechaParaCambios = originalChangeDate || selectedDate;
-        const mes = fechaParaCambios.getMonth() + 1;
-        const año = fechaParaCambios.getFullYear();
-
-        // Transformar el resumen para usar IDs numéricos en lugar de nombres como claves
-        const resumenTransformado: Record<string, any> = {};
-
-        Object.entries(resumen).forEach(([employeeKey, employeeData]) => {
-            // Buscar el empleado en rowData para obtener su ID numérico real
-            const employeeInGrid = rowData.find(emp =>
-                emp.nombre === employeeKey ||
-                String(emp.employee_id) === employeeKey ||
-                String(emp.id) === employeeKey
-            );
-
-            const realEmployeeId = String(employeeInGrid?.employee_id || employeeInGrid?.id || employeeKey);
-
-
-            resumenTransformado[realEmployeeId] = {
-                ...employeeData,
-                employee_id: realEmployeeId
-            };
-        });
-
-        const datosAEnviar = {
-            cambios: resumenTransformado,
-            comentario: comentarioNuevo,
-            mes,
-            año,
-            whatsapp_recipients: whatsappRecipients || [],
-            whatsapp_testing_mode: whatsappTestingMode || false,
+        // Guardar el estado antes del undo para comparar
+        const beforeUndo = {
+            simpleChangesCount: simpleChanges.length,
+            gridChangesCount: gridChanges.length
         };
 
-        try {
-            const response = await fetch('/turnos-mes/actualizar', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
-                },
-                body: JSON.stringify(datosAEnviar)
+        simpleUndoLastChange();
+
+        // Verificar después del undo con un pequeño delay para que React actualice
+        setTimeout(() => {
+            const afterUndo = {
+                simpleChangesCount: simpleChanges.length,
+                gridChangesCount: gridChanges.length
+            };
+
+            console.log('📊 Estado después del undo:', {
+                antes: beforeUndo,
+                después: afterUndo,
+                cambióSimple: beforeUndo.simpleChangesCount !== afterUndo.simpleChangesCount,
+                cambióGrid: beforeUndo.gridChangesCount !== afterUndo.gridChangesCount
             });
+        }, 100);
+
+        // Sincronizar con gridChanges si es necesario
+        if (gridChanges.length > 0) {
+            console.log('🔄 Sincronizando con gridChanges...');
+
+            const lastChange = gridChanges[gridChanges.length - 1];
+            console.log('🔄 Último cambio a deshacer:', lastChange);
+
+            // Actualizar rowData para forzar re-render del grid
+            setRowData(prevRowData => {
+                console.log('🔄 Actualizando rowData para forzar re-render...');
+                return prevRowData.map(emp => {
+                    const empId = String(emp.employee_id || emp.id);
+                    if (empId === String(lastChange.employeeId)) {
+                        const updatedEmp = { ...emp };
+                        updatedEmp[lastChange.day] = lastChange.oldValue;
+                        console.log(`🔄 Actualizando rowData: ${emp.nombre} día ${lastChange.day} = "${lastChange.oldValue}"`);
+                        return updatedEmp;
+                    }
+                    return emp;
+                });
+            });
+
+            setGridChanges(prev => {
+                const updated = prev.slice(0, -1); // Remover último cambio
+
+                // Reconstruir resumen
+                const activeChanges = updated.filter(change => !change.undone);
+                const newResumen: Record<string, any> = {};
+
+                activeChanges.forEach(change => {
+                    const employeeId = change.employeeId;
+                    if (!newResumen[employeeId]) {
+                        newResumen[employeeId] = {
+                            rut: change.employeeRut,
+                            nombre: change.employeeName,
+                            employee_id: employeeId,
+                            turnos: {}
+                        };
+                    }
+                    newResumen[employeeId].turnos[change.day] = change.newValue;
+                });
+
+                setResumen(newResumen);
+
+                if (activeChanges.length === 0) {
+                    setShowPendingChanges(false);
+                    setOriginalChangeDate(null);
+                }
+
+                console.log('✅ GridChanges sincronizado, cambios activos:', activeChanges.length);
+                return updated;
+            });
+        }
+
+        // Limpiar flag de undoing después de un breve delay
+        setTimeout(() => {
+            setIsUndoing(false);
+            console.log('🏁 Flag isUndoing limpiado');
+        }, 200);
+
+    }, [simpleCanUndo, simpleUndoLastChange, gridChanges, simpleChanges.length, isUndoing]);
+
+    // Función para deshacer múltiples cambios con callback
+    const undoSpecificChangesWithCallback = useCallback((changeIds: string[], onComplete?: () => void) => {
+        console.log('🔄 Deshaciendo múltiples cambios:', changeIds);
+
+        if (changeIds.length === 0) {
+            console.log('⚠️ No hay cambios para deshacer');
+            onComplete?.();
+            return;
+        }
+
+        let processedCount = 0;
+        const totalChanges = changeIds.length;
+
+        // Función para procesar el siguiente cambio
+        const processNextChange = () => {
+            if (processedCount >= totalChanges) {
+                console.log('✅ Todos los cambios fueron deshecho');
+                onComplete?.();
+                return;
+            }
+
+            const changeId = changeIds[processedCount];
+            console.log(`🔄 Procesando cambio ${processedCount + 1}/${totalChanges}:`, changeId);
+
+            // Buscar el cambio específico
+            const changeToUndo = gridChanges.find(change => change.id === changeId && !change.undone);
+            if (!changeToUndo) {
+                console.warn('⚠️ Cambio ya procesado o no encontrado:', changeId);
+                processedCount++;
+                // Continuar con el siguiente cambio después de un breve delay
+                setTimeout(processNextChange, 10);
+                return;
+            }
+
+            try {
+                // Usar el sistema simple para deshacer
+                const gridApi = getSimpleUndoGridApi();
+                if (gridApi) {
+                    let targetRowNode = null;
+                    gridApi.forEachNode((node: any) => {
+                        if (node.data && (
+                            String(node.data.employee_id) === String(changeToUndo.employeeId) ||
+                            String(node.data.id) === String(changeToUndo.employeeId) ||
+                            node.data.nombre === changeToUndo.employeeName
+                        )) {
+                            targetRowNode = node;
+                        }
+                    });
+
+                    if (targetRowNode) {
+                        const updatedData = { ...(targetRowNode as any).data };
+                        updatedData[changeToUndo.day] = changeToUndo.oldValue;
+                        (targetRowNode as any).setData(updatedData);
+
+                        // Marcar el cambio como deshecho en el historial
+                        setGridChanges(prev => prev.map(change =>
+                            change.id === changeId
+                                ? { ...change, undone: true }
+                                : change
+                        ));
+
+                        console.log(`✅ Cambio deshecho: ${changeToUndo.employeeName} - día ${changeToUndo.day}`);
+                    }
+                }
+
+                processedCount++;
+                // Continuar con el siguiente cambio después de un breve delay
+                setTimeout(processNextChange, 10);
+            } catch (error) {
+                console.error('❌ Error al deshacer cambio:', changeId, error);
+                processedCount++;
+                // Continuar con el siguiente cambio
+                setTimeout(processNextChange, 10);
+            }
+        };
+
+        // Iniciar el procesamiento
+        processNextChange();
+    }, [gridChanges, getSimpleUndoGridApi]);
+
+    // Función para limpiar todos los cambios
+    const clearAllChanges = useCallback(() => {
+        console.log('🧹 Limpiando todos los cambios...');
+
+        // Mostrar notificación informativa
+        toast.info('Limpiando cambios...', {
+            description: 'Por ahora usa Ctrl+Z para deshacer cambios.',
+            duration: 3000,
+        });
+
+        // Limpiar estados principales
+        setGridChanges([]);
+        setResumen({});
+        setShowPendingChanges(false);
+        setOriginalChangeDate(null);
+
+        console.log('✅ Estados principales limpiados');
+    }, []);
+
+    // Función redo (placeholder)
+    const redoChange = useCallback(() => {
+        toast.info('Función redo no implementada aún');
+    }, []);
+
+    // Función para ordenar datos por Amzoma y nombre
+    const sortByAmzomaAndName = useCallback((a: TurnoData, b: TurnoData) => {
+        // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
+        const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
+        const isAmzomaB = b.amzoma === true || b.amzoma === 'true' || b.amzoma === 1;
+
+        if (!isAmzomaA && isAmzomaB) return -1;
+        if (isAmzomaA && !isAmzomaB) return 1;
+
+        // Si ambos tienen el mismo estado de amzoma, ordenar alfabéticamente
+        const nombreA = a.first_name && a.paternal_lastname
+            ? `${String(a.first_name).split(' ')[0]} ${String(a.paternal_lastname)}`.toLowerCase()
+            : String(a.nombre || '').toLowerCase();
+        const nombreB = b.first_name && b.paternal_lastname
+            ? `${String(b.first_name).split(' ')[0]} ${String(b.paternal_lastname)}`.toLowerCase()
+            : String(b.nombre || '').toLowerCase();
+
+        return nombreA.localeCompare(nombreB, 'es', { sensitivity: 'base' });
+    }, []);
+
+    // Función para cargar turnos por mes
+    const cargarTurnosPorMes = useCallback(async (fecha: Date) => {
+        try {
+            setSelectedDate(fecha);
+            setLoading(true);
+
+            const year = fecha.getFullYear();
+            const month = fecha.getMonth() + 1; // JavaScript months are 0-indexed
+
+            console.log(`🔄 Cargando turnos para ${month}/${year} - Rol: ${employee_rol_id}`);
+
+            // Yield al browser para no bloquear UI
+            await new Promise(resolve => setTimeout(resolve, 0));
+
+            const response = await fetch(`/api/turnos/${year}/${month}/${employee_rol_id}`);
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            // Limpiar estados
-            setResumen({});
-            setGridChanges([]);
-            setOriginalChangeDate(null);
-            setShowPendingChanges(false);
+            const data = await response.json();
+            const turnosArray = Object.values(data) as TurnoData[];
 
-            // Invalidar cache
-            const cacheKey = getCacheKey(año, mes);
-            delete dataCache.current[cacheKey];
+            console.log('✅ Datos recibidos:', turnosArray.length, 'empleados');
 
-            // Recargar datos
-            await loadDataOptimized(fechaParaCambios, false);
+            // Procesar datos en chunks para no bloquear UI
+            const processDataInChunks = async (data: TurnoData[], chunkSize = 50) => {
+                const result = [];
 
-            // Limpiar sistema simple de undo DESPUÉS de recargar
-('Limpiando sistema simple después de recargar datos...');
-            simpleClearAllChanges();
-('Sistema simple limpiado, changeCount debería ser 0');
+                for (let i = 0; i < data.length; i += chunkSize) {
+                    const chunk = data.slice(i, i + chunkSize);
+                    result.push(...chunk);
 
-            toast.success('Cambios guardados exitosamente', {
-                description: 'Los turnos fueron actualizados correctamente.',
-                duration: 3000,
+                    // Yield al browser después de cada chunk
+                    if (i + chunkSize < data.length) {
+                        await new Promise(resolve => setTimeout(resolve, 0));
+                    }
+                }
+
+                // Ordenar todo al final para mantener el orden correcto por Amzoma
+                return result.sort(sortByAmzomaAndName);
+            };
+
+            const turnosOrdenados = await processDataInChunks(turnosArray);
+
+            // Actualizar los datos
+            setRowData(turnosOrdenados);
+            setOriginalData(turnosOrdenados);
+
+            console.log('✅ Turnos cargados y ordenados:', turnosOrdenados.length, 'empleados');
+
+            toast.success(`Turnos cargados para ${fecha.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}`);
+
+        } catch (error) {
+            console.error('❌ Error al cargar turnos:', error);
+            toast.error('Error al cargar turnos del servidor');
+        } finally {
+            setLoading(false);
+        }
+    }, [employee_rol_id, sortByAmzomaAndName]);
+
+    // Función para manejar actualización de cambios
+    const handleActualizarCambios = useCallback(async (comentario: string) => {
+        if (Object.keys(resumen).length === 0) {
+            toast.warning('No hay cambios pendientes para actualizar');
+            return;
+        }
+
+        setIsProcessingChanges(true);
+
+        try {
+            // Preparar datos para envío
+            const formData = {
+                changes: resumen,
+                employee_rol_id: employee_rol_id,
+                fecha: originalChangeDate ? originalChangeDate.toISOString().split('T')[0] : selectedDate.toISOString().split('T')[0],
+                comentario: comentario || '',
+            };
+
+            setData(formData);
+
+            // Enviar usando Inertia
+            post('/shifts/update', {
+                onSuccess: () => {
+                    toast.success('Cambios actualizados correctamente');
+
+                    // Limpiar estados después del éxito
+                    setGridChanges([]);
+                    setResumen({});
+                    setShowPendingChanges(false);
+                    setOriginalChangeDate(null);
+
+                    // Limpiar sistema simple de undo DESPUÉS de recargar
+                    setTimeout(() => {
+                        simpleClearAllChanges();
+                    }, 100);
+                },
+                onError: (errors) => {
+                    console.error('Error al actualizar cambios:', errors);
+                    toast.error('Error al actualizar cambios');
+                },
+                onFinish: () => {
+                    setIsProcessingChanges(false);
+                }
             });
 
         } catch (error) {
-            console.error('Error al guardar cambios:', error);
-            toast.error('Error al guardar cambios', {
-                description: 'Hubo un problema al guardar los cambios. Intenta nuevamente.',
-                duration: 4000,
-            });
-        } finally {
-            setIsSaving(false);
+            console.error('Error en handleActualizarCambios:', error);
+            toast.error('Error al procesar cambios');
+            setIsProcessingChanges(false);
         }
-    }, [resumen, originalChangeDate, selectedDate, getCacheKey, loadDataOptimized, simpleClearAllChanges]);
+    }, [resumen, employee_rol_id, originalChangeDate, selectedDate, setData, post, simpleClearAllChanges]);
 
-
-    // Funciones de empleados (simplificadas para mejor performance)
+    // Función para agregar empleado al grid
     const addEmployeeToGrid = useCallback((employee: TurnoData) => {
-        const employeeId = getEmployeeId(employee);
-        setSelectedEmployees(prev => new Set([...prev, employeeId]));
-
         setRowData(prev => {
-            if (!prev.find(e => getEmployeeId(e) === employeeId)) {
-                return [...prev, employee].sort(sortByAmzomaAndName);
+            const exists = prev.some(emp =>
+                emp.nombre === employee.nombre && emp.rut === employee.rut
+            );
+
+            if (exists) {
+                toast.warning('El empleado ya está en la lista');
+                return prev;
             }
-            return prev;
-        });
-    }, [getEmployeeId, sortByAmzomaAndName]);
 
-    const removeEmployeeFromGrid = useCallback((employee: TurnoData) => {
-        const employeeId = getEmployeeId(employee);
-        setSelectedEmployees(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(employeeId);
-            return newSet;
+            return [...prev, employee];
         });
+    }, []);
 
-        setRowData(prev => prev.filter(e => getEmployeeId(e) !== employeeId));
+    // Función para remover empleado del grid
+    const removeEmployeeFromGrid = useCallback((employeeId: string | number) => {
+        setRowData(prev => prev.filter(emp => getEmployeeId(emp) !== employeeId));
     }, [getEmployeeId]);
 
-    // Agregar todos los empleados disponibles al grid
-    const addAllEmployees = useCallback(() => {
-        const newEmployeeIds = new Set(selectedEmployees);
-        const employeesToAdd: TurnoData[] = [];
+    // Función para obtener total de empleados
+    const getTotalEmployees = useCallback(() => {
+        return rowData.length;
+    }, [rowData]);
 
-        availableEmployees.forEach(employee => {
-            const employeeId = getEmployeeId(employee);
-            if (!newEmployeeIds.has(employeeId)) {
-                newEmployeeIds.add(employeeId);
-                employeesToAdd.push(employee);
-            }
-        });
-
-        setSelectedEmployees(newEmployeeIds);
-        setRowData(prev => {
-            const currentIds = new Set(prev.map(e => getEmployeeId(e)));
-            const filteredToAdd = employeesToAdd.filter(e => !currentIds.has(getEmployeeId(e)));
-            return [...prev, ...filteredToAdd].sort(sortByAmzomaAndName);
-        });
-
-        toast.success(`${employeesToAdd.length} empleados agregados al grid`, {
-            description: 'Los empleados han sido agregados exitosamente',
-            duration: 2000,
-        });
-    }, [availableEmployees, selectedEmployees, getEmployeeId, sortByAmzomaAndName]);
-
-    // Limpiar todos los empleados del grid
-    const clearAllEmployees = useCallback(() => {
-        setSelectedEmployees(new Set());
-        setRowData([]);
-
-        toast.success('Grid limpiado', {
-            description: 'Todos los empleados han sido removidos del grid',
-            duration: 2000,
-        });
-    }, []);
-
-    // Cerrar selector de empleados
-    const closeEmployeeSelector = useCallback(() => {
-        setSearchInputTerm('');
-    }, []);
-
-    // Efectos
-    useEffect(() => {
-        loadDataOptimized(selectedDate, false);
-    }, [selectedDate, loadDataOptimized]);
-
-
-    // Atajos de teclado
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if ((event.ctrlKey || event.metaKey)) {
-                switch (event.key) {
-                    case 'z':
-                        event.preventDefault();
-                        if (event.shiftKey) {
-                            redoChange();
-                        } else {
-                            undoChange();
-                        }
-                        break;
-                    case 'y':
-                        event.preventDefault();
-                        redoChange();
-                        break;
-                }
-            }
-        };
-
-        document.addEventListener('keydown', handleKeyDown);
-        return () => document.removeEventListener('keydown', handleKeyDown);
-    }, [undoChange, redoChange]);
-
-    // Compatibilidad con la interfaz existente
-    // Contador de cambios activos (no deshechos)
-    const activeChangeCount = useMemo(() => {
-        const activeChanges = gridChanges.filter(change => !change.undone);
-        const totalChanges = gridChanges.length;
-        const undoneChanges = gridChanges.filter(change => change.undone);
-
-('📊 Cálculo de activeChangeCount:');
-('  - Total cambios:', totalChanges);
-('  - Cambios activos:', activeChanges.length);
-('  - Cambios deshechos:', undoneChanges.length);
-
-        return activeChanges.length;
-    }, [gridChanges]);
-
-    // Función de filtrado de datos
+    // Función para filtrar datos
     const filterData = useCallback((data: TurnoData[], term: string) => {
         if (!term.trim()) return data;
 
         return data.filter(item => {
-            // Filtrar por nombre
             const nombreCompleto = item.nombre?.toLowerCase() || '';
             if (nombreCompleto.includes(term.toLowerCase())) return true;
 
-            // Filtrar por first_name + paternal_lastname
-            if (item.first_name && item.paternal_lastname) {
-                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
-                if (nombreFormateado.includes(term.toLowerCase())) return true;
+            if (item.rut) {
+                const rut = String(item.rut).toLowerCase();
+                if (rut.includes(term.toLowerCase())) return true;
             }
 
-            // Filtrar por campos individuales
-            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.rut && String(item.rut).toLowerCase().includes(term.toLowerCase())) return true;
+            // Buscar en apellidos si existen
+            if (item.paternal_lastname) {
+                const apellidoPaterno = String(item.paternal_lastname).toLowerCase();
+                if (apellidoPaterno.includes(term.toLowerCase())) return true;
+            }
+
+            if (item.maternal_lastname) {
+                const apellidoMaterno = String(item.maternal_lastname).toLowerCase();
+                if (apellidoMaterno.includes(term.toLowerCase())) return true;
+            }
 
             return false;
         });
     }, []);
 
-    // Datos filtrados con memoización
-    const filteredRowData = useMemo(() =>
-        filterData(rowData, debouncedSearchTerm),
-        [rowData, debouncedSearchTerm, filterData]
-    );
+    // Datos filtrados con useMemo (evita renders extra y estados redundantes)
+    const filteredRowData = useMemo(() => filterData(rowData, debouncedSearchTerm), [rowData, debouncedSearchTerm, filterData]);
 
-    // Función de filtrado para empleados disponibles
-    const filterAvailableEmployees = useCallback((term: string) => {
-        if (!term.trim()) return availableEmployees;
+    // Derivar listaCambios para compatibilidad con componentes existentes
+    const listaCambios = useMemo((): ChangeItem[] => {
+        return gridChanges
+            .filter(change => !change.undone) // Solo cambios activos
+            .map(change => ({
+                id: change.id,
+                employeeId: change.employeeId,
+                employeeName: change.employeeName,
+                employeeRut: change.employeeRut,
+                day: change.day,
+                oldValue: change.oldValue,
+                newValue: change.newValue,
+                timestamp: change.timestamp,
+            }));
+    }, [gridChanges]);
 
-        return availableEmployees.filter(item => {
-            const nombreCompleto = item.nombre?.toLowerCase() || '';
-            if (nombreCompleto.includes(term.toLowerCase())) return true;
+    // Función para manejar actualización del resumen
+    const handleResumenUpdate = useCallback((newResumen: CambiosPorFuncionario) => {
+        setResumen(newResumen);
+    }, []);
 
-            if (item.first_name && item.paternal_lastname) {
-                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
-                if (nombreFormateado.includes(term.toLowerCase())) return true;
+    // Función para establecer API del grid
+    const setGridApi = useCallback((api: any) => {
+        console.log('🔗 Estableciendo Grid API en manager:', !!api);
+        setSimpleGridApi(api);
+        console.log('✅ Grid API establecida en sistema simple');
+
+        // Verificar que el API funciona
+        if (api) {
+            try {
+                let nodeCount = 0;
+                api.forEachNode(() => nodeCount++);
+                console.log('📊 Grid API verificada, nodos:', nodeCount);
+            } catch (error) {
+                console.error('❌ Error verificando Grid API:', error);
             }
+        }
+    }, [setSimpleGridApi]);
 
-            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
-            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+    // Efecto para actualizar rowData cuando cambian los datos iniciales
+    useEffect(() => {
+        if (datosInicialesOrdenados.length > 0 && rowData.length === 0) {
+            console.log('📊 Cargando datos iniciales:', datosInicialesOrdenados.length, 'empleados');
+            setRowData(datosInicialesOrdenados);
+            setOriginalData(datosInicialesOrdenados);
+        }
+    }, [datosInicialesOrdenados, rowData.length]);
 
-            return false;
-        });
-    }, [availableEmployees]);
+    // Manejo de atajos de teclado
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.ctrlKey && event.key === 'z' && !event.shiftKey) {
+                event.preventDefault();
+                undoChange();
+            }
+        };
 
-    // Empleados disponibles filtrados
-    const filteredAvailableEmployees = useMemo(
-        () => filterAvailableEmployees(debouncedSearchTerm),
-        [debouncedSearchTerm, filterAvailableEmployees]
-    );
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [undoChange, redoChange]);
 
-    const listaCambios = useMemo(() => {
-        // Retornar TODOS los cambios (incluyendo deshechos) para mostrar historial completo
+    // Computed values
+    const canUndo = simpleCanUndo;
+    const canRedo = false; // Placeholder
+    const hasChanges = Object.keys(resumen).length > 0;
+    const changeCount = gridChanges.length;
+
+    // Estadísticas de cambios para debugging
+    useEffect(() => {
+        const activeChanges = gridChanges.filter(change => !change.undone);
+        const undoneChanges = gridChanges.filter(change => change.undone);
+
+        console.log('📊 Estado de cambios:');
+        console.log('  - Total:', gridChanges.length);
+        console.log('  - Activos:', activeChanges.length);
+        console.log('  - Deshechos:', undoneChanges.length);
+        console.log('  - Resumen empleados:', Object.keys(resumen).length);
+    }, [gridChanges, resumen]);
+
+    // Estados adicionales para empleados
+    const [filteredAvailableEmployees, setFilteredAvailableEmployees] = useState<TurnoData[]>([]);
+
+    const addAllEmployees = useCallback(() => {
+        // Implementar lógica para agregar todos los empleados
+        console.log('Agregando todos los empleados...');
+    }, []);
+
+    const clearAllEmployees = useCallback(() => {
+        setRowData([]);
+        toast.success('Todos los empleados han sido removidos');
+    }, []);
+
+    const closeEmployeeSelector = useCallback(() => {
+        // Implementar lógica para cerrar selector
+        console.log('Cerrando selector de empleados...');
+    }, []);
+
+    // Función para obtener historial de cambios con estado de deshecho
+    const getChangeHistory = useCallback(() => {
         return gridChanges.map(change => ({
             id: change.id,
             employeeId: change.employeeId,
@@ -897,39 +907,46 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             newValue: change.newValue,
             timestamp: change.timestamp,
             undone: change.undone, // Incluir estado de deshecho
-        })).sort((a, b) => b.timestamp - a.timestamp); // Ordenar por timestamp descendente
+        }));
     }, [gridChanges]);
 
     return {
-        // Estados
+        // Estados principales
         rowData,
-        filteredRowData,
-        resumen,
+        setRowData,
         selectedDate,
-        currentMonthTitle,
-        loading,
-        originalChangeDate,
-        isSaving,
+        setSelectedDate,
+        resumen,
+        setResumen,
         showPendingChanges,
-        searchTerm: searchInputTerm,
-        selectedEmployees,
-        availableEmployees,
-        filteredAvailableEmployees,
-        listaCambios,
-        hasEditPermissions,
-        processing,
-        errors,
+        setShowPendingChanges,
+        originalChangeDate,
+        setOriginalChangeDate,
         isProcessingChanges,
+        gridChanges,
+        setGridChanges,
+        originalData,
+        setOriginalData,
+        isUndoing,
+        setIsUndoing,
 
-        // Estados de historial
-        canUndo: simpleCanUndo,
-        canRedo: false, // Simplificado por ahora
-        changeCount: activeChangeCount, // Cambios activos (no deshechos)
+        // Estados de búsqueda y filtrado
+        searchTerm,
+        setSearchTerm,
+        debouncedSearchTerm,
+        filteredRowData, // 🆕 Datos filtrados
+        listaCambios, // 🆕 Lista de cambios para compatibilidad
+
+        // Estados computados
+        canUndo,
+        canRedo,
+        hasChanges,
+        changeCount,
+        loading,
+        hasEditPermissions,
 
         // Funciones principales
-        setSelectedDate,
-        setSearchTerm: setSearchInputTerm,
-        cargarTurnosPorMes: loadDataOptimized,
+        cargarTurnosPorMes,
         registerChange,
         handleActualizarCambios,
 
@@ -938,25 +955,38 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         undoSpecificChange,
         undoSpecificChangesWithCallback,
         redoChange,
-        clearAllChanges: simpleClearAllChanges,
+        clearAllChanges,
 
         // Funciones de empleados
         getEmployeeId,
         addEmployeeToGrid,
         removeEmployeeFromGrid,
+
+        // Funciones de utilidad
+        getTotalEmployees,
+        filterData,
+        handleResumenUpdate,
+        setGridApi,
+        // Estados y funciones adicionales para filtro de empleados
+        filteredAvailableEmployees,
         addAllEmployees,
         clearAllEmployees,
         closeEmployeeSelector,
 
-        // Funciones de utilidad
-        getTotalEmployees: () => rowData.length,
-        filterData,
-        handleResumenUpdate: (resumen: any) => {
-            setResumen(resumen);
-            setData(prev => ({ ...prev, cambios: resumen }));
-        },
+        // Función para obtener historial completo
+        getChangeHistory,
+
+        // Form de Inertia
+        data,
+        setData,
+        post,
+        processing,
+        errors,
 
         // Función para registrar el API del grid (para undo directo)
-        setGridApi,
+        registerGridApi: setGridApi,
+
+        // Función para obtener lista de changeIds
+        getChangeIds: getSimpleChangeIds,
     };
 };

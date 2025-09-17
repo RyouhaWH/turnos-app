@@ -195,14 +195,14 @@
     white-space: pre-line !important;
     text-align: center;
     justify-content: baseline;
-    line-height: 1.6;
-    font-size: 0.7rem;
+    line-height: 1;
+    font-size: 0.1rem;
 }
 
 .ag-theme-alpine .ag-cell {
-    padding-left: 2px !important;
-    padding-right: 2px !important;
-    font-size: 11px;
+    /* padding-left: 2px !important; */
+    /* padding-right: 2px !important; */
+    font-size: 10px;
 }
 
 @layer base {
