@@ -129,14 +129,14 @@ const applyPendingChangesToData = (data: TurnoData[], pendingChanges: OptimizedG
     const dataWithChanges = data.map(row => {
         // Copia completa del objeto
         const newRow = { ...row };
-        
+
         // Asegurar que todas las propiedades se copien correctamente
         for (const key in row) {
             if (row.hasOwnProperty(key)) {
                 (newRow as any)[key] = (row as any)[key];
             }
         }
-        
+
         return newRow;
     });
 
@@ -317,13 +317,12 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         });
 
-        // Aplicar cambios pendientes a los datos para mostrar en la grilla (necesario para undo)
-        const dataWithPendingChanges = applyPendingChangesToData(filteredData, pendingChanges);
-
         // Agregar totales si está habilitado
-        if (showTotals && dataWithPendingChanges.length > 0) {
-            const daysInData = extractDaysFromData(dataWithPendingChanges);
-            const totalsRows = calculateTotalsByShiftType(dataWithPendingChanges, daysInData, selectedTotalsShiftTypes);
+        if (showTotals && filteredData.length > 0) {
+            // Crear una copia temporal SOLO para calcular totales (incluye cambios pendientes)
+            const dataForTotalsCalculation = applyPendingChangesToData(filteredData, pendingChanges);
+            const daysInData = extractDaysFromData(dataForTotalsCalculation);
+            const totalsRows = calculateTotalsByShiftType(dataForTotalsCalculation, daysInData, selectedTotalsShiftTypes);
 
             if (totalsRows.length > 0) {
                 // Crear separador de totales
@@ -337,19 +336,20 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 };
 
                 // Agregar campos de días vacíos al separador
-                const sampleRow = dataWithPendingChanges[0];
+                const sampleRow = filteredData[0];
                 Object.keys(sampleRow).forEach(key => {
                     if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
                         (totalsSeparator as any)[key] = '';
                     }
                 });
 
-                dataWithPendingChanges.push(totalsSeparator);
-                dataWithPendingChanges.push(...totalsRows);
+                // Agregar separador y totales a los datos principales (SIN cambios pendientes aplicados)
+                filteredData.push(totalsSeparator);
+                filteredData.push(...totalsRows);
             }
         }
 
-        return dataWithPendingChanges;
+        return filteredData;
     }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
 
     // Extraer días y generar información
@@ -512,6 +512,25 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
 
                     return classes.join(' ');
+                },
+                cellRenderer: (params: any) => {
+                    // Si es una fila de totales o separador, mostrar el valor normal
+                    if (params.data?.isTotalsRow || params.data?.isSeparator) {
+                        return params.value || '';
+                    }
+
+                    // Para filas normales, verificar si hay cambios pendientes
+                    if (params.data && fieldName) {
+                        const employeeId = String(params.data.employee_id || params.data.id || '');
+                        const key = `${employeeId}-${fieldName}`;
+                        const pendingChange = pendingChangesMap.get(key);
+                        
+                        if (pendingChange) {
+                            return pendingChange.newValue || '';
+                        }
+                    }
+
+                    return params.value || '';
                 },
                 valueParser: (params) => {
                     const value = String(params.newValue || '').toUpperCase().trim();
