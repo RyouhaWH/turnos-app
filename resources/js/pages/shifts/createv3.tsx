@@ -23,6 +23,8 @@ import {
     Filter,
     History,
     Loader2,
+    Maximize2,
+    Minimize2,
     MessageSquare,
     Phone,
     Save,
@@ -36,9 +38,9 @@ import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
 // Lazy loading de componentes pesados
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
 const ListaCambios = React.lazy(() => import('./shift-change-list'));
-const EmployeeManagementCardV3 = React.lazy(() =>
-    import('./components/EmployeeManagementCardV3').then((module) => ({ default: module.EmployeeManagementCardV3 })),
-);
+// const EmployeeManagementCardV3 = React.lazy(() =>
+//     import('./components/EmployeeManagementCardV3').then((module) => ({ default: module.EmployeeManagementCardV3 })),
+// );
 const ShiftHistoryFeed = React.lazy(() => import('@/components/ui/shift-history-feed'));
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -116,6 +118,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     // Estados para filtro de turnos
     const [showShiftFilter, setShowShiftFilter] = useState(false);
     const [visibleShiftTypes, setVisibleShiftTypes] = useState<Set<string>>(new Set());
+
+    // Estado para maximizar el grid
+    const [isGridMaximized, setIsGridMaximized] = useState(false);
 
     // Estado para destinatarios de WhatsApp seleccionados
     const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
@@ -266,12 +271,12 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         }
     }, [isMobile, showEmployeePanel]);
 
-    // Función para manejar el selector de fecha en móvil
+    // Función para manejar el selector de fecha en móvil y en desktop cuando está maximizado
     const handleToggleDatePicker = useCallback(() => {
-        if (isMobile) {
+        if (isMobile || isGridMaximized) {
             setShowMobileDatePickerModal(true);
         }
-    }, [isMobile]);
+    }, [isMobile, isGridMaximized]);
 
     // Función para manejar el historial en móvil
     const handleToggleHistory = useCallback(() => {
@@ -314,6 +319,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         setShowShiftFilter(!showShiftFilter);
     }, [showShiftFilter]);
 
+    // Función para alternar el estado de maximizado del grid
+    const handleToggleGridMaximize = useCallback(() => {
+        setIsGridMaximized(prev => !prev);
+    }, []);
+
+    // Manejar tecla ESC para cerrar modal de pantalla completa (se declara después de obtener recalculateGridLayout)
+
     // Función para abrir el popup de confirmación
     const handleOpenConfirmDialog = useCallback(() => {
         setShowConfirmDialog(true);
@@ -350,6 +362,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         cargarTurnosPorMes,
         registerChange,
         handleActualizarCambios,
+        recalculateGridLayout,
 
         // Funciones de historial
         undoChange,
@@ -374,6 +387,31 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         clearAllEmployees,
         closeEmployeeSelector,
     } = useOptimizedShiftsManager(employee_rol_id);
+    // Manejar tecla ESC y recalcular layout al entrar/salir fullscreen
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape' && isGridMaximized) {
+                setIsGridMaximized(false);
+            }
+        };
+
+        if (isGridMaximized) {
+            document.addEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'hidden';
+            try { (recalculateGridLayout as any)?.(); } catch {}
+            const id = window.setTimeout(() => { try { (recalculateGridLayout as any)?.(); } catch {} }, 120);
+            return () => {
+                document.removeEventListener('keydown', handleKeyDown);
+                document.body.style.overflow = 'unset';
+                window.clearTimeout(id);
+            };
+        }
+
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown);
+            document.body.style.overflow = 'unset';
+        };
+    }, [isGridMaximized, recalculateGridLayout]);
 
     // ========== FILTRO HARDCODEADO - EDITA AQUÍ LOS TIPOS DE TURNOS ==========
     // Para agregar o quitar tipos de turnos del filtro, modifica este array:
@@ -482,7 +520,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const handleConfirmChanges = useCallback(async () => {
         setShowConfirmDialog(false);
         // Usar una cadena vacía como comentario por defecto y pasar los destinatarios de WhatsApp
-        await handleActualizarCambios('', selectedWhatsAppRecipients, whatsappTestingMode);
+        await handleActualizarCambios('');
     }, [handleActualizarCambios, selectedWhatsAppRecipients]);
 
     // Función para obtener el nombre completo del turno
@@ -670,13 +708,14 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     );
 
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Turnos Optimizados" />
+        <>
+            <AppLayout breadcrumbs={breadcrumbs}>
+                <Head title="Turnos Optimizados" />
 
-            <div className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-                <div className={`overflow-hidden ${isMobile ? 'p-2' : 'p-6'}`}>
+                <div className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
+                <div className={`overflow-hidden ${isMobile ? 'p-2' : isGridMaximized ? 'p-2' : 'p-6'}`}>
                     {/* Header compacto de página */}
-                    <div className={isMobile ? 'mb-0' : 'mb-4'}>
+                    <div className={isMobile ? 'mb-0' : isGridMaximized ? 'mb-2' : 'mb-4'}>
                         <div className={`md:mb-2 flex flex-col ${isMobile ? 'gap-1' : 'gap-2'} lg:flex-row lg:items-center lg:justify-between`}>
                             <div className="flex w-full items-baseline justify-between">
                                 <div className="ml-4 flex items-center gap-3">
@@ -793,8 +832,24 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 </Button>
                                             )}
 
+                                            {/* Botón de maximizar/minimizar grid */}
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={handleToggleGridMaximize}
+                                                className="flex items-center gap-2"
+                                                title={isGridMaximized ? 'Minimizar grid' : 'Maximizar grid'}
+                                            >
+                                                {isGridMaximized ? (
+                                                    <Minimize2 className="h-4 w-4" />
+                                                ) : (
+                                                    <Maximize2 className="h-4 w-4" />
+                                                )}
+                                                {!isMobile && (isGridMaximized ? 'Minimizar' : 'Maximizar')}
+                                            </Button>
+
                                             {/* Botón de empleados solo en desktop */}
-                                            {!isMobile && (
+                                            {!isMobile && !isGridMaximized && (
                                                 <Button
                                                     variant={showEmployeePanel ? 'ghost' : 'outline'}
                                                     size="sm"
@@ -812,7 +867,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             )}
 
                                             {/* Botón para toggle del resumen solo en desktop */}
-                                            {!isMobile && changeCount > 0 && (
+                                            {!isMobile && !isGridMaximized && changeCount > 0 && (
                                                 <Button
                                                     variant={showSummary ? 'ghost' : 'outline'}
                                                     size="sm"
@@ -839,7 +894,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             )}
 
                                             {/* Botón de configuración WhatsApp solo para administradores */}
-                                            {!isMobile && hasAdminPermissions && (
+                                            {!isMobile && !isGridMaximized && hasAdminPermissions && (
                                                 <div className="flex items-center gap-2">
                                                     <Button
                                                         variant="outline"
@@ -875,7 +930,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             )}
 
                                             {/* Botón para mostrar/ocultar totales */}
-                                            {!isMobile && (
+                                            {!isMobile && !isGridMaximized && (
                                                 <div className="flex items-center gap-2">
                                                     <Button
                                                         variant={showTotals ? 'ghost' : 'outline'}
@@ -980,7 +1035,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             )}
 
                                             {/* Botón de filtro de turnos */}
-                                            {!isMobile && (
+                                            {!isMobile && !isGridMaximized && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -1031,7 +1086,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                         </div>
 
                         {/* Contenido principal */}
-                        <div className={`flex overflow-hidden ${isMobile ? 'h-[calc(100vh-120px)] flex-col' : 'h-[calc(100vh-180px)] gap-6'}`}>
+                        <div className={`flex overflow-hidden ${isMobile ? 'h-[calc(100vh-120px)] flex-col' : isGridMaximized ? 'h-[calc(100vh-140px)]' : 'h-[calc(100vh-180px)] gap-6'}`}>
                             {/* Grid principal */}
                             <div className="min-w-0 flex-1">
                                 {isMobile ? (
@@ -1042,7 +1097,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         ) : (
                                             <Suspense fallback={<OptimizedLoadingGrid />}>
                                                 <div className="ag-theme-alpine h-full w-full">
-                                                    <OptimizedExcelGrid {...gridProps} />
+                                                    <OptimizedExcelGrid {...(gridProps as any)} />
                                                 </div>
                                             </Suspense>
                                         )}
@@ -1057,7 +1112,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 ) : (
                                                     <Suspense fallback={<OptimizedLoadingGrid />}>
                                                         <div className="ag-theme-alpine h-full">
-                                                            <OptimizedExcelGrid {...gridProps} />
+                                                            <OptimizedExcelGrid {...(gridProps as any)} />
                                                         </div>
                                                     </Suspense>
                                                 )}
@@ -1068,7 +1123,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             </div>
 
                             {/* Panel lateral - Resumen de cambios */}
-                            {!isMobile && hasEditPermissions && changeCount > 0 && showSummary && (
+                            {!isMobile && !isGridMaximized && hasEditPermissions && changeCount > 0 && showSummary && (
                                 <div className="h-full w-96 flex-shrink-0">
                                     <Suspense
                                         fallback={
@@ -1083,7 +1138,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             )}
 
                             {/* Panel de gestión de empleados - Solo desktop */}
-                            {!isMobile && hasEditPermissions && showEmployeePanel && (
+                            {!isMobile && !isGridMaximized && hasEditPermissions && showEmployeePanel && (
                                 <div className="h-full w-96 flex-shrink-0">
                                     <Suspense
                                         fallback={
@@ -1092,7 +1147,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             </div>
                                         }
                                     >
-                                        <EmployeeManagementCardV3
+                                        {/* <EmployeeManagementCardV3
                                             searchTerm={searchTerm}
                                             setSearchTerm={setSearchTerm}
                                             rowData={filteredRowData}
@@ -1103,13 +1158,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             addAllEmployees={addAllEmployees}
                                             clearAllEmployees={clearAllEmployees}
                                             isMobile={isMobile}
-                                        />
+                                        /> */}
                                     </Suspense>
                                 </div>
                             )}
 
                             {/* Panel de filtro de turnos - Solo desktop */}
-                            {!isMobile && showShiftFilter && (
+                            {!isMobile && !isGridMaximized && showShiftFilter && (
                                 <div className="h-full w-80 flex-shrink-0">
                                     <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                         <CardHeader className="pb-3">
@@ -1241,7 +1296,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         </div>
                                     }
                                 >
-                                    <EmployeeManagementCardV3
+                                    {/* <EmployeeManagementCardV3
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
                                         rowData={filteredRowData}
@@ -1252,7 +1307,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         addAllEmployees={addAllEmployees}
                                         clearAllEmployees={clearAllEmployees}
                                         isMobile={true}
-                                    />
+                                    /> */}
                                 </Suspense>
                             </div>
                         </DialogContent>
@@ -1260,7 +1315,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                     {/* Modal móvil - Selector de fecha */}
                     <Dialog open={showMobileDatePickerModal} onOpenChange={setShowMobileDatePickerModal}>
-                        <DialogContent className="mx-auto flex h-[80vh] max-h-[80vh] w-full max-w-[95vw] flex-col p-2">
+                        <DialogContent className="mx-auto flex h-[80vh] max-h-[80vh] w-full max-w-[95vw] flex-col p-2 z-[10000]">
                             <DialogHeader className="flex-shrink-0 border-b bg-white px-4 py-3 dark:bg-slate-900">
                                 <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
                                     <Calendar className="h-5 w-5" />
@@ -1487,5 +1542,346 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                 </div>
             </div>
         </AppLayout>
+
+        {/* Modal de pantalla completa para grid maximizado - Solo desktop */}
+        {!isMobile && isGridMaximized && (
+            <div
+                className="fixed inset-0 z-[9999] bg-white dark:bg-slate-900"
+                style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    width: '100vw',
+                    height: '100vh',
+                    margin: 0,
+                    padding: 0,
+                    transform: 'none',
+                    zIndex: 9999
+                }}
+                onClick={(e) => {
+                    // Solo cerrar si se hace clic en el fondo, no en el contenido
+                    if (e.target === e.currentTarget) {
+                        setIsGridMaximized(false);
+                    }
+                }}
+            >
+                <div className="flex h-full flex-col">
+                    {/* Header minimalista para pantalla completa */}
+                    <div className="flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+                        <div className="flex items-center gap-3">
+                            <div className="rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 p-2 shadow-md">
+                                <FileSpreadsheet className="h-6 w-6 text-white" />
+                            </div>
+                            <div>
+                                <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+                                    Grid de Turnos - {currentMonthTitle}
+                                </h1>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                            {!hasEditPermissions && (
+                                <Badge variant="outline" className="border-yellow-300 bg-yellow-50 text-xs text-yellow-700">
+                                    Solo lectura
+                                </Badge>
+                            )}
+
+                            {hasEditPermissions && (
+                                <>
+                                    {/* Botón de deshacer */}
+                                    {changeCount > 0 && canUndo && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={undoChange}
+                                            disabled={!canUndo || isProcessingChanges}
+                                            className="flex items-center gap-2"
+                                        >
+                                            <Undo2 className="h-4 w-4" />
+                                            Deshacer último
+                                        </Button>
+                                    )}
+
+                                    {/* Botón móvil del selector de fecha */}
+                                    {isMobile && (
+                                        <button
+                                            onClick={handleToggleDatePicker}
+                                            className="flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                        >
+                                            <Calendar className="h-3 w-3" />
+                                            {currentMonthTitle}
+                                        </button>
+                                    )}
+
+                                    {/* Botón de empleados */}
+                                    <Button
+                                        variant={showEmployeePanel ? 'ghost' : 'outline'}
+                                        size="sm"
+                                        onClick={handleToggleEmployeePanel}
+                                        className={`flex items-center gap-2 transition-all duration-300 ${
+                                            showEmployeePanel
+                                                ? 'hover:bg-slate-100 dark:hover:bg-green-800'
+                                                : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700'
+                                        }`}
+                                        title={showEmployeePanel ? 'Ocultar gestión de empleados' : 'Mostrar gestión de empleados'}
+                                    >
+                                        <Users className="h-4 w-4" />
+                                        {showEmployeePanel ? 'Ocultar empleados' : 'Gestionar empleados'}
+                                    </Button>
+
+                                    {/* Botón de resumen */}
+                                    {changeCount > 0 && (
+                                        <Button
+                                            variant={showSummary ? 'ghost' : 'outline'}
+                                            size="sm"
+                                            onClick={handleToggleSummary}
+                                            className={`flex items-center gap-2 transition-all duration-300 ${
+                                                showSummary
+                                                    ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
+                                                    : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                            }`}
+                                            title={showSummary ? 'Ocultar resumen de cambios' : 'Mostrar resumen de cambios'}
+                                        >
+                                            <Eye className="h-4 w-4" />
+                                            {showSummary ? 'Ocultar resumen' : 'Ver resumen'}
+                                        </Button>
+                                    )}
+
+                                    {/* Botón de filtro de turnos */}
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={handleToggleShiftFilter}
+                                        className={`flex items-center gap-2 transition-all duration-300 ${
+                                            showShiftFilter
+                                                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                        }`}
+                                        title={showShiftFilter ? 'Ocultar filtro de turnos' : 'Mostrar filtro de turnos'}
+                                    >
+                                        <Filter className="h-4 w-4" />
+                                        {showShiftFilter ? 'Ocultar filtro' : 'Filtrar turnos'}
+                                    </Button>
+
+                                    {/* Botón para mostrar/ocultar totales */}
+                                    <Button
+                                        variant={showTotals ? 'ghost' : 'outline'}
+                                        size="sm"
+                                        onClick={handleToggleTotals}
+                                        className={`flex items-center gap-2 transition-all duration-300 ${
+                                            showTotals
+                                                ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
+                                                : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
+                                        }`}
+                                        title={showTotals ? 'Ocultar totales' : 'Mostrar totales'}
+                                    >
+                                        <Eye className="h-4 w-4" />
+                                        {showTotals ? 'Ocultar totales' : 'Ver totales'}
+                                    </Button>
+
+                                    {/* Botón de configuración WhatsApp solo para administradores */}
+                                    {hasAdminPermissions && (
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleToggleWhatsAppConfig}
+                                            className="flex items-center gap-2 border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700 dark:hover:text-green-100"
+                                            title="Configurar notificaciones WhatsApp"
+                                        >
+                                            <MessageSquare className="h-4 w-4" />
+                                            WhatsApp
+                                        </Button>
+                                    )}
+
+                                    {/* Botón de guardar */}
+                                    {changeCount > 0 && (
+                                        <Button
+                                            onClick={handleOpenConfirmDialog}
+                                            disabled={isProcessingChanges || isSaving}
+                                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
+                                        >
+                                            <Save className="h-4 w-4" />
+                                            {isSaving ? 'Guardando...' : `Guardar ${changeCount} cambio${changeCount !== 1 ? 's' : ''}`}
+                                        </Button>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Botón de minimizar */}
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleToggleGridMaximize}
+                                className="flex items-center gap-2"
+                                title="Minimizar grid"
+                            >
+                                <Minimize2 className="h-4 w-4" />
+                                Minimizar
+                            </Button>
+                            {/* Botón selector de fecha (desktop en vista maximizada) */}
+                            {!isMobile && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleToggleDatePicker}
+                                    className="flex items-center gap-2"
+                                    title="Seleccionar mes/año"
+                                >
+                                    <Calendar className="h-4 w-4" />
+                                    {currentMonthTitle}
+                                </Button>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Contenido principal con paneles laterales */}
+                    <div className="flex flex-1 overflow-hidden">
+                        {/* Grid principal */}
+                        <div className="min-w-0 flex-1">
+                            {loading ? (
+                                <div className="flex h-full items-center justify-center">
+                                    <div className="flex flex-col items-center space-y-4">
+                                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                                        <p className="text-slate-600 dark:text-slate-400">Cargando turnos...</p>
+                                    </div>
+                                </div>
+                            ) : (
+                                <Suspense fallback={
+                                    <div className="flex h-full items-center justify-center">
+                                        <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                                    </div>
+                                }>
+                                    <div className="ag-theme-alpine h-full w-full">
+                                        <OptimizedExcelGrid {...(gridProps as any)} />
+                                    </div>
+                                </Suspense>
+                            )}
+                        </div>
+
+                        {/* Panel lateral - Resumen de cambios */}
+                        {hasEditPermissions && changeCount > 0 && showSummary && (
+                            <div className="h-full w-96 flex-shrink-0 border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                                <Suspense
+                                    fallback={
+                                        <div className="flex h-full items-center justify-center">
+                                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                                        </div>
+                                    }
+                                >
+                                    <ListaCambios {...summaryProps} />
+                                </Suspense>
+                            </div>
+                        )}
+
+                        {/* Panel de gestión de empleados */}
+                        {hasEditPermissions && showEmployeePanel && (
+                            <div className="h-full w-96 flex-shrink-0 border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                                <Suspense
+                                    fallback={
+                                        <div className="flex h-full items-center justify-center">
+                                            <div className="h-6 w-6 animate-spin rounded-full border-4 border-blue-200 border-t-blue-600"></div>
+                                        </div>
+                                    }
+                                >
+                                    {/* <EmployeeManagementCardV3
+                                        searchTerm={searchTerm}
+                                        setSearchTerm={setSearchTerm}
+                                        rowData={filteredRowData}
+                                        availableEmployees={filteredAvailableEmployees}
+                                        getEmployeeId={getEmployeeId}
+                                        addEmployeeToGrid={addEmployeeToGrid}
+                                        removeEmployeeFromGrid={removeEmployeeFromGrid}
+                                        addAllEmployees={addAllEmployees}
+                                        clearAllEmployees={clearAllEmployees}
+                                        isMobile={false}
+                                    /> */}
+                                    <div className="p-4 text-center text-slate-500">
+                                        Panel de empleados (componente comentado)
+                                    </div>
+                                </Suspense>
+                            </div>
+                        )}
+
+                        {/* Panel de filtro de turnos */}
+                        {showShiftFilter && (
+                            <div className="h-full w-80 flex-shrink-0 border-l border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-800">
+                                <div className="h-full p-4">
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <h3 className="flex items-center gap-2 text-lg font-semibold">
+                                            <Filter className="h-5 w-5" />
+                                            Filtrar Turnos
+                                        </h3>
+                                        <Button variant="ghost" size="sm" onClick={handleToggleShiftFilter} className="h-8 w-8 p-0">
+                                            <X className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                    <p className="mb-4 text-sm text-slate-600 dark:text-slate-400">
+                                        Desmarca los tipos de turnos que deseas ocultar
+                                    </p>
+
+                                    {/* Botones para manejar filtros */}
+                                    <div className="mb-4 flex flex-wrap gap-2">
+                                        {visibleShiftTypes.size < availableShiftTypes.length && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={clearAllFilters}
+                                                className="text-xs"
+                                            >
+                                                Mostrar todos
+                                            </Button>
+                                        )}
+                                        {visibleShiftTypes.size > 0 && (
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={deselectAllFilters}
+                                                className="text-xs"
+                                            >
+                                                Ocultar todos
+                                            </Button>
+                                        )}
+                                    </div>
+
+                                    {/* Lista de tipos de turnos */}
+                                    <ScrollArea className="h-[calc(100%-120px)]">
+                                        <div className="space-y-2">
+                                            {availableShiftTypes.map((shiftType) => (
+                                                <div key={shiftType.code} className="flex items-center space-x-2">
+                                                    <Checkbox
+                                                        id={`shift-${shiftType.code}`}
+                                                        checked={visibleShiftTypes.has(shiftType.code)}
+                                                        onCheckedChange={() => handleToggleShiftType(shiftType.code)}
+                                                    />
+                                                    <div className="flex items-center gap-2">
+                                                        <div
+                                                            className="h-4 w-4 rounded border"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    shiftType.color === 'transparent' ? '#f1f5f9' : shiftType.color,
+                                                                border: shiftType.color === 'transparent' ? '1px dashed #94a3b8' : undefined,
+                                                            }}
+                                                        />
+                                                        <label
+                                                            htmlFor={`shift-${shiftType.code}`}
+                                                            className="flex-1 cursor-pointer text-sm font-medium"
+                                                        >
+                                                            {shiftType.name}
+                                                        </label>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+        </>
     );
 }

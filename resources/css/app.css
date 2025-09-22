@@ -735,3 +735,92 @@ textarea,
 .search {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+/* 26. Estilos para tabla maximizada - Modo pantalla completa */
+.maximized-grid {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
+    border: 2px solid #f97316;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffffff 100%);
+}
+
+.dark .maximized-grid {
+    background: linear-gradient(135deg, #1c1917 0%, #0f172a 100%);
+    border-color: #ea580c;
+}
+
+.maximized-grid .ag-theme-alpine {
+    border-radius: 6px;
+    overflow: hidden;
+    background: transparent;
+}
+
+/* Animación suave para la maximización */
+.maximized-grid {
+    animation: maximizeGrid 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes maximizeGrid {
+    from {
+        opacity: 0.8;
+        transform: scale(0.98);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+        box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Efecto de resplandor sutil para la tabla maximizada */
+.maximized-grid::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    right: -3px;
+    bottom: -3px;
+    background: linear-gradient(45deg, #f97316, #ea580c, #dc2626, #b91c1c);
+    border-radius: 10px;
+    z-index: -1;
+    opacity: 0.15;
+    animation: glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+    from {
+        opacity: 0.1;
+    }
+    to {
+        opacity: 0.2;
+    }
+}
+
+/* Estilos adicionales para el modo pantalla completa */
+.maximized-grid .ag-header {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: white;
+    font-weight: 600;
+}
+
+.maximized-grid .ag-header-cell {
+    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.maximized-grid .ag-row:hover {
+    background-color: rgba(249, 115, 22, 0.05);
+}
+
+/* Mejorar la visibilidad de las celdas en modo maximizado */
+.maximized-grid .ag-cell {
+    border-right: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.dark .maximized-grid .ag-cell {
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}

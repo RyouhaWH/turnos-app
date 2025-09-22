@@ -4,10 +4,10 @@ import { type BreadcrumbItem } from '@/types';
 import { Head } from '@inertiajs/react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useShiftsManager } from './hooks/useShiftsManager';
-import { ShiftsGrid } from './components/ShiftsGrid';
-import { ShiftsControls } from './components/ShiftsControls';
+// import { ShiftsGrid } from './components/ShiftsGrid';
+// import { ShiftsControls } from './components/ShiftsControls';
 
-import { RightPanel } from './components/RightPanel';
+// import { RightPanel } from './components/RightPanel';
 import { useMemo, useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -19,7 +19,7 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 export default function ShiftsManager({ turnos, employee_rol_id }: any) {
     const isMobile = useIsMobile();
-    
+
     // Estado para controlar la expansión del EmployeeManagementCard
     const [isEmployeeManagementExpanded, setIsEmployeeManagementExpanded] = useState(false);
 

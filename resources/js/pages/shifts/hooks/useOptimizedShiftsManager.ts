@@ -910,6 +910,48 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         }));
     }, [gridChanges]);
 
+    // Título del mes actual, usado por createv3
+    const currentMonthTitle = useMemo(() => {
+        try {
+            const formatter = new Intl.DateTimeFormat('es-ES', { month: 'long', year: 'numeric' });
+            const formatted = formatter.format(selectedDate);
+            // Capitalizar primer letra
+            return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+        } catch (_) {
+            return `${selectedDate.getMonth() + 1}/${selectedDate.getFullYear()}`;
+        }
+    }, [selectedDate]);
+
+    // Compatibilidad con createv3 (valores de respaldo)
+    const isSaving = false;
+    const selectedEmployees: any[] = [];
+    const availableEmployees = filteredAvailableEmployees;
+
+    // Recalcular layout del grid cuando su contenedor cambia de tamaño
+    const recalculateGridLayout = useCallback(() => {
+        const api = getSimpleUndoGridApi();
+        if (!api) return;
+        // Esperar al próximo frame para asegurar DOM actualizado
+        requestAnimationFrame(() => {
+            try {
+                // Disparar eventos de resize/redraw
+                if (typeof api.onGridSizeChanged === 'function') {
+                    api.onGridSizeChanged();
+                }
+                if (typeof api.sizeColumnsToFit === 'function') {
+                    api.sizeColumnsToFit();
+                }
+                if (typeof api.resetRowHeights === 'function') {
+                    api.resetRowHeights();
+                }
+                api.refreshCells({ force: true });
+                api.redrawRows();
+            } catch (_) {
+                // no-op
+            }
+        });
+    }, []);
+
     return {
         // Estados principales
         rowData,
@@ -988,5 +1030,10 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         // Función para obtener lista de changeIds
         getChangeIds: getSimpleChangeIds,
+        currentMonthTitle: currentMonthTitle,
+        isSaving: isSaving,
+        selectedEmployees: selectedEmployees,
+        availableEmployees: availableEmployees,
+        recalculateGridLayout,
     };
 };
