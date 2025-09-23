@@ -486,9 +486,9 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     headerComponent: 'agColumnHeader',
                     headerComponentParams: {
                         template: `
-                            <div class="ag-cell-label-container" role="presentation">
-                                <div class="ag-header-cell-label" role="presentation">
-                                    <div class="day-header" style="display: flex; flex-direction: column; align-items: center; line-height: 1.2;">
+                            <div class="ag-cell-label-container" role="presentation" style="display: flex; align-items: center; justify-content: center; height: 100%; width: 100%;">
+                                <div class="ag-header-cell-label" role="presentation" style="display: flex; align-items: center; justify-content: center; width: 100%;">
+                                    <div class="day-header" style="display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; text-align: center;">
                                         <span class="ag-header-cell-text" style="font-size: 12px; font-weight: 600;">${dayInfo.day}</span>
                                         <div class="day-of-week" style="font-size: 10px; color: #64748b; margin-top: 2px;">${dayInfo.nombre}</div>
                                     </div>
@@ -1028,6 +1028,35 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     padding: 4px 0 !important;
                     min-height: 32px !important;
                     justify-content: center !important;
+                    align-items: center !important;
+                    text-align: center !important;
+                }
+
+                /* Asegurar que los contenedores de header estén centrados */
+                .ag-theme-alpine .ag-cell-label-container {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    height: 100% !important;
+                    width: 100% !important;
+                }
+
+                .ag-theme-alpine .ag-header-cell-label {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    width: 100% !important;
+                    text-align: center !important;
+                }
+
+                /* Centrar contenido del wrapper de componentes de header */
+                .ag-theme-alpine .ag-header-cell-comp-wrapper {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    height: 100% !important;
+                    width: 100% !important;
+                    text-align: center !important;
                 }
             `}</style>
 

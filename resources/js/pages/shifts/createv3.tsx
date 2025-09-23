@@ -565,8 +565,19 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
     // Inicializar todos los tipos como visibles al cargar
     useEffect(() => {
-        setVisibleShiftTypes(new Set(getAllShiftCodes()));
+        const allCodes = getAllShiftCodes();
+        if (allCodes.length > 0) {
+            setVisibleShiftTypes(new Set(allCodes));
+        }
     }, [getAllShiftCodes]);
+
+    // Inicialización adicional por si acaso
+    useEffect(() => {
+        if (visibleShiftTypes.size === 0 && availableShiftTypes.length > 0) {
+            const allCodes = getAllShiftCodes();
+            setVisibleShiftTypes(new Set(allCodes));
+        }
+    }, [availableShiftTypes, visibleShiftTypes.size, getAllShiftCodes]);
 
     // Función para manejar solicitud de cambio de fecha (ya no se usa)
     const handleDateChangeRequest = useCallback((newDate: Date) => {
@@ -1201,7 +1212,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             )}
 
                                             {/* Botón de filtro de turnos */}
-                                            {!isMobile && !isGridMaximized && (
+                                            {!isMobile && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
@@ -1330,7 +1341,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             )}
 
                             {/* Panel de filtro de turnos - Solo desktop */}
-                            {!isMobile && !isGridMaximized && showShiftFilter && (
+                            {!isMobile && showShiftFilter && (
                                 <div className="h-full w-80 flex-shrink-0">
                                     <Card className="h-full border-slate-200/50 shadow-xl backdrop-blur-sm dark:bg-slate-900/90">
                                         <CardHeader className="pb-3">
@@ -2015,7 +2026,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 <div key={shiftType.code} className="flex items-center space-x-2">
                                                     <Checkbox
                                                         id={`shift-${shiftType.code}`}
-                                                        checked={visibleShiftTypes.has(shiftType.code)}
+                                                        checked={
+                                                            shiftType.isGroup && shiftType.codes
+                                                                ? shiftType.codes.every((code) => visibleShiftTypes.has(code))
+                                                                : visibleShiftTypes.has(shiftType.code)
+                                                        }
                                                         onCheckedChange={() => handleToggleShiftType(shiftType.code)}
                                                     />
                                                     <div className="flex items-center gap-2">
