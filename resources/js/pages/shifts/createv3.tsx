@@ -32,15 +32,15 @@ import {
     Users,
     X,
 } from 'lucide-react';
-import React, { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
-import { useOptimizedShiftsManager } from './hooks/useOptimizedShiftsManager';
+import React, { Suspense, useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { useOptimizedShiftsManager, type TurnoData } from './hooks/useOptimizedShiftsManager';
 
 // Lazy loading de componentes pesados
 const OptimizedExcelGrid = React.lazy(() => import('@/components/ui/optimized-excel-grid'));
 const ListaCambios = React.lazy(() => import('./shift-change-list'));
-// const EmployeeManagementCardV3 = React.lazy(() =>
-//     import('./components/EmployeeManagementCardV3').then((module) => ({ default: module.EmployeeManagementCardV3 })),
-// );
+const EmployeeManagementCardV3 = React.lazy(() =>
+    import('./components/EmployeeManagementCardV3').then((module) => ({ default: module.default })),
+);
 const ShiftHistoryFeed = React.lazy(() => import('@/components/ui/shift-history-feed'));
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -232,9 +232,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         });
     }, []);
 
+    // Handler definido más abajo, tras declarar filteredRowData
+    const handleSelectAllTotalsShiftTypesRef = useRef<(() => void) | null>(null);
     const handleSelectAllTotalsShiftTypes = useCallback(() => {
-        const allShiftTypes = getAllShiftCodes();
-        setSelectedTotalsShiftTypes(new Set(allShiftTypes.map(String)));
+        handleSelectAllTotalsShiftTypesRef.current && handleSelectAllTotalsShiftTypesRef.current();
     }, []);
 
     const handleClearAllTotalsShiftTypes = useCallback(() => {
@@ -439,6 +440,42 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         [],
     );
     // ========================================================================
+
+    // Códigos de turno presentes actualmente en la grilla (para totales)
+    const presentShiftCodes = useMemo<Set<string>>(() => {
+        const codes = new Set<string>();
+        const data: any[] = (filteredRowData as any[]) || [];
+        if (!data || data.length === 0) return codes;
+
+        const sample: any = data.find((r: any) => !r?.isSeparator) || (data[0] as any);
+        const dayKeys = Object.keys(sample || {}).filter((k) => {
+            const n = parseInt(k, 10);
+            return !isNaN(n) && n >= 1 && n <= 31;
+        });
+
+        data.forEach((row: any) => {
+            if (row?.isSeparator) return;
+            dayKeys.forEach((k) => {
+                const v = String(row[k] ?? '').toUpperCase().trim();
+                if (v) codes.add(v);
+            });
+        });
+
+        return codes;
+    }, [filteredRowData]);
+
+    // Completar handler ahora que filteredRowData existe
+    useEffect(() => {
+        handleSelectAllTotalsShiftTypesRef.current = () => {
+            setSelectedTotalsShiftTypes(new Set(Array.from(presentShiftCodes)));
+        };
+    }, [presentShiftCodes]);
+
+    // Opciones del selector de totales, derivadas de lo que realmente existe en la grilla
+    const totalsSelectableShiftCodes = useMemo(() => {
+        const codes = Array.from(presentShiftCodes).sort();
+        return codes.map((code) => ({ code, label: code }));
+    }, [presentShiftCodes]);
 
     const handleToggleShiftType = useCallback(
         (shiftType: string) => {
@@ -857,7 +894,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     className={`flex items-center gap-2 transition-all duration-300 ${
                                                         showEmployeePanel
                                                             ? 'hover:bg-slate-100 dark:hover:bg-green-800'
-                                                            : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700'
+                                                            : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700 dark:hover:text-green-100'
                                                     }`}
                                                     title={showEmployeePanel ? 'Ocultar gestión de empleados' : 'Mostrar gestión de empleados'}
                                                 >
@@ -1007,25 +1044,22 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                                     </div>
 
                                                                     <div className="max-h-60 space-y-2 overflow-y-auto">
-                                                                        {availableShiftTypes.map((shiftType) => {
-                                                                            const shiftTypeStr = String(shiftType);
-                                                                            return (
-                                                                                <div key={shiftTypeStr} className="flex items-center space-x-2">
-                                                                                    <Checkbox
-                                                                                        id={`totals-${shiftTypeStr}`}
-                                                                                        checked={selectedTotalsShiftTypes.has(shiftTypeStr)}
-                                                                                        onCheckedChange={() => handleToggleTotalsShiftType(shiftTypeStr)}
-                                                                                        className="h-4 w-4"
-                                                                                    />
-                                                                                    <label
-                                                                                        htmlFor={`totals-${shiftTypeStr}`}
-                                                                                        className="flex-1 cursor-pointer text-sm text-slate-700 dark:text-slate-300"
-                                                                                    >
-                                                                                        {shiftTypeStr} - {getTurnoLabel(shiftTypeStr)}
-                                                                                    </label>
-                                                                                </div>
-                                                                            );
-                                                                        })}
+                                                                        {totalsSelectableShiftCodes.map((item) => (
+                                                                            <div key={item.code} className="flex items-center space-x-2">
+                                                                                <Checkbox
+                                                                                    id={`totals-${item.code}`}
+                                                                                    checked={selectedTotalsShiftTypes.has(item.code)}
+                                                                                    onCheckedChange={() => handleToggleTotalsShiftType(item.code)}
+                                                                                    className="h-4 w-4"
+                                                                                />
+                                                                                <label
+                                                                                    htmlFor={`totals-${item.code}`}
+                                                                                    className="flex-1 cursor-pointer text-sm text-slate-700 dark:text-slate-300"
+                                                                                >
+                                                                                    {item.code} - {item.label}
+                                                                                </label>
+                                                                            </div>
+                                                                        ))}
                                                                     </div>
                                                                 </div>
                                                             )}
@@ -1147,7 +1181,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             </div>
                                         }
                                     >
-                                        {/* <EmployeeManagementCardV3
+                                        <EmployeeManagementCardV3
                                             searchTerm={searchTerm}
                                             setSearchTerm={setSearchTerm}
                                             rowData={filteredRowData}
@@ -1157,8 +1191,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             removeEmployeeFromGrid={removeEmployeeFromGrid}
                                             addAllEmployees={addAllEmployees}
                                             clearAllEmployees={clearAllEmployees}
-                                            isMobile={isMobile}
-                                        /> */}
+                                            isMobile={false}
+                                        />
                                     </Suspense>
                                 </div>
                             )}
@@ -1296,7 +1330,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         </div>
                                     }
                                 >
-                                    {/* <EmployeeManagementCardV3
+                                    <EmployeeManagementCardV3
                                         searchTerm={searchTerm}
                                         setSearchTerm={setSearchTerm}
                                         rowData={filteredRowData}
@@ -1307,7 +1341,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         addAllEmployees={addAllEmployees}
                                         clearAllEmployees={clearAllEmployees}
                                         isMobile={true}
-                                    /> */}
+                                    />
                                 </Suspense>
                             </div>
                         </DialogContent>
@@ -1785,21 +1819,18 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         </div>
                                     }
                                 >
-                                    {/* <EmployeeManagementCardV3
-                                        searchTerm={searchTerm}
-                                        setSearchTerm={setSearchTerm}
-                                        rowData={filteredRowData}
-                                        availableEmployees={filteredAvailableEmployees}
-                                        getEmployeeId={getEmployeeId}
-                                        addEmployeeToGrid={addEmployeeToGrid}
-                                        removeEmployeeFromGrid={removeEmployeeFromGrid}
-                                        addAllEmployees={addAllEmployees}
-                                        clearAllEmployees={clearAllEmployees}
-                                        isMobile={false}
-                                    /> */}
-                                    <div className="p-4 text-center text-slate-500">
-                                        Panel de empleados (componente comentado)
-                                    </div>
+                                        <EmployeeManagementCardV3
+                                            searchTerm={searchTerm}
+                                            setSearchTerm={setSearchTerm}
+                                            rowData={filteredRowData}
+                                            availableEmployees={filteredAvailableEmployees}
+                                            getEmployeeId={getEmployeeId}
+                                            addEmployeeToGrid={addEmployeeToGrid}
+                                            removeEmployeeFromGrid={removeEmployeeFromGrid}
+                                            addAllEmployees={addAllEmployees}
+                                            clearAllEmployees={clearAllEmployees}
+                                            isMobile={false}
+                                        />
                                 </Suspense>
                             </div>
                         )}

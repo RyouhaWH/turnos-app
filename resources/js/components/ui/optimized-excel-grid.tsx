@@ -322,29 +322,33 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             // Crear una copia temporal SOLO para calcular totales (incluye cambios pendientes)
             const dataForTotalsCalculation = applyPendingChangesToData(filteredData, pendingChanges);
             const daysInData = extractDaysFromData(dataForTotalsCalculation);
-            const totalsRows = calculateTotalsByShiftType(dataForTotalsCalculation, daysInData, selectedTotalsShiftTypes);
+            const totalsRows = calculateTotalsByShiftType(
+                dataForTotalsCalculation,
+                daysInData,
+                selectedTotalsShiftTypes
+            );
 
+            // Crear separador de totales SIEMPRE que showTotals esté activo
+            const hasPendingChanges = pendingChanges && pendingChanges.length > 0;
+            const totalsSeparator: TurnoData = {
+                id: 'totals-separator',
+                nombre: hasPendingChanges ? '▼ TOTAL (Actualizado)' : '▼ TOTAL',
+                isSeparator: true,
+                isGroupHeader: true,
+                groupType: 'totals',
+            };
+
+            // Agregar campos de días vacíos al separador
+            const sampleRow = filteredData[0];
+            Object.keys(sampleRow).forEach(key => {
+                if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
+                    (totalsSeparator as any)[key] = '';
+                }
+            });
+
+            // Agregar separador y, si existen, las filas de totales a los datos principales
+            filteredData.push(totalsSeparator);
             if (totalsRows.length > 0) {
-                // Crear separador de totales
-                const hasPendingChanges = pendingChanges && pendingChanges.length > 0;
-                const totalsSeparator: TurnoData = {
-                    id: 'totals-separator',
-                    nombre: hasPendingChanges ? '▼ TOTAL (Actualizado)' : '▼ TOTAL',
-                    isSeparator: true,
-                    isGroupHeader: true,
-                    groupType: 'totals',
-                };
-
-                // Agregar campos de días vacíos al separador
-                const sampleRow = filteredData[0];
-                Object.keys(sampleRow).forEach(key => {
-                    if (!['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id'].includes(key)) {
-                        (totalsSeparator as any)[key] = '';
-                    }
-                });
-
-                // Agregar separador y totales a los datos principales (SIN cambios pendientes aplicados)
-                filteredData.push(totalsSeparator);
                 filteredData.push(...totalsRows);
             }
         }
@@ -401,7 +405,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                             fontSize: '11px',
                             fontWeight: '600',
                             textAlign: 'center',
-                            backgroundColor: '#f8fafc',
+                            backgroundColor: '#ffffff',
                             color: '#1e293b',
                         } as any;
                     }
@@ -810,25 +814,35 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
                 /* Filas de totales */
                 .ag-theme-alpine .totals-row {
+                    background-color: #ffffff !important;
+                }
+
+                .ag-theme-alpine .totals-row:hover {
                     background-color: #f8fafc !important;
                 }
 
                 .ag-theme-alpine .totals-cell {
-                    background-color: #f1f5f9 !important;
+                    background-color: #ffffff !important;
                     color: #1e293b !important;
                     font-weight: 500 !important;
                     font-size: 10px !important;
                     text-align: center !important;
-                    border: 1px solid #e2e8f0 !important;
+                }
+
+                .ag-theme-alpine .totals-row:hover .totals-cell {
+                    background-color: #f8fafc !important;
                 }
 
                 .ag-theme-alpine .totals-name-cell {
-                    background-color: #f1f5f9 !important;
+                    background-color: #ffffff !important;
                     color: #1e293b !important;
                     font-weight: 600 !important;
                     font-size: 11px !important;
                     text-align: center !important;
-                    border: 1px solid #e2e8f0 !important;
+                }
+
+                .ag-theme-alpine .totals-row:hover .totals-name-cell {
+                    background-color: #f8fafc !important;
                 }
 
                 /* Separador de totales con cambios pendientes */
@@ -836,6 +850,24 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     background-color: #fef3c7 !important;
                     color: #92400e !important;
                     border: 1px solid #f59e0b !important;
+                }
+
+                /* Resaltado de columnas al hacer hover */
+                .ag-theme-alpine .ag-column-hover {
+                    background-color: #f0f9ff !important;
+                }
+
+                .ag-theme-alpine .ag-column-hover .ag-cell {
+                    background-color: #f0f9ff !important;
+                }
+
+                /* Resaltado de columnas para filas de totales */
+                .ag-theme-alpine .ag-column-hover .totals-cell {
+                    background-color: #e0f2fe !important;
+                }
+
+                .ag-theme-alpine .ag-column-hover .totals-name-cell {
+                    background-color: #e0f2fe !important;
                 }
             `}</style>
 

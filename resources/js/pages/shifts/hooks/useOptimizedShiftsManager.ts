@@ -743,19 +743,14 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función para agregar empleado al grid
     const addEmployeeToGrid = useCallback((employee: TurnoData) => {
+        const employeeId = getEmployeeId(employee);
         setRowData(prev => {
-            const exists = prev.some(emp =>
-                emp.nombre === employee.nombre && emp.rut === employee.rut
-            );
-
-            if (exists) {
-                toast.warning('El empleado ya está en la lista');
-                return prev;
+            if (!prev.find(e => getEmployeeId(e) === employeeId)) {
+                return [...prev, employee];
             }
-
-            return [...prev, employee];
+            return prev;
         });
-    }, []);
+    }, [getEmployeeId]);
 
     // Función para remover empleado del grid
     const removeEmployeeFromGrid = useCallback((employeeId: string | number) => {
@@ -878,17 +873,25 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     }, [gridChanges, resumen]);
 
     // Estados adicionales para empleados
-    const [filteredAvailableEmployees, setFilteredAvailableEmployees] = useState<TurnoData[]>([]);
+    const [filteredAvailableEmployees, setFilteredAvailableEmployees] = useState<TurnoData[]>(datosInicialesOrdenados);
 
     const addAllEmployees = useCallback(() => {
-        // Implementar lógica para agregar todos los empleados
-        console.log('Agregando todos los empleados...');
-    }, []);
+        console.log('🔍 addAllEmployees ejecutado');
+        console.log('📊 filteredAvailableEmployees:', filteredAvailableEmployees.length);
+        console.log('📋 Empleados disponibles:', filteredAvailableEmployees.map(e => e.nombre));
+
+        // Agregar todos los empleados disponibles al grid
+        setRowData([...filteredAvailableEmployees]);
+        toast.success(`Se agregaron ${filteredAvailableEmployees.length} empleados`);
+    }, [filteredAvailableEmployees]);
 
     const clearAllEmployees = useCallback(() => {
+        console.log('🗑️ clearAllEmployees ejecutado');
+        console.log('📊 rowData actual:', rowData.length);
+
         setRowData([]);
         toast.success('Todos los empleados han sido removidos');
-    }, []);
+    }, [rowData]);
 
     const closeEmployeeSelector = useCallback(() => {
         // Implementar lógica para cerrar selector
