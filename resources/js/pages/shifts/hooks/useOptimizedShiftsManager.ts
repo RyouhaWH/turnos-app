@@ -689,6 +689,35 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         }
     }, [employee_rol_id, sortByAmzomaAndName]);
 
+    // Cargar turnos por rango (puede cruzar meses)
+    const cargarTurnosPorRango = useCallback(async (inicio: Date, fin: Date) => {
+        try {
+            setLoading(true);
+            const start = inicio.toISOString().split('T')[0];
+            const end = fin.toISOString().split('T')[0];
+
+            const response = await fetch(`/api/turnos/rango?rolId=${employee_rol_id}&start=${start}&end=${end}`, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            const turnosArray = Array.isArray(data) ? data : Object.values(data);
+            const ordenados = turnosArray.sort(sortByAmzomaAndName);
+            setRowData(ordenados);
+            setOriginalData(ordenados);
+
+            toast.success(`Turnos cargados para rango ${inicio.toLocaleDateString('es-CL')} - ${fin.toLocaleDateString('es-CL')}`);
+        } catch (e) {
+            console.error('Error al cargar turnos por rango', e);
+            toast.error('Error al cargar turnos por rango');
+        } finally {
+            setLoading(false);
+        }
+    }, [employee_rol_id, sortByAmzomaAndName]);
+
     // Función para manejar actualización de cambios
     const handleActualizarCambios = useCallback(async (comentario: string) => {
         if (Object.keys(resumen).length === 0) {
@@ -992,6 +1021,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         // Funciones principales
         cargarTurnosPorMes,
+        cargarTurnosPorRango,
         registerChange,
         handleActualizarCambios,
 

@@ -153,6 +153,89 @@ class TurnController extends Controller
         return response()->json($data);
     }
 
+    /**
+     * Obtener turnos por rango de fechas (puede cruzar meses y años)
+     * GET /api/turnos/rango?rolId=1&start=YYYY-MM-DD&end=YYYY-MM-DD
+     */
+    public function getShiftsByDateRange(Request $request)
+    {
+        $rolId = (int) $request->query('rolId');
+        $start = $request->query('start');
+        $end = $request->query('end');
+
+        if (!$rolId || !$start || !$end) {
+            return response()->json(['message' => 'Parámetros inválidos'], 422);
+        }
+
+        try {
+            $startDate = Carbon::parse($start)->startOfDay();
+            $endDate = Carbon::parse($end)->endOfDay();
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Formato de fecha inválido'], 422);
+        }
+
+        if ($endDate->lt($startDate)) {
+            return response()->json(['message' => 'El fin debe ser mayor o igual al inicio'], 422);
+        }
+
+        // Traer turnos del rango para empleados del rol indicado
+        $shiftsEloquent = EmployeeShifts::whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+            ->whereHas('employee', function ($query) use ($rolId) {
+                $query->where('rol_id', $rolId);
+            })
+            ->with('employee')
+            ->get()
+            ->groupBy('employee_id');
+
+        $result = [];
+
+        // Asegurar listado de empleados del rol aunque no tengan turnos en el rango
+        $employees = Employees::where('rol_id', $rolId)->get();
+
+        foreach ($employees as $employee) {
+            $nombre = $employee['name'];
+            $key = $nombre;
+
+            if (!isset($result[$key])) {
+                $result[$key] = [
+                    'id' => $employee->id,
+                    'employee_id' => $employee->id,
+                    'nombre' => $nombre,
+                    'first_name' => $employee->first_name,
+                    'paternal_lastname' => $employee->paternal_lastname,
+                    'maternal_lastname' => $employee->maternal_lastname,
+                    'rut' => $employee->rut,
+                    'amzoma' => $employee->amzoma,
+                ];
+            }
+        }
+
+        // Rellenar por fecha YYYY-MM-DD como claves para facilitar frontend multi-mes futuro
+        // y además por número de día si es mismo mes (compatibilidad básica)
+        foreach ($shiftsEloquent as $employeeId => $shifts) {
+            $employee = $employees->firstWhere('id', $employeeId);
+            if (!$employee) continue;
+            $nombre = $employee['name'];
+
+            foreach ($shifts as $shift) {
+                $date = Carbon::parse($shift['date']);
+                $dateKey = $date->toDateString();
+                $dayNumber = (string) $date->day;
+                $value = $shift['shift'];
+
+                // Guardar por fecha completa
+                $result[$nombre][$dateKey] = $value;
+
+                // Si todo el rango cae en un mismo mes, exponer también por número de día
+                if ($startDate->month === $endDate->month && $startDate->year === $endDate->year) {
+                    $result[$nombre][$dayNumber] = $value;
+                }
+            }
+        }
+
+        return response()->json(array_values($result));
+    }
+
     public function getShiftsfromDBByDate($year, $month, $rolId): array
     {
         $agrupados = [];

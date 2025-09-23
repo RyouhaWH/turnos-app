@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\TurnController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,6 +27,9 @@ Route::get('/test', function () {
         'timestamp' => now()
     ]);
 });
+
+// Turnos: rango de fechas (requiere auth:sanctum)
+Route::middleware('auth:sanctum')->get('/turnos/rango', [TurnController::class, 'getShiftsByDateRange']);
 
 
 

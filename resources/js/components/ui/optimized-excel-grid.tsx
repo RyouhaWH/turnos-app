@@ -4,6 +4,7 @@ import {
     AllCommunityModule,
     ModuleRegistry,
     ColDef,
+    ColGroupDef,
     CellValueChangedEvent,
     GridReadyEvent,
     CellClickedEvent,
@@ -57,6 +58,8 @@ interface OptimizedExcelGridProps {
     className?: string;
     showTotals?: boolean; // Nueva prop para mostrar totales
     selectedTotalsShiftTypes?: Set<string>; // Tipos de turnos seleccionados para totales
+    visibleDayRange?: { from: number; to: number } | null; // Rango visible de días (1-31)
+    dateColumns?: { key: string; date: Date }[] | null; // Columnas por fecha completa (para rangos multi-mes)
 }
 
 export interface OptimizedExcelGridRef {
@@ -72,16 +75,14 @@ const OptimizedDateHeader = React.memo((props: any) => {
 
     if (!dayInfo) {
         return (
-            <div className="flex h-full items-center justify-center px-1 text-center">
+            <div className="flex h-full items-center justify-center text-center" style={{ padding: '2px' }}>
                 <div className="text-sm font-bold">{displayName}</div>
             </div>
         );
     }
 
     return (
-        <div className={`flex h-full flex-col items-center justify-center p-1 text-center ${
-            dayInfo.isFinDeSemana ? '' : ''
-        }`}>
+        <div className="flex h-full flex-col items-center justify-center text-center" style={{ padding: '2px' }}>
             <div className="text-sm font-bold leading-tight">{dayInfo.day}</div>
             <div className="text-xs leading-tight opacity-80">{dayInfo.nombre}</div>
         </div>
@@ -156,15 +157,16 @@ const applyPendingChangesToData = (data: TurnoData[], pendingChanges: OptimizedG
 };
 
 // Función para calcular totales por tipo de turno
-const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[], selectedShiftTypes: Set<string>): TurnoData[] => {
-    if (!data || data.length === 0 || daysInData.length === 0) return [];
+// columnKeys: claves exactas de las columnas de días ("1".."31" o fechas "YYYY-MM-DD")
+const calculateTotalsByShiftType = (data: TurnoData[], columnKeys: string[], selectedShiftTypes: Set<string>): TurnoData[] => {
+    if (!data || data.length === 0 || columnKeys.length === 0) return [];
 
     // Obtener todos los tipos de turnos únicos presentes en los datos
     const availableShiftTypes = new Set<string>();
     data.forEach(row => {
         if (!row.isSeparator) {
-            daysInData.forEach(day => {
-                const value = String(row[day.toString()] || '').toUpperCase().trim();
+            columnKeys.forEach(key => {
+                const value = String((row as any)[key] || '').toUpperCase().trim();
                 if (value && value !== '') {
                     availableShiftTypes.add(value);
                 }
@@ -190,14 +192,13 @@ const calculateTotalsByShiftType = (data: TurnoData[], daysInData: number[], sel
             shiftType: shiftType,
         };
 
-        // Calcular totales para cada día
-        daysInData.forEach(day => {
-            const dayStr = day.toString();
+        // Calcular totales para cada columna
+        columnKeys.forEach(dayStr => {
             let count = 0;
 
             data.forEach(row => {
                 if (!row.isSeparator) {
-                    const value = String(row[dayStr] || '').toUpperCase().trim();
+                    const value = String((row as any)[dayStr] || '').toUpperCase().trim();
                     if (value === shiftType) {
                         count++;
                     }
@@ -289,6 +290,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         className = '',
         showTotals = false,
         selectedTotalsShiftTypes = new Set(),
+        visibleDayRange = null,
+        dateColumns = null,
     },
     ref
 ) => {
@@ -321,10 +324,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         if (showTotals && filteredData.length > 0) {
             // Crear una copia temporal SOLO para calcular totales (incluye cambios pendientes)
             const dataForTotalsCalculation = applyPendingChangesToData(filteredData, pendingChanges);
-            const daysInData = extractDaysFromData(dataForTotalsCalculation);
+            // Determinar claves de columnas: usar dateColumns si existen, de lo contrario numéricas
+            const columnKeys = (dateColumns && dateColumns.length > 0)
+                ? dateColumns.map(dc => dc.key)
+                : extractDaysFromData(dataForTotalsCalculation).map(n => n.toString());
             const totalsRows = calculateTotalsByShiftType(
                 dataForTotalsCalculation,
-                daysInData,
+                columnKeys,
                 selectedTotalsShiftTypes
             );
 
@@ -359,8 +365,14 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     // Extraer días y generar información
     const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
     const daysInfo = useMemo(() => {
-        return daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
-    }, [daysInData, activeMonth, activeYear]);
+        const base = daysInData.map(day => getDayInfo(day, activeMonth, activeYear));
+        if (visibleDayRange && typeof visibleDayRange.from === 'number' && typeof visibleDayRange.to === 'number') {
+            const min = Math.min(visibleDayRange.from, visibleDayRange.to);
+            const max = Math.max(visibleDayRange.from, visibleDayRange.to);
+            return base.filter(d => d.day >= min && d.day <= max);
+        }
+        return base;
+    }, [daysInData, activeMonth, activeYear, visibleDayRange]);
 
     // Crear mapa de cambios pendientes para mejor performance
     const pendingChangesMap = useMemo(() => {
@@ -373,78 +385,174 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     }, [pendingChanges]);
 
     // Definición de columnas optimizada
-    const columnDefs = useMemo<ColDef[]>(() => {
-        const columns: ColDef[] = [
-            {
-                headerName: 'Nombre',
-                field: 'nombre',
-                pinned: 'left',
-                minWidth: 60,
-                maxWidth: 150,
-                flex: 0,
-                suppressSizeToFit: true,
-                lockPosition: true,
-                suppressMovable: true,
-                resizable: true,
-                sortable: true,
-                filter: false,
-                cellClass: (params: CellClassParams) => {
-                    if (params.data?.isTotalsRow) return 'totals-name-cell';
-                    if (params.data?.isSeparator) {
-                        const classes = ['separator-name-cell'];
-                        if (params.data?.groupType === 'totals') {
-                            classes.push('totals-separator');
+    const columnDefs = useMemo<(ColDef | ColGroupDef)[]>(() => {
+        // Columna de nombre
+        const nameCol: ColDef = {
+            headerName: 'Nombre',
+            field: 'nombre',
+            pinned: 'left',
+            minWidth: 60,
+            maxWidth: 150,
+            flex: 0,
+            suppressSizeToFit: true,
+            lockPosition: true,
+            suppressMovable: true,
+            resizable: true,
+            sortable: true,
+            filter: false,
+            cellClass: (params: CellClassParams) => {
+                if (params.data?.isTotalsRow) return 'totals-name-cell';
+                if (params.data?.isSeparator) {
+                    const classes = ['separator-name-cell'];
+                    if (params.data?.groupType === 'totals') {
+                        classes.push('totals-separator');
+                    }
+                    return classes.join(' ');
+                }
+                return 'employee-name-cell';
+            },
+            cellStyle: (params) => {
+                if (params.data?.isTotalsRow) {
+                    return {
+                        fontSize: '11px',
+                        fontWeight: '600',
+                        textAlign: 'center',
+                        backgroundColor: '#ffffff',
+                        color: '#1e293b',
+                    } as any;
+                }
+                if (params.data?.isSeparator) {
+                    return {
+                        fontSize: '10px',
+                        fontWeight: '500',
+                        textAlign: 'center',
+                        cursor: params.data?.isGroupHeader ? 'pointer' : 'default',
+                    } as any;
+                }
+                return {
+                    fontSize: '12px',
+                    textAlign: 'start',
+                    padding: '4px 8px',
+                } as any;
+            },
+            valueGetter: (params) => {
+                if (params.data?.isGroupHeader) {
+                    const groupType = params.data.groupType;
+                    const isCollapsed = collapsedGroups.has(groupType || '');
+                    const icon = isCollapsed ? '▶' : '▼';
+                    const text = params.data.nombre.replace(/^[▶▼]\s*/, '');
+                    return `${icon} ${text}`;
+                }
+
+                if (params.data?.isSeparator) return params.data.nombre;
+
+                if (params.data?.first_name && params.data?.paternal_lastname) {
+                    const firstName = String(params.data.first_name).split(' ')[0];
+                    return `${firstName} ${params.data.paternal_lastname}`;
+                }
+
+                return params.data?.nombre || '';
+            },
+        };
+
+        // Si se proporcionan columnas por fecha, agrupar por mes
+        if (dateColumns && dateColumns.length > 0) {
+            const groupsMap = new Map<string, ColDef[]>();
+            dateColumns.forEach(dc => {
+                const dateObj = dc.date;
+                const monthLabel = dateObj.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+                const dayInfo = {
+                    day: dateObj.getDate(),
+                    nombre: ['D', 'L', 'M', 'M', 'J', 'V', 'S'][dateObj.getDay()],
+                    isFinDeSemana: [0,6].includes(dateObj.getDay()),
+                    isDomingo: dateObj.getDay() === 0,
+                    isSabado: dateObj.getDay() === 6,
+                };
+
+                const col: ColDef = {
+                    headerName: String(dayInfo.day),
+                    field: dc.key,
+                    editable: false, // Deshabilitar edición en multi-mes por compatibilidad
+                    width: 40,
+                    minWidth: 30,
+                    maxWidth: 75,
+                    flex: 1,
+                    lockPosition: true,
+                    suppressMovable: true,
+                    resizable: false,
+                    sortable: false,
+                    filter: false,
+                    headerClass: dayInfo.isFinDeSemana ? 'weekend-header' : '',
+                    headerComponent: 'agColumnHeader',
+                    headerComponentParams: {
+                        template: `
+                            <div class="ag-cell-label-container" role="presentation">
+                                <div class="ag-header-cell-label" role="presentation">
+                                    <div class="day-header" style="display: flex; flex-direction: column; align-items: center; line-height: 1.2;">
+                                        <span class="ag-header-cell-text" style="font-size: 12px; font-weight: 600;">${dayInfo.day}</span>
+                                        <div class="day-of-week" style="font-size: 10px; color: #64748b; margin-top: 2px;">${dayInfo.nombre}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                    },
+                    cellClass: (params: CellClassParams) => {
+                        const classes = [] as string[];
+                        if (params.data?.isTotalsRow) {
+                            classes.push('totals-cell');
+                            return classes.join(' ');
+                        }
+                        if (params.data?.isSeparator) {
+                            classes.push('separator-cell');
+                            return classes.join(' ');
+                        }
+                        if (dayInfo.isFinDeSemana) classes.push('weekend-cell');
+                        if (dayInfo.isDomingo) classes.push('day-d');
+                        if (dayInfo.isSabado) classes.push('day-s');
+
+                        if (params.value) {
+                            const shiftValue = String(params.value).toLowerCase();
+                            if (shiftValue === 'lm') classes.push('shift-lm');
+                            else if (shiftValue === 'sa') classes.push('shift-sa');
+                            else classes.push(`shift-${shiftValue.charAt(0)}`);
+                            if (hiddenShiftTypes.has(String(params.value).toUpperCase())) {
+                                classes.push('hidden-shift');
+                            }
                         }
                         return classes.join(' ');
-                    }
-                    return 'employee-name-cell';
-                },
-                cellStyle: (params) => {
-                    if (params.data?.isTotalsRow) {
-                        return {
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            textAlign: 'center',
-                            backgroundColor: '#ffffff',
-                            color: '#1e293b',
-                        } as any;
-                    }
-                    if (params.data?.isSeparator) {
-                        return {
-                            fontSize: '10px',
-                            fontWeight: '500',
-                            //borderTop: '1px solid #e5e7eb',
-                            //borderBottom: '1px solid #e5e7eb',
-                            textAlign: 'center',
-                            cursor: params.data?.isGroupHeader ? 'pointer' : 'default',
-                        } as any;
-                    }
-                    return {
-                        fontSize: '12px',
-                        textAlign: 'start',
-                        padding: '4px 8px',
-                    } as any;
-                },
-                valueGetter: (params) => {
-                    if (params.data?.isGroupHeader) {
-                        const groupType = params.data.groupType;
-                        const isCollapsed = collapsedGroups.has(groupType || '');
-                        const icon = isCollapsed ? '▶' : '▼';
-                        const text = params.data.nombre.replace(/^[▶▼]\s*/, '');
-                        return `${icon} ${text}`;
-                    }
+                    },
+                };
 
-                    if (params.data?.isSeparator) return params.data.nombre;
+                if (!groupsMap.has(monthLabel)) groupsMap.set(monthLabel, []);
+                groupsMap.get(monthLabel)!.push(col);
+            });
 
-                    if (params.data?.first_name && params.data?.paternal_lastname) {
-                        const firstName = String(params.data.first_name).split(' ')[0];
-                        return `${firstName} ${params.data.paternal_lastname}`;
-                    }
+            const groupDefs: (ColDef | ColGroupDef)[] = [nameCol];
+            // Ordenar grupos por fecha para mantener orden cronológico
+            const sortedGroups = Array.from(groupsMap.entries()).sort((a, b) => {
+                const dateA = new Date(a[0]);
+                const dateB = new Date(b[0]);
+                return dateA.getTime() - dateB.getTime();
+            });
 
-                    return params.data?.nombre || '';
-                },
+            sortedGroups.forEach(([label, children], index) => {
+                const isLastGroup = index === sortedGroups.length - 1;
+                groupDefs.push({
+                    headerName: label.charAt(0).toUpperCase() + label.slice(1),
+                    marryChildren: true,
+                    children: children,
+                    headerClass: isLastGroup ? '' : 'month-separator-group'
+                });
+            });
+            return groupDefs;
+        }
+
+        // Caso mensual tradicional
+        const columns: ColDef[] = [nameCol];
+            {
+            // placeholder para mantener formato del array
             }
-        ];
+        ;
 
         // Agregar columnas para cada día
         daysInfo.forEach((dayInfo) => {
@@ -868,6 +976,58 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
                 .ag-theme-alpine .ag-column-hover .totals-name-cell {
                     background-color: #e0f2fe !important;
+                }
+
+                /* Estilos para headers de columnas - borde sutil para división */
+                .ag-theme-alpine .ag-header-cell {
+                    border-right: 1px solid #e5e7eb !important;
+                    border-bottom: 1px solid #e5e7eb !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                }
+
+                .ag-theme-alpine .ag-header-cell:last-child {
+                    border-right: none !important;
+                }
+
+                .ag-theme-alpine .ag-header-cell-label {
+                    border: none !important;
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    height: 100% !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                }
+
+                .ag-theme-alpine .ag-header-cell-resize {
+                    display: none !important;
+                }
+
+                /* Separador entre meses en modo multi-mes */
+                .ag-theme-alpine .month-separator-group {
+                    border-right: 2px solid #64748b !important;
+                }
+
+                /* Aplicar borde a toda la columna (header + celdas) del último día de cada mes */
+                .ag-theme-alpine .month-separator-group .ag-header-cell {
+                    border-right: 2px solid #64748b !important;
+                }
+
+                .ag-theme-alpine .month-separator-group .ag-cell,
+                .ag-theme-alpine .month-separator-group .ag-cell-wrapper,
+                .ag-theme-alpine .month-separator-group .ag-cell-focus {
+                    border-right: 2px solid #64748b !important;
+                    border-left: none !important;
+                    border-top: none !important;
+                    border-bottom: none !important;
+                }
+
+                /* Estilo para headers de días en modo multi-mes */
+                .ag-theme-alpine .day-header {
+                    padding: 4px 0 !important;
+                    min-height: 32px !important;
+                    justify-content: center !important;
                 }
             `}</style>
 

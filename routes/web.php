@@ -144,6 +144,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     });
 
+    // API de turnos por rango accesible con sesión web (para el frontend Inertia)
+    Route::middleware(['auth'])->get('/api/turnos/rango', [TurnController::class, 'getShiftsByDateRange'])->name('api.turnos.rango');
+    // API de turnos mensual (para asegurar endpoint usado por frontend)
+    Route::middleware(['auth'])->get('/api/turnos/{year}/{month}/{rolId}', [TurnController::class, 'getMonthlyShifts'])->name('api.turnos.mensual');
+
     Route::get('import-from-storage', [ShiftImportController::class, 'importFromStorage'])
         ->name('import-from-storage');
 
@@ -179,6 +184,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     */
 
     Route::prefix('api')->name('api.')->group(function () {
+        // Rango de fechas (multi-mes) para turnos
+        Route::get('turnos/rango', [TurnController::class, 'getShiftsByDateRange'])->name('turnos-rango');
         Route::get('turnos-alerta_movil', [TurnController::class, 'index'])->name('turnos-alerta-movil');
         Route::get('montly-shifts', [TurnController::class, 'getFilteredShiftsFromCSV'])->name('monthly-shifts');
         Route::get('turnos', [TurnController::class, 'getShiftsFromDB'])->name('turnos');

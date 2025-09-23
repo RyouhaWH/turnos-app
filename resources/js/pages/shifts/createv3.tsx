@@ -5,9 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { MobileHeaderMenu } from '@/components/ui/mobile-header-menu';
+import { Calendar as UiCalendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MobileShiftFilterModal } from '@/components/ui/mobile-shift-filter-modal';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Toaster } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import { WhatsAppNotificationsConfig } from '@/components/ui/whatsapp-notifications-config';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppLayout from '@/layouts/app-layout';
@@ -114,6 +117,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [showMobileDatePickerModal, setShowMobileDatePickerModal] = useState(false);
     const [showMobileWhatsAppModal, setShowMobileWhatsAppModal] = useState(false);
     const [showMobileFilterModal, setShowMobileFilterModal] = useState(false);
+
+    // Estado para rango de días visible (solo UI, datos siguen siendo mensuales)
+    const [rangeStart, setRangeStart] = useState<Date | null>(null);
+    const [rangeEnd, setRangeEnd] = useState<Date | null>(null);
 
     // Estados para filtro de turnos
     const [showShiftFilter, setShowShiftFilter] = useState(false);
@@ -364,6 +371,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         registerChange,
         handleActualizarCambios,
         recalculateGridLayout,
+        cargarTurnosPorRango,
 
         // Funciones de historial
         undoChange,
@@ -447,11 +455,38 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         const data: any[] = (filteredRowData as any[]) || [];
         if (!data || data.length === 0) return codes;
 
-        const sample: any = data.find((r: any) => !r?.isSeparator) || (data[0] as any);
-        const dayKeys = Object.keys(sample || {}).filter((k) => {
-            const n = parseInt(k, 10);
-            return !isNaN(n) && n >= 1 && n <= 31;
-        });
+        // Determinar claves de días visibles: rango multi-mes usa fechas ISO; mensual usa 1..31 existentes
+        const sameMonth = !!(rangeStart && rangeEnd) &&
+            rangeStart!.getMonth() === rangeEnd!.getMonth() && rangeStart!.getFullYear() === rangeEnd!.getFullYear();
+
+        let dayKeys: string[] = [];
+        if (rangeStart && rangeEnd && !sameMonth) {
+            // Generar claves por fecha completa entre inicio y fin (incluyendo el día final)
+            const cur = new Date(rangeStart);
+            const end = new Date(rangeEnd);
+            // Asegurar que endDate incluya todo el día final
+            end.setHours(23, 59, 59, 999);
+            while (cur <= end) {
+                dayKeys.push(cur.toISOString().split('T')[0]);
+                cur.setDate(cur.getDate() + 1);
+            }
+        } else {
+            // Tomar claves numéricas presentes en el sample
+            const sample: any = data.find((r: any) => !r?.isSeparator) || (data[0] as any);
+            dayKeys = Object.keys(sample || {}).filter((k) => {
+                const n = parseInt(k, 10);
+                return !isNaN(n) && n >= 1 && n <= 31;
+            });
+            // Si hay rango dentro del mismo mes, limitar a ese subrango (incluyendo el día final)
+            if (rangeStart && rangeEnd && sameMonth) {
+                const from = rangeStart.getDate();
+                const to = rangeEnd.getDate();
+                dayKeys = dayKeys.filter((k) => {
+                    const n = parseInt(k, 10);
+                    return n >= from && n <= to;
+                });
+            }
+        }
 
         data.forEach((row: any) => {
             if (row?.isSeparator) return;
@@ -462,7 +497,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         });
 
         return codes;
-    }, [filteredRowData]);
+    }, [filteredRowData, rangeStart, rangeEnd]);
 
     // Completar handler ahora que filteredRowData existe
     useEffect(() => {
@@ -700,6 +735,26 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             className: 'transition-all duration-300 ease-in-out',
             showTotals,
             selectedTotalsShiftTypes,
+            visibleDayRange: rangeStart && rangeEnd
+                ? { from: rangeStart.getDate(), to: rangeEnd.getDate() }
+                : null,
+            // Si rangos cruzan meses, construir columnas de fecha completa con subheader por mes
+            dateColumns: (() => {
+                if (!rangeStart || !rangeEnd) return null;
+                const sameMonth = rangeStart.getMonth() === rangeEnd.getMonth() && rangeStart.getFullYear() === rangeEnd.getFullYear();
+                if (sameMonth) return null;
+                const cols: { key: string; date: Date }[] = [];
+                const cur = new Date(rangeStart);
+                const end = new Date(rangeEnd);
+                // Asegurar que endDate incluya todo el día final
+                end.setHours(23, 59, 59, 999);
+                while (cur <= end) {
+                    const key = cur.toISOString().split('T')[0];
+                    cols.push({ key, date: new Date(cur) });
+                    cur.setDate(cur.getDate() + 1);
+                }
+                return cols;
+            })(),
         }),
         [
             filteredRowData,
@@ -714,8 +769,29 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             availableShiftTypes,
             showTotals,
             selectedTotalsShiftTypes,
+            rangeStart,
+            rangeEnd,
         ],
     );
+
+    // Cargar por rango si cruza meses, si no, filtrar columnas del mismo mes
+    const handleApplyRange = useCallback(async () => {
+        if (!rangeStart || !rangeEnd) return;
+
+        const sameMonth = rangeStart.getMonth() === rangeEnd.getMonth() && rangeStart.getFullYear() === rangeEnd.getFullYear();
+        if (sameMonth) {
+            // Solo ajustar visibilidad de columnas (ya se hace vía visibleDayRange)
+            return;
+        }
+
+        // Cruza meses: llamar API de rango (placeholder mensual era para esto)
+        try {
+            toast.info('Cargando turnos por rango (cruza meses)...');
+            await cargarTurnosPorRango(rangeStart, rangeEnd);
+        } catch (_) {
+            // notificar ya gestionado en hook
+        }
+    }, [rangeStart, rangeEnd, cargarTurnosPorRango]);
 
     // Memoizar props del resumen
     const summaryProps = useMemo(
@@ -782,6 +858,62 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     onMonthChangeRequest={handleDateChangeRequest}
                                                     hasPendingChanges={changeCount > 0}
                                                 />
+                                            )}
+                                            {/* Botón de rango por días con 2 calendarios (inicio y término) */}
+                                            {!isMobile && !loading && (
+                                                <div className="flex items-center gap-2">
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button variant="outline" size="sm">
+                                                                {rangeStart && rangeEnd
+                                                                    ? `${rangeStart.getDate()} ${rangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${rangeEnd.getDate()} ${rangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
+                                                                    : 'Rango de días'}
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent className="w-auto p-3" align="start">
+                                                            <div className="flex gap-4">
+                                                                <div>
+                                                                    <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Inicio</div>
+                                                                    <UiCalendar
+                                                                        mode="single"
+                                                                        selected={rangeStart as any}
+                                                                        defaultMonth={(rangeStart as any) || selectedDate}
+                                                                        captionLayout="dropdown"
+                                                                        onSelect={(d: any) => {
+                                                                            if (!d) return;
+                                                                            setRangeStart(d);
+                                                                            if (rangeEnd && d > rangeEnd) {
+                                                                                setRangeEnd(d);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Término</div>
+                                                                    <UiCalendar
+                                                                        mode="single"
+                                                                        selected={rangeEnd as any}
+                                                                        defaultMonth={(rangeEnd as any) || (rangeStart as any) || selectedDate}
+                                                                        captionLayout="dropdown"
+                                                                        onSelect={(d: any) => {
+                                                                            if (!d) return;
+                                                                            setRangeEnd(d);
+                                                                            if (rangeStart && d < rangeStart) {
+                                                                                setRangeStart(d);
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <div className="mt-2 flex justify-end gap-2">
+                                                                {(rangeStart || rangeEnd) && (
+                                                                    <Button variant="ghost" size="sm" onClick={() => { setRangeStart(null); setRangeEnd(null); }}>Limpiar</Button>
+                                                                )}
+                                                                <Button variant="default" size="sm" disabled={!rangeStart || !rangeEnd} onClick={handleApplyRange}>Aplicar</Button>
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                </div>
                                             )}
                                             {isMobile && (
                                                 <button
