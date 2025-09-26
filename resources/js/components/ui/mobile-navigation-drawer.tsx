@@ -44,7 +44,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                             <Button
                                 key={item.href}
                                 variant="ghost"
-                                className="justify-start gap-3 h-12 text-left"
+                                className="justify-start gap-3 h-12 text-left text-slate-700 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-700/50 transition-colors duration-200"
                                 onClick={() => {
                                     // Aquí podrías usar Inertia.js para navegar
                                     window.location.href = item.href;
@@ -58,7 +58,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
 
                     {/* Separador */}
                     <div className="border-t pt-4 mt-4">
-                        <h3 className="text-sm font-medium text-slate-500 mb-3 px-3">Configuración de Usuario</h3>
+                        <h3 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-3 px-3">Configuración de Usuario</h3>
 
                         {/* Configuración de usuario */}
                         {userSettingsItems.map((item) => {
@@ -67,7 +67,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                                 <Button
                                     key={item.href}
                                     variant="ghost"
-                                    className="justify-start gap-3 h-12 text-left text-slate-700 hover:text-slate-900 hover:bg-slate-50"
+                                    className="justify-start gap-3 h-12 text-left text-slate-700 hover:text-slate-900 hover:bg-slate-50 dark:text-slate-200 dark:hover:text-white dark:hover:bg-slate-700/50 transition-colors duration-200"
                                     onClick={() => {
                                         window.location.href = item.href;
                                     }}
@@ -83,7 +83,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
                     <div className="border-t pt-4 mt-4">
                         <Button
                             variant="ghost"
-                            className="justify-start gap-3 h-12 text-left text-red-600 hover:text-red-700 hover:bg-red-50"
+                            className="justify-start gap-3 h-12 text-left text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-900/20 transition-colors duration-200"
                             onClick={() => {
                                 // Aquí podrías implementar logout
                                 console.log('Logout');

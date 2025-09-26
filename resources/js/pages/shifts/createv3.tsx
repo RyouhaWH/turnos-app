@@ -1484,7 +1484,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             </div>
 
                             {/* Contenido principal */}
-                            <div className={`flex overflow-hidden ${isMobile ? 'h-[calc(100vh-120px)] flex-col' : isGridMaximized ? 'h-[calc(100vh-140px)]' : 'h-[calc(100vh-180px)] gap-6'}`}>
+                            <div className={`flex overflow-hidden ${isMobile ? 'h-[calc(100vh-140px)] flex-col' : isGridMaximized ? 'h-[calc(100vh-140px)]' : 'h-[calc(100vh-180px)] gap-6'}`}>
                                 {/* Grid principal */}
                                 <div className="min-w-0 flex-1 relative">
                                     {/* Botón de maximizar como overlay - Solo en desktop */}
@@ -1506,7 +1506,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     )}
                                     {isMobile ? (
                                         // Vista móvil: Sin Card, ocupa todo el ancho con padding para FAB
-                                        <div className="mt-4 h-full min-h-[calc(100vh-200px)] w-full pb-8">
+                                        <div className="mt-4 h-full w-full pb-8">
                                             {loading ? (
                                                 <OptimizedLoadingGrid />
                                             ) : (
