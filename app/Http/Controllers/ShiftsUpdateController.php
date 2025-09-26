@@ -31,6 +31,7 @@ class ShiftsUpdateController extends Controller
             $cambios            = $request->input('cambios');
             $mes                = $request->input('mes', now()->month);
             $año               = $request->input('año', now()->year);
+            $multiMonth         = $request->input('multi_month', false);
             $actualUser         = Auth::id();
             $whatsappRecipients = $request->input('whatsapp_recipients', []);
             $testingMode        = $request->input('whatsapp_testing_mode', false);
@@ -51,6 +52,7 @@ class ShiftsUpdateController extends Controller
             $mensaje = '🔄 Valores recibidos en actualización' . PHP_EOL .
             'Mes: ' . $mes . PHP_EOL .
             'Año: ' . $año . PHP_EOL .
+            'Multi-mes: ' . ($multiMonth ? 'true' : 'false') . PHP_EOL .
             'Cambios recibidos: ' . json_encode($cambios, JSON_PRETTY_PRINT) . PHP_EOL .
             'WhatsApp recipients: ' . json_encode($whatsappRecipients) . PHP_EOL .
             'Testing mode: ' . ($testingMode ? 'true' : 'false') . PHP_EOL .
@@ -58,6 +60,7 @@ class ShiftsUpdateController extends Controller
             Log::info($mensaje, [
                 'mes'                 => $mes,
                 'año'                 => $año,
+                'multi_month'         => $multiMonth,
                 'cambios'             => $cambios,
                 'whatsapp_recipients' => $whatsappRecipients,
                 'testing_mode'        => $testingMode,
@@ -65,13 +68,33 @@ class ShiftsUpdateController extends Controller
             ]);
 
             if (! is_array($cambios) || empty($cambios)) {
-                return response()->json(['message' => 'No hay cambios para guardar'], 400);
+                Log::warning('⚠️ No hay cambios para guardar', [
+                    'cambios_type' => gettype($cambios),
+                    'cambios_empty' => empty($cambios),
+                    'cambios_is_array' => is_array($cambios),
+                    'cambios_content' => $cambios,
+                    'user_id' => Auth::id(),
+                ]);
+                return back()->withErrors(['message' => 'No hay cambios para guardar']);
             }
 
             $cambiosPorFuncionario = $this->processShiftsChanges($cambios, $mes, $año, $actualUser);
+
+            Log::info('✅ Cambios procesados correctamente:', [
+                'cambios_por_funcionario' => $cambiosPorFuncionario,
+                'total_cambios' => count($cambiosPorFuncionario),
+                'user_id' => Auth::id(),
+            ]);
+
             $this->sendConsolidatedMessages($cambiosPorFuncionario, $numerosAReportarCambios, $testingMode);
 
             DB::commit();
+
+            Log::info('🎉 Transacción completada exitosamente', [
+                'user_id' => Auth::id(),
+                'mes' => $mes,
+                'año' => $año,
+            ]);
 
             return back()->with('success', 'Cambios guardados correctamente.');
 
@@ -190,7 +213,7 @@ class ShiftsUpdateController extends Controller
     /**
      * Process shifts changes for all employees
      */
-    private function processShiftsChanges(array $cambios, int $mes, int $año, int $actualUser): array
+    private function processShiftsChanges(array $cambios, ?int $mes, ?int $año, int $actualUser): array
     {
         $cambiosPorFuncionario = [];
 
@@ -209,7 +232,21 @@ class ShiftsUpdateController extends Controller
                     continue;
                 }
 
-                $fecha       = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
+                // Determinar si es una fecha completa (YYYY-MM-DD) o solo el día
+                $fecha = '';
+                if (strpos($dia, '-') !== false && preg_match('/^\d{4}-\d{2}-\d{2}$/', $dia)) {
+                    // Es una fecha completa (formato YYYY-MM-DD)
+                    $fecha = $dia;
+                } else {
+                    // Es solo el día, usar mes y año del request
+                    if ($mes === null || $año === null) {
+                        // Si no hay mes/año (modo multi-mes), usar fecha actual como fallback
+                        $fecha = sprintf('%04d-%02d-%02d', now()->year, now()->month, (int) $dia);
+                    } else {
+                        $fecha = sprintf('%04d-%02d-%02d', $año, $mes, (int) $dia);
+                    }
+                }
+
                 $turnoActual = EmployeeShifts::where('employee_id', $empleado->id)
                     ->whereDate('date', $fecha)
                     ->first();

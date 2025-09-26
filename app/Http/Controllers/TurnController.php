@@ -218,10 +218,20 @@ class TurnController extends Controller
             $nombre = $employee['name'];
 
             foreach ($shifts as $shift) {
-                $date = Carbon::parse($shift['date']);
-                $dateKey = $date->toDateString();
-                $dayNumber = (string) $date->day;
-                $value = $shift['shift'];
+                try {
+                    $date = Carbon::parse($shift['date']);
+                    $dateKey = $date->toDateString();
+                    $dayNumber = (string) $date->day;
+                    $value = $shift['shift'];
+                } catch (\Exception $e) {
+                    // Log fecha malformada y saltar este registro
+                    Log::error('Fecha malformada en turnos:', [
+                        'employee_id' => $employeeId,
+                        'shift_data' => $shift,
+                        'error' => $e->getMessage()
+                    ]);
+                    continue;
+                }
 
                 // Guardar por fecha completa
                 $result[$nombre][$dateKey] = $value;

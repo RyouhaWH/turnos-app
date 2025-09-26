@@ -41,6 +41,10 @@ interface OptimizedGridChange {
     oldValue: string;
     newValue: string;
     timestamp: number;
+    // Campos opcionales para columnas de fecha multi-mes
+    month?: number;
+    year?: number;
+    fullDate?: string;
 }
 
 interface OptimizedExcelGridProps {
@@ -93,16 +97,34 @@ const OptimizedDateHeader = React.memo((props: any) => {
 const extractDaysFromData = (rowData: TurnoData[]): number[] => {
     if (!rowData || rowData.length === 0) return [];
 
-    const sampleRow = rowData.find(row => !row.isSeparator) || rowData[0];
-    if (!sampleRow) return [];
+    // Escanear todas las filas no separadoras y recolectar todas las claves numéricas 1..31
+    const daySet = new Set<number>();
+    rowData.forEach((row) => {
+        if (row && !row.isSeparator) {
+            Object.keys(row)
+                .filter(key => !['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id', 'isSeparator', 'isGroupHeader', 'groupType'].includes(key))
+                .forEach(key => {
+                    const dayNum = parseInt(key);
+                    if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+                        daySet.add(dayNum);
+                    }
+                });
+        }
+    });
 
-    const days = Object.keys(sampleRow)
-        .filter(key => !['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id', 'isSeparator', 'isGroupHeader', 'groupType'].includes(key))
-        .map(key => parseInt(key))
-        .filter(day => !isNaN(day) && day >= 1 && day <= 31)
-        .sort((a, b) => a - b);
+    // Fallback: si no se detectaron días (p.ej. datos especiales), intentar con la primera fila disponible
+    if (daySet.size === 0 && rowData[0]) {
+        Object.keys(rowData[0])
+            .filter(key => !['id', 'nombre', 'amzoma', 'first_name', 'paternal_lastname', 'rut', 'employee_id', 'isSeparator', 'isGroupHeader', 'groupType'].includes(key))
+            .forEach(key => {
+                const dayNum = parseInt(key);
+                if (!isNaN(dayNum) && dayNum >= 1 && dayNum <= 31) {
+                    daySet.add(dayNum);
+                }
+            });
+    }
 
-    return days;
+    return Array.from(daySet).sort((a, b) => a - b);
 };
 
 // Generar información del día optimizada
@@ -175,8 +197,9 @@ const calculateTotalsByShiftType = (data: TurnoData[], columnKeys: string[], sel
     });
 
     // Filtrar solo los tipos de turnos seleccionados que están disponibles en los datos
+    // Si no hay nada seleccionado, no mostrar ningún total
     const shiftTypesToShow = Array.from(availableShiftTypes).filter(shiftType =>
-        selectedShiftTypes.size === 0 || selectedShiftTypes.has(shiftType)
+        selectedShiftTypes.size > 0 && selectedShiftTypes.has(shiftType)
     );
 
     // Crear filas de totales para cada tipo de turno
@@ -472,7 +495,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 const col: ColDef = {
                     headerName: String(dayInfo.day),
                     field: dc.key,
-                    editable: false, // Deshabilitar edición en multi-mes por compatibilidad
+                    editable: editable && !isProcessingChanges, // Permitir edición según permisos y estado
                     width: 40,
                     minWidth: 30,
                     maxWidth: 75,
@@ -530,9 +553,10 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             const groupDefs: (ColDef | ColGroupDef)[] = [nameCol];
             // Ordenar grupos por fecha para mantener orden cronológico
             const sortedGroups = Array.from(groupsMap.entries()).sort((a, b) => {
-                const dateA = new Date(a[0]);
-                const dateB = new Date(b[0]);
-                return dateA.getTime() - dateB.getTime();
+                // Obtener la primera fecha de cada grupo para ordenar correctamente
+                const firstDateA = a[1][0]?.field ? new Date(a[1][0].field) : new Date();
+                const firstDateB = b[1][0]?.field ? new Date(b[1][0].field) : new Date();
+                return firstDateA.getTime() - firstDateB.getTime();
             });
 
             sortedGroups.forEach(([label, children], index) => {
@@ -662,9 +686,25 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         const employeeName = String(e.data.nombre || '');
         const employeeRut = String(e.data.rut || '');
         const employeeId = String(e.data.employee_id || e.data.id || '');
-        const day = e.colDef.field;
+        const field = e.colDef.field;
 
-        if (['nombre', 'id', 'employee_id', 'rut'].includes(day)) return;
+        if (['nombre', 'id', 'employee_id', 'rut'].includes(field)) return;
+
+        // Determinar si es una columna de fecha multi-mes (formato YYYY-MM-DD) o día simple
+        let day: string;
+        let month: number | undefined;
+        let year: number | undefined;
+
+        if (field.includes('-') && field.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            // Es una columna de fecha multi-mes (formato YYYY-MM-DD)
+            const dateObj = new Date(field + 'T00:00:00');
+            day = dateObj.getDate().toString();
+            month = dateObj.getMonth();
+            year = dateObj.getFullYear();
+        } else {
+            // Es una columna de día simple (solo número)
+            day = field;
+        }
 
         const newValue = String(e.newValue || '');
         const oldValue = String(e.oldValue || '');
@@ -679,6 +719,12 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 oldValue,
                 newValue,
                 timestamp: Date.now(),
+                // Agregar información de fecha para columnas multi-mes
+                ...(month !== undefined && year !== undefined && {
+                    month,
+                    year,
+                    fullDate: field
+                })
             };
 
             onCellValueChanged(change);
@@ -730,7 +776,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
     // Obtener ID de fila optimizado
     const getRowId = useCallback((params: GetRowIdParams<TurnoData>) => {
-        return params.data.id || params.data.nombre || `row-${Math.random()}`;
+        return String(params.data.id || params.data.nombre || `row-${Math.random()}`);
     }, []);
 
     // Clases de fila optimizadas
@@ -787,9 +833,23 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
     }, [processedRowData]);
 
     return (
-        <div className={`w-full h-full ${className}`}>
+        <div className={`w-full h-full ${className}`} style={{ minHeight: '100%', height: '100%' }}>
             {/* Estilos CSS optimizados */}
             <style>{`
+                /* Asegurar que ag-grid ocupe toda la altura del contenedor */
+                .ag-root-wrapper {
+                    height: 100% !important;
+                    min-height: 100% !important;
+                }
+
+                .ag-root {
+                    height: 100% !important;
+                    min-height: 100% !important;
+                }
+
+                .ag-body-viewport {
+                    height: 100% !important;
+                }
                 .ag-theme-alpine .ag-cell {
                     text-align: center !important;
                     display: flex !important;
@@ -844,14 +904,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 .ag-theme-alpine .weekend-cell.shift-l,
                 .ag-theme-alpine .weekend-cell.shift-sa {
                     background-color: #fafafa !important;
-                    color: #666666 !important;
+                    color: #666 !important;
                 }
-                // .ag-theme-alpine .weekend-cell.day-s {
-                //     border-left: 2px solid #2b2b2b !important;
-                // }
-                // .ag-theme-alpine .weekend-cell.day-d {
-                //     border-right: 2px solid #2b2b2b !important;
-                // }
 
                 .ag-theme-alpine .weekend-header {
                     background-color: #f5f5f5 !important;
@@ -863,22 +917,21 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
                 /* Cambios pendientes */
                 .ag-theme-alpine .pending-change {
-                    background-color: #fef3c7 !important;
-                    border: 2px solid #f59e0b !important;
-                    position: relative !important;
+                    background-color: #fef3c755 !important;
+                    // border: 2px solid #f59e0b55 !important;
+                    // border-radius: 8px !important;
                 }
 
                 .ag-theme-alpine .pending-change::after {
-                    content: "⏳" !important;
+                    content: "" !important;
                     position: absolute !important;
-                    top: -2px !important;
-                    right: -2px !important;
-                    background-color: #f59e0b !important;
-                    color: white !important;
-                    font-size: 8px !important;
-                    padding: 1px 2px !important;
-                    border-radius: 2px !important;
-                    line-height: 1 !important;
+                    top: 1px !important;
+                    right: 1px !important;
+                    background-color: #0ea5e9 !important;
+                    width: 8px !important;
+                    height: 8px !important;
+                    border-radius: 50% !important;
+                    border: 1px solid #ffffff !important;
                 }
 
                 /* Separadores */
@@ -1079,8 +1132,9 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     if (params.data?.isTotalsRow) return 22;
                     return params.data?.isSeparator ? 20 : 24;
                 }}
-                headerHeight={50}
-                suppressLoadingOverlay={true}
+                headerHeight={45}
+                // domLayout="autoHeight"
+                suppressRowVirtualisation={true}
                 suppressNoRowsOverlay={true}
                 animateRows={false}
                 suppressContextMenu={true}

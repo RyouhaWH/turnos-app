@@ -14,7 +14,7 @@ interface EmployeeManagementCardV3Props {
     availableEmployees: TurnoData[];
     getEmployeeId: (employee: TurnoData) => string | number;
     addEmployeeToGrid: (employee: TurnoData) => void;
-    removeEmployeeFromGrid: (employeeId: string | number) => void;
+    removeEmployeeFromGrid: (employee: TurnoData) => void;
     addAllEmployees: () => void;
     clearAllEmployees: () => void;
     isMobile: boolean;
@@ -69,9 +69,8 @@ export default function EmployeeManagementCardV3({
     };
 
     const handleRemoveEmployee = (employee: TurnoData) => {
-        const employeeId = getEmployeeId(employee);
-        console.log('➖ Removiendo empleado:', employee.nombre, 'ID:', employeeId);
-        removeEmployeeFromGrid(employeeId);
+        console.log('➖ Removiendo empleado:', employee.nombre);
+        removeEmployeeFromGrid(employee);
     };
 
     const isEmployeeSelected = (employee: TurnoData) => {
@@ -164,17 +163,17 @@ export default function EmployeeManagementCardV3({
                                     return (
                                         <div
                                             key={getEmployeeId(employee)}
-                                            className={`flex items-center justify-between p-2 rounded-md border transition-colors ${
+                                            className={`flex items-center justify-between p-1 rounded-md border transition-colors overflow-visible ${
                                                 isSelected
                                                     ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
                                                     : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                             }`}
                                         >
                                             <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <Badge variant={badgeVariant} className="text-xs">
+                                                <Badge variant={badgeVariant} className="text-[10px] leading-none py-0.5 px-1.5 shrink-0">
                                                     {employee.amzoma === true || employee.amzoma === 'true' || employee.amzoma === 1 ? 'AMZOMA' : 'MUNICIPAL'}
                                                 </Badge>
-                                                <span className="text-sm truncate">{displayName}</span>
+                                                <span className="text-xs truncate">{displayName}</span>
                                             </div>
 
                                             {isSelected ? (
@@ -182,18 +181,18 @@ export default function EmployeeManagementCardV3({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleRemoveEmployee(employee)}
-                                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                                                    className="h-7 w-7 p-0 text-red-600 hover:text-red-700 shrink-0"
                                                 >
-                                                    <UserMinus className="h-4 w-4" />
+                                                    <UserMinus className="h-3.5 w-3.5" />
                                                 </Button>
                                             ) : (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleAddEmployee(employee)}
-                                                    className="h-8 w-8 p-0 text-green-600 hover:text-green-700"
+                                                    className="h-7 w-7 p-0 text-green-600 hover:text-green-700 shrink-0"
                                                 >
-                                                    <UserPlus className="h-4 w-4" />
+                                                    <UserPlus className="h-3.5 w-3.5" />
                                                 </Button>
                                             )}
                                         </div>

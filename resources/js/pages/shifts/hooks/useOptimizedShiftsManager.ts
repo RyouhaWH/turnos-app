@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
-import { useForm, usePage } from '@inertiajs/react';
+import { useForm, usePage, router } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { useSimpleUndo } from './useSimpleUndo';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -27,6 +27,10 @@ interface GridChange {
     newValue: string;
     timestamp: number;
     undone: boolean; // Track if change has been undone (for history display)
+    // Campos opcionales para columnas de fecha multi-mes
+    month?: number;
+    year?: number;
+    fullDate?: string;
 }
 
 interface ChangeItem {
@@ -38,6 +42,10 @@ interface ChangeItem {
     oldValue: string;
     newValue: string;
     timestamp: number;
+    // Campos opcionales para columnas de fecha multi-mes
+    month?: number;
+    year?: number;
+    fullDate?: string;
 }
 
 export interface CambiosPorFuncionario {
@@ -61,15 +69,12 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Ordenar datos iniciales: primero Municipal, luego Amzoma, ambos alfabéticamente
     const datosInicialesOrdenados = useMemo(() => {
-        console.log('🔍 Props recibidas:', props);
-        console.log('📊 Turnos en props:', props.turnos?.length || 0);
 
         if (!props.turnos || !Array.isArray(props.turnos)) {
             console.warn('⚠️ No hay datos de turnos en props o no es un array');
             return [];
         }
 
-        console.log('✅ Datos de turnos válidos, ordenando...');
         return props.turnos.sort((a: TurnoData, b: TurnoData) => {
             // Primero ordenar por amzoma (false primero, true después) - Municipales arriba
             const isAmzomaA = a.amzoma === true || a.amzoma === 'true' || a.amzoma === 1;
@@ -120,7 +125,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Callback para sincronizar undo con gridChanges
     const onSimpleUndo = useCallback((changeId: string) => {
-        console.log('🔄 Sincronizando undo simple con gridChanges:', changeId);
         // Aquí podríamos sincronizar con gridChanges si es necesario
     }, []);
 
@@ -135,15 +139,19 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Form de Inertia
     const { data, setData, post, processing, errors } = useForm<{
-        changes: CambiosPorFuncionario;
+        cambios: CambiosPorFuncionario;
+        mes: number | null;
+        año: number | null;
         employee_rol_id: number;
-        fecha: string;
         comentario: string;
+        multi_month: boolean;
     }>({
-        changes: {},
-        employee_rol_id: employee_rol_id,
-        fecha: '',
+        cambios: {},
+        mes: selectedDate.getMonth() + 1,
+        año: selectedDate.getFullYear(),
+        employee_rol_id: parseInt(String(employee_rol_id)),
         comentario: '',
+        multi_month: false,
     });
 
     // Función para obtener ID del empleado
@@ -153,10 +161,8 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función principal para registrar cambios
     const registerChange = useCallback((employee: string, rut: string, day: string, oldValue: string, newValue: string, changeId?: string) => {
-        console.log('🔄 registerChange llamado:', { employee, rut, day, oldValue, newValue });
 
         if (oldValue === newValue) {
-            console.log('⚠️ Valores iguales, no registrando cambio');
             return;
         }
 
@@ -175,12 +181,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
         if (!employeeData) {
             console.error('❌ No se encontró el empleado:', employee, rut);
-            console.log('📊 RowData disponible:', rowData.map(emp => ({
-                nombre: emp.nombre,
-                rut: emp.rut,
-                employee_id: emp.employee_id,
-                id: emp.id
-            })));
             return;
         }
 
@@ -637,7 +637,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             const year = fecha.getFullYear();
             const month = fecha.getMonth() + 1; // JavaScript months are 0-indexed
 
-            console.log(`🔄 Cargando turnos para ${month}/${year} - Rol: ${employee_rol_id}`);
 
             // Yield al browser para no bloquear UI
             await new Promise(resolve => setTimeout(resolve, 0));
@@ -651,7 +650,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             const data = await response.json();
             const turnosArray = Object.values(data) as TurnoData[];
 
-            console.log('✅ Datos recibidos:', turnosArray.length, 'empleados');
 
             // Procesar datos en chunks para no bloquear UI
             const processDataInChunks = async (data: TurnoData[], chunkSize = 50) => {
@@ -677,7 +675,6 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
             setRowData(turnosOrdenados);
             setOriginalData(turnosOrdenados);
 
-            console.log('✅ Turnos cargados y ordenados:', turnosOrdenados.length, 'empleados');
 
             toast.success(`Turnos cargados para ${fecha.toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}`);
 
@@ -726,20 +723,43 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         }
 
         setIsProcessingChanges(true);
+        // Temporizador de seguridad para evitar quedar bloqueado
+        const safetyTimer = setTimeout(() => {
+            setIsProcessingChanges(false);
+        }, 15000);
 
         try {
             // Preparar datos para envío
+            const fechaParaCambios = originalChangeDate || selectedDate;
+
+            // Detectar si hay cambios multi-mes (fechas completas en las claves)
+            const hasMultiMonthChanges = Object.values(resumen).some(employee =>
+                Object.keys(employee.turnos || {}).some(day =>
+                    day.includes('-') && day.match(/^\d{4}-\d{2}-\d{2}$/)
+                )
+            );
+
             const formData = {
-                changes: resumen,
-                employee_rol_id: employee_rol_id,
-                fecha: originalChangeDate ? originalChangeDate.toISOString().split('T')[0] : selectedDate.toISOString().split('T')[0],
+                cambios: resumen,
+                mes: hasMultiMonthChanges ? null : fechaParaCambios.getMonth() + 1,
+                año: hasMultiMonthChanges ? null : fechaParaCambios.getFullYear(),
+                employee_rol_id: parseInt(String(employee_rol_id)),
                 comentario: comentario || '',
+                multi_month: hasMultiMonthChanges, // Flag para indicar cambios multi-mes
             };
 
-            setData(formData);
+            // Debug: Log de los datos que se van a enviar
+            console.log('🚀 Datos a enviar al backend:', {
+                formData,
+                resumenDetallado: JSON.stringify(resumen, null, 2),
+                resumenKeys: Object.keys(resumen),
+                resumenLength: Object.keys(resumen).length,
+                gridChanges: gridChanges,
+                fechaParaCambios: fechaParaCambios.toISOString(),
+            });
 
-            // Enviar usando Inertia
-            post('/shifts/update', {
+            // Enviar usando router.post directamente
+            router.post('/turnos-mes/actualizar', formData, {
                 onSuccess: () => {
                     toast.success('Cambios actualizados correctamente');
 
@@ -748,18 +768,33 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                     setResumen({});
                     setShowPendingChanges(false);
                     setOriginalChangeDate(null);
+                    setIsProcessingChanges(false);
 
                     // Limpiar sistema simple de undo DESPUÉS de recargar
                     setTimeout(() => {
                         simpleClearAllChanges();
                     }, 100);
                 },
-                onError: (errors) => {
+                onError: (errors: any) => {
                     console.error('Error al actualizar cambios:', errors);
                     toast.error('Error al actualizar cambios');
+                    setIsProcessingChanges(false);
                 },
                 onFinish: () => {
                     setIsProcessingChanges(false);
+                    clearTimeout(safetyTimer);
+                    // Forzar refresco del grid para re-habilitar edición
+                    try {
+                        const api = getSimpleUndoGridApi();
+                        if (api) {
+                            if (typeof api.stopEditing === 'function') api.stopEditing();
+                            if (typeof api.refreshCells === 'function') api.refreshCells({ force: true });
+                            if (typeof api.redrawRows === 'function') api.redrawRows();
+                            if (typeof api.sizeColumnsToFit === 'function') api.sizeColumnsToFit();
+                        }
+                    } catch (_) {
+                        // no-op
+                    }
                 }
             });
 
@@ -770,19 +805,34 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         }
     }, [resumen, employee_rol_id, originalChangeDate, selectedDate, setData, post, simpleClearAllChanges]);
 
+    // Función utilitaria para obtener el objeto canónico del empleado (con claves de turnos correctas)
+    const getCanonicalEmployeeData = useCallback((employee: TurnoData): TurnoData => {
+        const employeeId = getEmployeeId(employee);
+        // Priorizar datos originales del último load (mes o rango)
+        const fromOriginal = originalData.find(e => getEmployeeId(e) === employeeId);
+        if (fromOriginal) return fromOriginal;
+        // Luego intentar desde los datos actuales en el grid
+        const fromRow = rowData.find(e => getEmployeeId(e) === employeeId);
+        if (fromRow) return fromRow;
+        // Fallback al objeto recibido
+        return employee;
+    }, [getEmployeeId, originalData, rowData]);
+
     // Función para agregar empleado al grid
     const addEmployeeToGrid = useCallback((employee: TurnoData) => {
         const employeeId = getEmployeeId(employee);
+        const canonical = getCanonicalEmployeeData(employee);
         setRowData(prev => {
             if (!prev.find(e => getEmployeeId(e) === employeeId)) {
-                return [...prev, employee];
+                return [...prev, canonical].sort(sortByAmzomaAndName);
             }
             return prev;
         });
-    }, [getEmployeeId]);
+    }, [getEmployeeId, getCanonicalEmployeeData, sortByAmzomaAndName]);
 
     // Función para remover empleado del grid
-    const removeEmployeeFromGrid = useCallback((employeeId: string | number) => {
+    const removeEmployeeFromGrid = useCallback((employee: TurnoData) => {
+        const employeeId = getEmployeeId(employee);
         setRowData(prev => prev.filter(emp => getEmployeeId(emp) !== employeeId));
     }, [getEmployeeId]);
 
@@ -835,6 +885,10 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 oldValue: change.oldValue,
                 newValue: change.newValue,
                 timestamp: change.timestamp,
+                // Incluir campos opcionales para multi-mes
+                month: change.month,
+                year: change.year,
+                fullDate: change.fullDate,
             }));
     }, [gridChanges]);
 
@@ -845,30 +899,29 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
 
     // Función para establecer API del grid
     const setGridApi = useCallback((api: any) => {
-        console.log('🔗 Estableciendo Grid API en manager:', !!api);
         setSimpleGridApi(api);
-        console.log('✅ Grid API establecida en sistema simple');
 
         // Verificar que el API funciona
         if (api) {
             try {
                 let nodeCount = 0;
                 api.forEachNode(() => nodeCount++);
-                console.log('📊 Grid API verificada, nodos:', nodeCount);
             } catch (error) {
                 console.error('❌ Error verificando Grid API:', error);
             }
         }
     }, [setSimpleGridApi]);
 
-    // Efecto para actualizar rowData cuando cambian los datos iniciales
+    // Inicialización única de rowData a partir de datos iniciales
+    const [hasInitializedRowData, setHasInitializedRowData] = useState(false);
     useEffect(() => {
-        if (datosInicialesOrdenados.length > 0 && rowData.length === 0) {
-            console.log('📊 Cargando datos iniciales:', datosInicialesOrdenados.length, 'empleados');
+        if (!hasInitializedRowData && datosInicialesOrdenados.length > 0) {
+            console.log('📊 Cargando datos iniciales (una sola vez):', datosInicialesOrdenados.length, 'empleados');
             setRowData(datosInicialesOrdenados);
             setOriginalData(datosInicialesOrdenados);
+            setHasInitializedRowData(true);
         }
-    }, [datosInicialesOrdenados, rowData.length]);
+    }, [hasInitializedRowData, datosInicialesOrdenados]);
 
     // Manejo de atajos de teclado
     useEffect(() => {
@@ -894,25 +947,55 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         const activeChanges = gridChanges.filter(change => !change.undone);
         const undoneChanges = gridChanges.filter(change => change.undone);
 
-        console.log('📊 Estado de cambios:');
-        console.log('  - Total:', gridChanges.length);
-        console.log('  - Activos:', activeChanges.length);
-        console.log('  - Deshechos:', undoneChanges.length);
-        console.log('  - Resumen empleados:', Object.keys(resumen).length);
     }, [gridChanges, resumen]);
 
     // Estados adicionales para empleados
-    const [filteredAvailableEmployees, setFilteredAvailableEmployees] = useState<TurnoData[]>(datosInicialesOrdenados);
+    const [filteredAvailableEmployees, setFilteredAvailableEmployees] = useState<TurnoData[]>(originalData.length ? originalData : datosInicialesOrdenados);
+
+    // Efecto para mantener sincronizada la lista de empleados disponibles
+    useEffect(() => {
+        // Mantener la lista basada en los datos canónicos actuales (originalData si existe)
+        const base = originalData.length ? originalData : datosInicialesOrdenados;
+        setFilteredAvailableEmployees(base);
+    }, [datosInicialesOrdenados, originalData]);
+
+    // Función para filtrar empleados disponibles
+    const filterAvailableEmployees = useCallback((term: string) => {
+        const base = originalData.length ? originalData : datosInicialesOrdenados;
+        if (!term.trim()) return base;
+
+        return base.filter(item => {
+            const nombreCompleto = item.nombre?.toLowerCase() || '';
+            if (nombreCompleto.includes(term.toLowerCase())) return true;
+
+            if (item.first_name && item.paternal_lastname) {
+                const nombreFormateado = `${String(item.first_name)} ${String(item.paternal_lastname)}`.toLowerCase();
+                if (nombreFormateado.includes(term.toLowerCase())) return true;
+            }
+
+            if (item.first_name && String(item.first_name).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.paternal_lastname && String(item.paternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+            if (item.maternal_lastname && String(item.maternal_lastname).toLowerCase().includes(term.toLowerCase())) return true;
+
+            return false;
+        });
+    }, [datosInicialesOrdenados, originalData]);
+
+    // Efecto para filtrar empleados disponibles cuando cambia el término de búsqueda
+    useEffect(() => {
+        const filtered = filterAvailableEmployees(debouncedSearchTerm);
+        setFilteredAvailableEmployees(filtered);
+    }, [debouncedSearchTerm, filterAvailableEmployees]);
 
     const addAllEmployees = useCallback(() => {
         console.log('🔍 addAllEmployees ejecutado');
         console.log('📊 filteredAvailableEmployees:', filteredAvailableEmployees.length);
         console.log('📋 Empleados disponibles:', filteredAvailableEmployees.map(e => e.nombre));
 
-        // Agregar todos los empleados disponibles al grid
-        setRowData([...filteredAvailableEmployees]);
+        // Agregar todos los empleados disponibles al grid con ordenamiento
+        setRowData([...filteredAvailableEmployees].sort(sortByAmzomaAndName));
         toast.success(`Se agregaron ${filteredAvailableEmployees.length} empleados`);
-    }, [filteredAvailableEmployees]);
+    }, [filteredAvailableEmployees, sortByAmzomaAndName]);
 
     const clearAllEmployees = useCallback(() => {
         console.log('🗑️ clearAllEmployees ejecutado');
@@ -1044,6 +1127,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
         setGridApi,
         // Estados y funciones adicionales para filtro de empleados
         filteredAvailableEmployees,
+        filterAvailableEmployees,
         addAllEmployees,
         clearAllEmployees,
         closeEmployeeSelector,
