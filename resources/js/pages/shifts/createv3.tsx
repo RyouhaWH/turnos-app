@@ -135,6 +135,16 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const [rangeStart, setRangeStart] = useState<Date | null>(defaultRange.firstDay);
     const [rangeEnd, setRangeEnd] = useState<Date | null>(defaultRange.lastDay);
 
+    // Estados temporales para la selección de rango (no afectan la tabla hasta aplicar)
+    const [tempRangeStart, setTempRangeStart] = useState<Date | null>(rangeStart);
+    const [tempRangeEnd, setTempRangeEnd] = useState<Date | null>(rangeEnd);
+
+    // Sincronizar estados temporales con estados reales cuando cambien
+    useEffect(() => {
+        setTempRangeStart(rangeStart);
+        setTempRangeEnd(rangeEnd);
+    }, [rangeStart, rangeEnd]);
+
 
     // Estados para filtro de turnos
     const [showShiftFilter, setShowShiftFilter] = useState(false);
@@ -743,13 +753,6 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         }
     }, [getAllShiftCodes]);
 
-    // Inicialización adicional por si acaso
-    useEffect(() => {
-        if (visibleShiftTypes.size === 0 && availableShiftTypes.length > 0) {
-            const allCodes = getAllShiftCodes();
-            setVisibleShiftTypes(new Set(allCodes));
-        }
-    }, [availableShiftTypes, visibleShiftTypes.size, getAllShiftCodes]);
 
     // Función para manejar solicitud de cambio de fecha (ya no se usa)
     const handleDateChangeRequest = useCallback((newDate: Date) => {
@@ -984,24 +987,28 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
     // Cargar por rango si cruza meses, si no, filtrar columnas del mismo mes
     const handleApplyRange = useCallback(async () => {
-        if (!rangeStart || !rangeEnd) return;
+        if (!tempRangeStart || !tempRangeEnd) return;
+
+        // Aplicar los estados temporales a los estados reales
+        setRangeStart(tempRangeStart);
+        setRangeEnd(tempRangeEnd);
 
         // Actualizar selectedDate al primer día del rango para que el modal muestre fechas correctas
-        setSelectedDate(new Date(rangeStart));
+        setSelectedDate(new Date(tempRangeStart));
 
         // Siempre cargar por rango específico, no por mes completo
         try {
-            const sameMonth = rangeStart.getMonth() === rangeEnd.getMonth() && rangeStart.getFullYear() === rangeEnd.getFullYear();
+            const sameMonth = tempRangeStart.getMonth() === tempRangeEnd.getMonth() && tempRangeStart.getFullYear() === tempRangeEnd.getFullYear();
             if (sameMonth) {
                 toast.info('Cargando turnos por rango del mismo mes...');
             } else {
                 toast.info('Cargando turnos por rango (cruza meses)...');
             }
-            await cargarTurnosPorRango(rangeStart, rangeEnd);
+            await cargarTurnosPorRango(tempRangeStart, tempRangeEnd);
         } catch (_) {
             // notificar ya gestionado en hook
         }
-    }, [rangeStart, rangeEnd, cargarTurnosPorRango, cargarTurnosPorMes, setSelectedDate]);
+    }, [tempRangeStart, tempRangeEnd, cargarTurnosPorRango, cargarTurnosPorMes, setSelectedDate]);
 
     // Flag para evitar carga múltiple
     const [initialLoadDone, setInitialLoadDone] = useState(false);
@@ -1107,9 +1114,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         <Popover>
                                                             <PopoverTrigger asChild>
                                                                 <Button variant="outline" size="sm">
-                                                                    {rangeStart && rangeEnd
-                                                                        ? `${rangeStart.getDate()} ${rangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${rangeEnd.getDate()} ${rangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
-                                                                        : 'Rango de días'}
+                                                                {tempRangeStart && tempRangeEnd
+                                                                    ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
+                                                                    : 'Rango de días'}
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-auto p-3" align="start">
@@ -1118,40 +1125,40 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Inicio</div>
                                                                         <UiCalendar
                                                                             mode="single"
-                                                                            selected={rangeStart as any}
-                                                                            defaultMonth={(rangeStart as any) || selectedDate}
-                                                                            captionLayout="dropdown"
-                                                                            onSelect={(d: any) => {
-                                                                                if (!d) return;
-                                                                                setRangeStart(d);
-                                                                                if (rangeEnd && d > rangeEnd) {
-                                                                                    setRangeEnd(d);
-                                                                                }
-                                                                            }}
+                                                        selected={tempRangeStart as any}
+                                                        defaultMonth={(tempRangeStart as any) || selectedDate}
+                                                        captionLayout="dropdown"
+                                                        onSelect={(d: any) => {
+                                                            if (!d) return;
+                                                            setTempRangeStart(d);
+                                                            if (tempRangeEnd && d > tempRangeEnd) {
+                                                                setTempRangeEnd(d);
+                                                            }
+                                                        }}
                                                                         />
                                                                     </div>
                                                                     <div>
                                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Término</div>
                                                                         <UiCalendar
                                                                             mode="single"
-                                                                            selected={rangeEnd as any}
-                                                                            defaultMonth={(rangeEnd as any) || (rangeStart as any) || selectedDate}
-                                                                            captionLayout="dropdown"
-                                                                            onSelect={(d: any) => {
-                                                                                if (!d) return;
-                                                                                setRangeEnd(d);
-                                                                                if (rangeStart && d < rangeStart) {
-                                                                                    setRangeStart(d);
-                                                                                }
-                                                                            }}
+                                                        selected={tempRangeEnd as any}
+                                                        defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
+                                                        captionLayout="dropdown"
+                                                        onSelect={(d: any) => {
+                                                            if (!d) return;
+                                                            setTempRangeEnd(d);
+                                                            if (tempRangeStart && d < tempRangeStart) {
+                                                                setTempRangeStart(d);
+                                                            }
+                                                        }}
                                                                         />
                                                                     </div>
                                                                 </div>
                                                                 <div className="mt-2 flex justify-end gap-2">
-                                                                    {(rangeStart || rangeEnd) && (
-                                                                        <Button variant="ghost" size="sm" onClick={() => { setRangeStart(null); setRangeEnd(null); }}>Limpiar</Button>
-                                                                    )}
-                                                                    <Button variant="default" size="sm" disabled={!rangeStart || !rangeEnd} onClick={handleApplyRange}>Aplicar</Button>
+                                                                {(tempRangeStart || tempRangeEnd) && (
+                                                                    <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
+                                                                )}
+                                                                <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
                                                                 </div>
                                                             </PopoverContent>
                                                         </Popover>
@@ -1499,7 +1506,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     )}
                                     {isMobile ? (
                                         // Vista móvil: Sin Card, ocupa todo el ancho con padding para FAB
-                                        <div className="mt-4 h-full min-h-[calc(100vh-200px)] w-full pb-12">
+                                        <div className="mt-4 h-full min-h-[calc(100vh-200px)] w-full">
                                             {loading ? (
                                                 <OptimizedLoadingGrid />
                                             ) : (
@@ -1685,17 +1692,28 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                         {/* Modal móvil - Gestión de empleados */}
                         <Dialog open={showMobileEmployeeModal} onOpenChange={setShowMobileEmployeeModal}>
-                            <DialogContent className="mx-auto flex h-[80vh] max-h-[80vh] w-full max-w-[95vw] flex-col p-2">
-                                <DialogHeader className="flex-shrink-0 border-b bg-white px-4 py-3 dark:bg-slate-900">
-                                    <DialogTitle className="flex items-center gap-2 text-lg font-semibold">
-                                        <Users className="h-5 w-5" />
+                            <DialogContent className="mx-auto flex h-[90vh] max-h-[90vh] w-full max-w-[95vw] flex-col p-0 overflow-hidden">
+                                <DialogHeader className="flex-shrink-0 border-b border-slate-100 bg-slate-50 px-6 py-4 dark:border-slate-700 dark:bg-slate-800">
+                                    <DialogTitle className="flex items-center gap-3 text-lg font-semibold text-slate-700 dark:text-slate-200">
+                                        <div className="rounded-lg bg-blue-50 p-2 dark:bg-blue-900/20">
+                                            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                                        </div>
                                         Gestión de Funcionarios
                                     </DialogTitle>
-                                    <DialogDescription className="text-sm text-slate-600 dark:text-slate-400">
-                                        {filteredRowData.length} empleados en grid • {filteredAvailableEmployees.length} disponibles
+                                    <DialogDescription className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+                                        <div className="flex items-center gap-4">
+                                            <span className="flex items-center gap-2">
+                                                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+                                                {filteredRowData.length} en grid
+                                            </span>
+                                            <span className="flex items-center gap-2">
+                                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                                {filteredAvailableEmployees.length} disponibles
+                                            </span>
+                                        </div>
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="flex-1 overflow-hidden bg-slate-50 px-4 py-3 dark:bg-slate-800">
+                                <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900">
                                     <Suspense
                                         fallback={
                                             <div className="flex h-full items-center justify-center">
@@ -1724,20 +1742,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                         <Dialog open={showMobileDateModal} onOpenChange={setShowMobileDateModal}>
                             <DialogContent className="mx-auto max-w-[95vw] w-full p-0 z-[10000]">
                                 <DialogHeader className="px-4 py-3 border-b">
-                                    <div className="flex items-center justify-between">
-                                        <DialogTitle className="flex items-center gap-2 text-base font-semibold">
-                                            <Calendar className="h-4 w-4" />
-                                            Rango de Fechas
-                                        </DialogTitle>
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => setShowMobileDateModal(false)}
-                                            className="h-6 w-6 p-0"
-                                        >
-                                            <X className="h-3 w-3" />
-                                        </Button>
-                                    </div>
+                                    <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+                                        <Calendar className="h-4 w-4" />
+                                        Rango de Fechas
+                                    </DialogTitle>
                                 </DialogHeader>
                                 <div className="px-4 py-4 bg-white dark:bg-slate-800">
                                     <div className="space-y-4">
@@ -1752,7 +1760,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 onClick={() => setShowStartDatePopup(true)}
                                             >
                                                 <Calendar className="h-4 w-4 mr-2" />
-                                                {rangeStart ? rangeStart.toLocaleDateString('es-CL') : 'Seleccionar fecha de inicio'}
+                                                {tempRangeStart ? tempRangeStart.toLocaleDateString('es-CL') : 'Seleccionar fecha de inicio'}
                                             </Button>
                                         </div>
 
@@ -1767,22 +1775,22 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 onClick={() => setShowEndDatePopup(true)}
                                             >
                                                 <Calendar className="h-4 w-4 mr-2" />
-                                                {rangeEnd ? rangeEnd.toLocaleDateString('es-CL') : 'Seleccionar fecha de término'}
+                                                {tempRangeEnd ? tempRangeEnd.toLocaleDateString('es-CL') : 'Seleccionar fecha de término'}
                                             </Button>
                                         </div>
 
                                         {/* Resumen de fechas seleccionadas */}
-                                        {(rangeStart || rangeEnd) && (
+                                        {(tempRangeStart || tempRangeEnd) && (
                                             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                                                 <div className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
                                                     Rango seleccionado:
                                                 </div>
                                                 <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
-                                                    {rangeStart && (
-                                                        <div>• Inicio: {rangeStart.toLocaleDateString('es-CL')}</div>
+                                                    {tempRangeStart && (
+                                                        <div>• Inicio: {tempRangeStart.toLocaleDateString('es-CL')}</div>
                                                     )}
-                                                    {rangeEnd && (
-                                                        <div>• Término: {rangeEnd.toLocaleDateString('es-CL')}</div>
+                                                    {tempRangeEnd && (
+                                                        <div>• Término: {tempRangeEnd.toLocaleDateString('es-CL')}</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -1790,14 +1798,14 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                                         {/* Botones de acción */}
                                         <div className="flex gap-2 pt-2">
-                                            {(rangeStart || rangeEnd) && (
+                                            {(tempRangeStart || tempRangeEnd) && (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     className="flex-1"
                                                     onClick={() => {
-                                                        setRangeStart(null);
-                                                        setRangeEnd(null);
+                                                        setTempRangeStart(null);
+                                                        setTempRangeEnd(null);
                                                     }}
                                                 >
                                                     Limpiar
@@ -1807,7 +1815,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 variant="default"
                                                 size="sm"
                                                 className="flex-1"
-                                                disabled={!rangeStart || !rangeEnd}
+                                                disabled={!tempRangeStart || !tempRangeEnd}
                                                 onClick={() => {
                                                     handleApplyRange();
                                                     setShowMobileDateModal(false);
@@ -2187,9 +2195,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" size="sm">
-                                                    {rangeStart && rangeEnd
-                                                        ? `${rangeStart.getDate()} ${rangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${rangeEnd.getDate()} ${rangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
-                                                        : 'Rango de días'}
+                                                                {tempRangeStart && tempRangeEnd
+                                                                    ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
+                                                                    : 'Rango de días'}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-3 z-[10050]" align="start">
@@ -2198,40 +2206,40 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Inicio</div>
                                                         <UiCalendar
                                                             mode="single"
-                                                            selected={rangeStart as any}
-                                                            defaultMonth={(rangeStart as any) || selectedDate}
-                                                            captionLayout="dropdown"
-                                                            onSelect={(d: any) => {
-                                                                if (!d) return;
-                                                                setRangeStart(d);
-                                                                if (rangeEnd && d > rangeEnd) {
-                                                                    setRangeEnd(d);
-                                                                }
-                                                            }}
+                                                        selected={tempRangeStart as any}
+                                                        defaultMonth={(tempRangeStart as any) || selectedDate}
+                                                        captionLayout="dropdown"
+                                                        onSelect={(d: any) => {
+                                                            if (!d) return;
+                                                            setTempRangeStart(d);
+                                                            if (tempRangeEnd && d > tempRangeEnd) {
+                                                                setTempRangeEnd(d);
+                                                            }
+                                                        }}
                                                         />
                                                     </div>
                                                     <div>
                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Término</div>
                                                         <UiCalendar
                                                             mode="single"
-                                                            selected={rangeEnd as any}
-                                                            defaultMonth={(rangeEnd as any) || (rangeStart as any) || selectedDate}
-                                                            captionLayout="dropdown"
-                                                            onSelect={(d: any) => {
-                                                                if (!d) return;
-                                                                setRangeEnd(d);
-                                                                if (rangeStart && d < rangeStart) {
-                                                                    setRangeStart(d);
-                                                                }
-                                                            }}
+                                                        selected={tempRangeEnd as any}
+                                                        defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
+                                                        captionLayout="dropdown"
+                                                        onSelect={(d: any) => {
+                                                            if (!d) return;
+                                                            setTempRangeEnd(d);
+                                                            if (tempRangeStart && d < tempRangeStart) {
+                                                                setTempRangeStart(d);
+                                                            }
+                                                        }}
                                                         />
                                                     </div>
                                                 </div>
                                                 <div className="mt-2 flex justify-end gap-2">
-                                                    {(rangeStart || rangeEnd) && (
-                                                        <Button variant="ghost" size="sm" onClick={() => { setRangeStart(null); setRangeEnd(null); }}>Limpiar</Button>
-                                                    )}
-                                                    <Button variant="default" size="sm" disabled={!rangeStart || !rangeEnd} onClick={handleApplyRange}>Aplicar</Button>
+                                                                {(tempRangeStart || tempRangeEnd) && (
+                                                                    <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
+                                                                )}
+                                                                <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
                                                 </div>
                                             </PopoverContent>
                                         </Popover>
@@ -2408,11 +2416,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                     <div className="py-4">
                         <UiCalendar
                             mode="single"
-                            selected={rangeStart as any}
-                            defaultMonth={rangeStart as any || selectedDate}
+                            selected={tempRangeStart as any}
+                            defaultMonth={tempRangeStart as any || selectedDate}
                             captionLayout="dropdown"
                             onSelect={(d) => {
-                                setRangeStart(d || null);
+                                setTempRangeStart(d || null);
                                 setShowStartDatePopup(false);
                             }}
                             className="w-full"
@@ -2430,11 +2438,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                     <div className="py-4">
                         <UiCalendar
                             mode="single"
-                            selected={rangeEnd as any}
-                            defaultMonth={rangeEnd as any || rangeStart as any || selectedDate}
+                            selected={tempRangeEnd as any}
+                            defaultMonth={tempRangeEnd as any || tempRangeStart as any || selectedDate}
                             captionLayout="dropdown"
                             onSelect={(d) => {
-                                setRangeEnd(d || null);
+                                setTempRangeEnd(d || null);
                                 setShowEndDatePopup(false);
                             }}
                             className="w-full"

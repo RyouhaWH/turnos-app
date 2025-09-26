@@ -429,8 +429,8 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                 headerName: 'Nombre',
                 field: 'nombre',
                 pinned: 'left',
-                minWidth: 60,
-                maxWidth: 150,
+                minWidth: 80,
+                maxWidth: 200,
                 flex: 0,
                 suppressSizeToFit: true,
                 autoHeight: true,
@@ -491,10 +491,15 @@ const AgGridHorizontal = forwardRef<AgGridHorizontalRef, Props>(({ rowData, onRe
                         if (params.data?.first_name && params.data?.paternal_lastname) {
                             // Extraer solo el primer nombre del first_name
                             const firstName = params.data.first_name.split(' ')[0];
-                            return `${firstName} ${params.data.paternal_lastname}`;
+                            // Extraer solo el primer apellido del paternal_lastname
+                            const firstLastName = params.data.paternal_lastname.split(' ')[0];
+                            const fullName = `${firstName} ${firstLastName}`;
+                            // Truncar si es muy largo (más de 20 caracteres)
+                            return fullName.length > 20 ? fullName.substring(0, 17) + '...' : fullName;
                         }
-                        // Si no, usar el nombre completo como fallback
-                        return params.data?.nombre || '';
+                        // Si no, usar el nombre completo como fallback pero truncado
+                        const fullName = params.data?.nombre || '';
+                        return fullName.length > 20 ? fullName.substring(0, 17) + '...' : fullName;
                 }
             }
         ];

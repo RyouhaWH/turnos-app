@@ -79,7 +79,11 @@ export default function EmployeeManagementCardV3({
 
     const getEmployeeDisplayName = (employee: TurnoData) => {
         if (employee.first_name && employee.paternal_lastname) {
-            return `${employee.first_name} ${employee.paternal_lastname}`;
+            // Extraer solo el primer nombre del first_name
+            const firstName = employee.first_name.split(' ')[0];
+            // Extraer solo el primer apellido del paternal_lastname
+            const firstLastName = employee.paternal_lastname.split(' ')[0];
+            return `${firstName} ${firstLastName}`;
         }
         return employee.nombre || 'Empleado sin nombre';
     };
@@ -90,28 +94,20 @@ export default function EmployeeManagementCardV3({
     };
 
     return (
-        <Card className="h-full flex flex-col">
-            <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <Users className="h-5 w-5" />
-                    Gestión de Empleados
-                </CardTitle>
-            </CardHeader>
-
-            <CardContent className="flex-1 flex flex-col gap-4">
+        <div className="h-full flex flex-col gap-6 p-6">
                 {/* Búsqueda */}
                 <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input
-                        placeholder="Buscar empleados..."
+                        placeholder="Buscar funcionarios..."
                         value={localSearchTerm}
                         onChange={(e) => handleSearchChange(e.target.value)}
-                        className="pl-10"
+                        className="pl-10 h-11 border-slate-200 focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200 dark:focus:border-blue-400"
                     />
                 </div>
 
                 {/* Botones de acción masiva */}
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                     <Button
                         variant="outline"
                         size="sm"
@@ -120,10 +116,10 @@ export default function EmployeeManagementCardV3({
                             console.log('📊 availableEmployees disponibles:', availableEmployees.length);
                             addAllEmployees();
                         }}
-                        className="flex-1"
+                        className="flex-1 h-10 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border-emerald-200 hover:border-emerald-300 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800 dark:hover:bg-emerald-900/30"
                         disabled={availableEmployees.length === 0}
                     >
-                        <Plus className="h-4 w-4 mr-1" />
+                        <Plus className="h-4 w-4 mr-2" />
                         Agregar Todos
                     </Button>
                     <Button
@@ -134,24 +130,29 @@ export default function EmployeeManagementCardV3({
                             console.log('📊 rowData actual:', rowData.length);
                             clearAllEmployees();
                         }}
-                        className="flex-1"
+                        className="flex-1 h-10 bg-rose-50 text-rose-700 hover:bg-rose-100 border-rose-200 hover:border-rose-300 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800 dark:hover:bg-rose-900/30"
                         disabled={rowData.length === 0}
                     >
-                        <X className="h-4 w-4 mr-1" />
+                        <X className="h-4 w-4 mr-2" />
                         Limpiar Todo
                     </Button>
                 </div>
 
                 {/* Lista de empleados disponibles */}
                 <div className="flex-1">
-                    <div className="text-sm text-gray-600 mb-2">
-                        Empleados disponibles ({filteredAvailableEmployees.length})
+                    <div className="mb-4 flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                            Funcionarios Disponibles
+                        </h3>
+                        <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
+                            {filteredAvailableEmployees.length} disponibles
+                        </span>
                     </div>
 
-                    <ScrollArea className="h-[300px] border rounded-md">
-                        <div className="p-2 space-y-1">
+                    <ScrollArea className={`border border-slate-200 rounded-lg shadow-sm dark:border-slate-700 dark:bg-slate-800 ${isMobile ? 'h-[calc(100vh-400px)]' : 'h-[300px]'}`}>
+                        <div className="p-3 space-y-2">
                             {filteredAvailableEmployees.length === 0 ? (
-                                <div className="text-center text-gray-500 py-4">
+                                <div className="text-center text-slate-500 dark:text-slate-400 py-4">
                                     {localSearchTerm ? 'No se encontraron empleados' : 'No hay empleados disponibles'}
                                 </div>
                             ) : (
@@ -163,17 +164,24 @@ export default function EmployeeManagementCardV3({
                                     return (
                                         <div
                                             key={getEmployeeId(employee)}
-                                            className={`flex items-center justify-between p-1 rounded-md border transition-colors overflow-visible ${
+                                            className={`flex items-center justify-between p-3 rounded-lg transition-all duration-200 ${
                                                 isSelected
-                                                    ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                    ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                                                    : 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700'
                                             }`}
                                         >
-                                            <div className="flex items-center gap-2 min-w-0 flex-1">
-                                                <Badge variant={badgeVariant} className="text-[10px] leading-none py-0.5 px-1.5 shrink-0">
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <Badge
+                                                    variant={badgeVariant}
+                                                    className={`text-xs font-medium px-2 py-1 shrink-0 ${
+                                                        employee.amzoma === true || employee.amzoma === 'true' || employee.amzoma === 1
+                                                            ? 'bg-amber-50 text-amber-700 dark:bg-amber-900/20 dark:text-amber-300'
+                                                            : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                                                    }`}
+                                                >
                                                     {employee.amzoma === true || employee.amzoma === 'true' || employee.amzoma === 1 ? 'AMZOMA' : 'MUNICIPAL'}
                                                 </Badge>
-                                                <span className="text-xs truncate">{displayName}</span>
+                                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">{displayName}</span>
                                             </div>
 
                                             {isSelected ? (
@@ -181,18 +189,18 @@ export default function EmployeeManagementCardV3({
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleRemoveEmployee(employee)}
-                                                    className="h-7 w-7 p-0 text-red-600 hover:text-red-700 shrink-0"
+                                                    className="h-8 w-8 p-0 text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:text-rose-400 dark:hover:text-rose-300 dark:hover:bg-rose-900/20 shrink-0"
                                                 >
-                                                    <UserMinus className="h-3.5 w-3.5" />
+                                                    <UserMinus className="h-4 w-4" />
                                                 </Button>
                                             ) : (
                                                 <Button
                                                     variant="outline"
                                                     size="sm"
                                                     onClick={() => handleAddEmployee(employee)}
-                                                    className="h-7 w-7 p-0 text-green-600 hover:text-green-700 shrink-0"
+                                                    className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:text-emerald-300 dark:hover:bg-emerald-900/20 shrink-0"
                                                 >
-                                                    <UserPlus className="h-3.5 w-3.5" />
+                                                    <UserPlus className="h-4 w-4" />
                                                 </Button>
                                             )}
                                         </div>
@@ -204,19 +212,24 @@ export default function EmployeeManagementCardV3({
                 </div>
 
                 {/* Resumen */}
-                <div className="border-t pt-3">
-                    <div className="text-sm text-gray-600">
-                        <div className="flex justify-between">
-                            <span>Empleados seleccionados:</span>
-                            <span className="font-medium">{rowData.length}</span>
+                <div className="border-t border-slate-100 pt-4 dark:border-slate-700">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
+                                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Seleccionados</span>
+                            </div>
+                            <div className="mt-1 text-lg font-semibold text-emerald-800 dark:text-emerald-200">{rowData.length}</div>
                         </div>
-                        <div className="flex justify-between">
-                            <span>Disponibles:</span>
-                            <span className="font-medium">{availableEmployees.length}</span>
+                        <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+                            <div className="flex items-center gap-2">
+                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
+                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Disponibles</span>
+                            </div>
+                            <div className="mt-1 text-lg font-semibold text-blue-800 dark:text-blue-200">{availableEmployees.length}</div>
                         </div>
                     </div>
                 </div>
-            </CardContent>
-        </Card>
+        </div>
     );
 }
