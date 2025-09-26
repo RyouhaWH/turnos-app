@@ -432,8 +432,20 @@ class ShiftsUpdateController extends Controller
             $datosFuncionario['cambios'] = $cambiosValidos;
             $mensaje                     = $this->buildConsolidatedMessage($datosFuncionario);
 
+            // Agregar el teléfono del empleado afectado a la lista de números a reportar
+            $numerosConEmpleado = $numerosAReportarCambios;
+            if (!empty($datosFuncionario['telefono']) && !in_array($datosFuncionario['telefono'], $numerosConEmpleado)) {
+                $numerosConEmpleado[] = $datosFuncionario['telefono'];
+                Log::info('📱 Agregando teléfono del empleado afectado a la lista de notificaciones:', [
+                    'telefono_empleado' => $datosFuncionario['telefono'],
+                    'nombre_empleado' => $datosFuncionario['nombre'],
+                    'numeros_originales' => $numerosAReportarCambios,
+                    'numeros_con_empleado' => $numerosConEmpleado
+                ]);
+            }
+
             // Siempre usar sendProductionMessages, pero con números de prueba si está en testing mode
-            $this->sendProductionMessages($mensaje, $numerosAReportarCambios, $datosFuncionario, $testingMode);
+            $this->sendProductionMessages($mensaje, $numerosConEmpleado, $datosFuncionario, $testingMode);
         }
     }
 
