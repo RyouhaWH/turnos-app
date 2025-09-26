@@ -211,25 +211,6 @@ export default function EmployeeManagementCardV3({
                     </ScrollArea>
                 </div>
 
-                {/* Resumen */}
-                <div className="border-t border-slate-100 pt-4 dark:border-slate-700">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="rounded-lg bg-emerald-50 p-3 dark:bg-emerald-900/20">
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-emerald-500"></div>
-                                <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Seleccionados</span>
-                            </div>
-                            <div className="mt-1 text-lg font-semibold text-emerald-800 dark:text-emerald-200">{rowData.length}</div>
-                        </div>
-                        <div className="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-                            <div className="flex items-center gap-2">
-                                <div className="h-2 w-2 rounded-full bg-blue-500"></div>
-                                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">Disponibles</span>
-                            </div>
-                            <div className="mt-1 text-lg font-semibold text-blue-800 dark:text-blue-200">{availableEmployees.length}</div>
-                        </div>
-                    </div>
-                </div>
         </div>
     );
 }

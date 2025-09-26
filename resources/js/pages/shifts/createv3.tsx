@@ -1054,7 +1054,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                 <Head title="Turnos Optimizados" />
 
                 <div className="overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
-                    <div className={`overflow-hidden ${isMobile ? 'p-2' : isGridMaximized ? 'p-2' : 'px-6 pt-4'}`}>
+                    <div className={`overflow-hidden ${isMobile ? 'px-2 pt-2' : isGridMaximized ? 'p-2' : 'px-6 pt-4'}`}>
                         {/* Header compacto de página */}
                         <div className={isMobile ? 'mb-0' : isGridMaximized ? 'mb-2' : 'mb-4'}>
                             <div className={`md:mb-2 flex flex-col ${isMobile ? 'gap-1' : 'gap-2'} lg:flex-row lg:items-center lg:justify-between`}>
@@ -1167,9 +1167,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 {isMobile && (
                                                     <button
                                                         onClick={handleToggleDatePicker}
-                                                        className="flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                                        className="flex cursor-pointer items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5 text-sm font-medium text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-100 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:border-blue-500 dark:hover:bg-blue-900/50"
                                                     >
-                                                        <Calendar className="h-3 w-3" />
+                                                        <Calendar className="h-4 w-4" />
                                                         {currentMonthTitle}
                                                     </button>
                                                 )}
@@ -1506,7 +1506,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                     )}
                                     {isMobile ? (
                                         // Vista móvil: Sin Card, ocupa todo el ancho con padding para FAB
-                                        <div className="mt-4 h-full min-h-[calc(100vh-200px)] w-full">
+                                        <div className="mt-4 h-full min-h-[calc(100vh-200px)] w-full pb-8">
                                             {loading ? (
                                                 <OptimizedLoadingGrid />
                                             ) : (
@@ -2091,9 +2091,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         {isMobile && (
                                             <button
                                                 onClick={handleToggleDatePicker}
-                                                className="flex cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-2 py-1 text-xs text-slate-600 transition-all hover:border-slate-300 hover:bg-slate-100 hover:text-slate-800 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                                                className="flex cursor-pointer items-center gap-2 rounded-md border border-blue-200 bg-blue-50 px-2 py-1.5 text-sm font-medium text-blue-700 transition-all hover:border-blue-300 hover:bg-blue-100 dark:border-blue-600 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:border-blue-500 dark:hover:bg-blue-900/50"
                                             >
-                                                <Calendar className="h-3 w-3" />
+                                                <Calendar className="h-4 w-4" />
                                                 {currentMonthTitle}
                                             </button>
                                         )}

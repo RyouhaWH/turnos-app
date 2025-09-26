@@ -43,7 +43,7 @@ export const MobileHeaderMenu: React.FC<MobileHeaderMenuProps> = ({
                     size="sm"
                     className={cn(
                         'h-8 w-8 p-0 flex items-center justify-center',
-                        'bg-transparent border-none shadow-none text-slate-700 hover:bg-slate-100',
+                        'bg-white/80 border border-slate-200 shadow-sm text-slate-800 hover:bg-white hover:border-slate-300 dark:bg-slate-800/80 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-700',
                         className
                     )}
                     title="Menú de opciones"

@@ -380,6 +380,7 @@ class ShiftsUpdateController extends Controller
     {
         return match ($shift) {
             'PE'    => 'Patrulla Escolar',
+            'PG'    => 'Permiso por día compensado',
             'A'     => 'Administrativo',
             'AE'    => 'Administrativo Extra',
             'LM'    => 'Licencia Médica',
