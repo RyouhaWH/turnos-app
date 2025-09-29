@@ -1,11 +1,10 @@
-# .github/workflows/deploy.yml
 name: Deploy to Server
 
 on:
   push:
-    branches: [ main, master ]  # Cambia según tu rama principal
+    branches: [ main, beta ]   # main = producción, beta = staging
   pull_request:
-    branches: [ main, master ]
+    branches: [ main, beta ]
 
 jobs:
   deploy:
@@ -18,7 +17,7 @@ jobs:
     - name: Setup PHP
       uses: shivammathur/setup-php@v2
       with:
-        php-version: '8.3'  # Cambia según tu versión
+        php-version: '8.3'
         extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, pdo_mysql, zip
         coverage: none
 
@@ -54,7 +53,7 @@ jobs:
         name: app-build
         path: ${{ github.sha }}.tar.gz
 
-    - name: Deploy to server
+    - name: Deploy to server (prepare release folder)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -62,7 +61,13 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
         script: |
-          mkdir -p /var/www/amzoma/releases/${{ github.sha }}
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            APP_PATH="/var/www/amzoma"
+          else
+            APP_PATH="/var/www/amzoma-beta"
+          fi
+
+          mkdir -p $APP_PATH/releases/${{ github.sha }}
 
     - name: Upload app to server
       uses: appleboy/scp-action@v0.1.7
@@ -72,9 +77,9 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
         source: "${{ github.sha }}.tar.gz"
-        target: "/var/www/amzoma/releases/${{ github.sha }}"
+        target: "/tmp"
 
-    - name: Extract archive and create symlink
+    - name: Extract archive, symlinks & optimize
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -82,37 +87,45 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
         script: |
-          cd /var/www/amzoma/releases/${{ github.sha }}
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            APP_PATH="/var/www/amzoma"
+            RUN_MIGRATIONS=true
+          else
+            APP_PATH="/var/www/amzoma-beta"
+            RUN_MIGRATIONS=false
+          fi
+
+          mkdir -p $APP_PATH/releases/${{ github.sha }}
+          mv /tmp/${{ github.sha }}.tar.gz $APP_PATH/releases/${{ github.sha }}/
+          cd $APP_PATH/releases/${{ github.sha }}
           tar xzf ${{ github.sha }}.tar.gz
           rm -f ${{ github.sha }}.tar.gz
 
-          # Crear symlinks al storage compartido
-          rm -rf /var/www/amzoma/releases/${{ github.sha }}/storage
-          ln -nfs /var/www/amzoma/storage /var/www/amzoma/releases/${{ github.sha }}/storage
+          # Symlink storage compartido
+          rm -rf $APP_PATH/releases/${{ github.sha }}/storage
+          ln -nfs $APP_PATH/storage $APP_PATH/releases/${{ github.sha }}/storage
 
-          # Crear symlink para database persistente (para SQLite)
-          rm -rf /var/www/amzoma/releases/${{ github.sha }}/database/database.sqlite
-          ln -nfs /var/www/amzoma/storage/database/database.sqlite /var/www/amzoma/releases/${{ github.sha }}/database/database.sqlite
+          # Symlink .env compartido
+          ln -nfs $APP_PATH/.env $APP_PATH/releases/${{ github.sha }}/.env
 
-          # Symlink al .env compartido
-          ln -nfs /var/www/amzoma/.env /var/www/amzoma/releases/${{ github.sha }}/.env
-
-          # Instalar dependencias y optimizar (Laravel + Inertia)
-          cd /var/www/amzoma/releases/${{ github.sha }}
-          php artisan migrate --force
+          # Optimizar Laravel
+          cd $APP_PATH/releases/${{ github.sha }}
+          if [ "$RUN_MIGRATIONS" = true ]; then
+            php artisan migrate --force || true
+          fi
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
           php artisan storage:link
 
-          # Cambiar symlink de current a la nueva versión
-          ln -nfs /var/www/amzoma/releases/${{ github.sha }} /var/www/amzoma/current
+          # Cambiar symlink de current
+          ln -nfs $APP_PATH/releases/${{ github.sha }} $APP_PATH/current
 
           # Recargar PHP-FPM
           sudo systemctl reload php8.3-fpm
 
           # Limpiar releases viejas (mantener últimas 3)
-          cd /var/www/amzoma/releases && ls -t1 | tail -n +4 | xargs rm -rf
+          cd $APP_PATH/releases && ls -t1 | tail -n +4 | xargs rm -rf || true
 
-          # Opcional: reiniciar queue workers si los usas
+          # Reiniciar workers si aplica
           # php artisan queue:restart
