@@ -53,7 +53,7 @@ jobs:
         name: app-build
         path: ${{ github.sha }}.tar.gz
 
-    - name: Deploy to server (prepare release folder)
+    - name: Deploy to server
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -79,7 +79,7 @@ jobs:
         source: "${{ github.sha }}.tar.gz"
         target: "/tmp"
 
-    - name: Extract archive, symlinks & optimize
+    - name: Extract archive and create symlink
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -89,10 +89,8 @@ jobs:
         script: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             APP_PATH="/var/www/amzoma"
-            RUN_MIGRATIONS=true
           else
             APP_PATH="/var/www/amzoma-beta"
-            RUN_MIGRATIONS=false
           fi
 
           mkdir -p $APP_PATH/releases/${{ github.sha }}
@@ -105,14 +103,12 @@ jobs:
           rm -rf $APP_PATH/releases/${{ github.sha }}/storage
           ln -nfs $APP_PATH/storage $APP_PATH/releases/${{ github.sha }}/storage
 
-          # Symlink .env compartido
+          # Symlink .env único de cada app (prod o beta)
           ln -nfs $APP_PATH/.env $APP_PATH/releases/${{ github.sha }}/.env
 
           # Optimizar Laravel
           cd $APP_PATH/releases/${{ github.sha }}
-          if [ "$RUN_MIGRATIONS" = true ]; then
-            php artisan migrate --force || true
-          fi
+          php artisan migrate --force || true
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
