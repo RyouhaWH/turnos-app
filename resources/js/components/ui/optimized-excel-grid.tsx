@@ -538,9 +538,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                             if (shiftValue === 'lm') classes.push('shift-lm');
                             else if (shiftValue === 'sa') classes.push('shift-sa');
                             else classes.push(`shift-${shiftValue.charAt(0)}`);
-                            if (hiddenShiftTypes.has(String(params.value).toUpperCase())) {
-                                classes.push('hidden-shift');
-                            }
+                            // Ya no ocultamos celdas de la grilla según hiddenShiftTypes;
+                            // el filtro aplica solo a los totales mostrados.
                         }
                         return classes.join(' ');
                     },
@@ -630,11 +629,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                             const firstChar = shiftValue.charAt(0);
                             classes.push(`shift-${firstChar}`);
                         }
-
-                        // Ocultar celda si el tipo de turno está en hiddenShiftTypes
-                        if (hiddenShiftTypes.has(String(params.value).toUpperCase())) {
-                            classes.push('hidden-shift');
-                        }
+                        // No ocultar celdas de la grilla por hiddenShiftTypes; el filtro es solo para totales
                     }
 
                     // Agregar clase para cambios pendientes

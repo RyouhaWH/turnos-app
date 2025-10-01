@@ -493,16 +493,16 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
         if (!data || data.length === 0) return codes;
 
-        // Determinar claves de días visibles: rango multi-mes usa fechas ISO; mensual usa 1..31 existentes
+        // Determinar claves de días visibles: cuando hay rango seleccionado SIEMPRE usar fechas ISO
+        // y además soportar lectura por día numérico para compatibilidad con datos existentes.
         const sameMonth = !!(rangeStart && rangeEnd) &&
             rangeStart!.getMonth() === rangeEnd!.getMonth() && rangeStart!.getFullYear() === rangeEnd!.getFullYear();
 
         let dayKeys: string[] = [];
-        if (rangeStart && rangeEnd && !sameMonth) {
+        if (rangeStart && rangeEnd) {
             // Generar claves por fecha completa entre inicio y fin (incluyendo el día final)
             const cur = new Date(rangeStart);
             const end = new Date(rangeEnd);
-            // Asegurar que endDate incluya todo el día final
             end.setHours(23, 59, 59, 999);
             while (cur <= end) {
                 dayKeys.push(cur.toISOString().split('T')[0]);
@@ -540,21 +540,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                 dayKeys = Array.from(dayKeysFromChanges);
             }
 
-            // Si hay rango dentro del mismo mes, limitar a ese subrango (incluyendo el día final)
-            if (rangeStart && rangeEnd && sameMonth) {
-                const from = rangeStart.getDate();
-                const to = rangeEnd.getDate();
-                dayKeys = dayKeys.filter((k) => {
-                    // Si es una fecha completa, extraer el día
-                    if (k.includes('-') && k.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                        const day = parseInt(k.split('-')[2], 10);
-                        return day >= from && day <= to;
-                    } else {
-                        // Si es un número de día
-                        const n = parseInt(k, 10);
-                        return !isNaN(n) && n >= from && n <= to;
-                    }
-                });
+            // Si hay rango dentro del mismo mes y estamos usando claves numéricas, limitar a subrango
+            if (!rangeStart || !rangeEnd) {
+                // no-op
             }
         }
 
@@ -568,10 +556,17 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
                 if (changesForRow.length === 0) return row;
 
-                const updatedRow = { ...row };
+                const updatedRow = { ...row } as any;
                 changesForRow.forEach(change => {
+                    if (!change) return;
+                    const value = change.newValue;
+                    // Si existe fullDate (YYYY-MM-DD) y la usamos como clave en dayKeys, setearla
+                    if (change.fullDate) {
+                        updatedRow[change.fullDate] = value;
+                    }
+                    // Además, setear por día numérico para compatibilidad con vistas 1..31
                     if (change.day) {
-                        (updatedRow as any)[change.day] = change.newValue;
+                        updatedRow[change.day] = value;
                     }
                 });
                 return updatedRow;
@@ -582,7 +577,15 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         dataWithChanges.forEach((row: any) => {
             if (row?.isSeparator) return;
             dayKeys.forEach((k) => {
-                const v = String(row[k] ?? '').toUpperCase().trim();
+                // Primero intentar por clave exacta (ISO YYYY-MM-DD)
+                let v = String(row[k] ?? '').toUpperCase().trim();
+                // Compatibilidad: si no hay valor y k es ISO, intentar por día numérico (1..31)
+                if (!v && k.includes('-') && k.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    const dayNum = parseInt(k.split('-')[2], 10);
+                    if (!isNaN(dayNum)) {
+                        v = String(row[String(dayNum)] ?? '').toUpperCase().trim();
+                    }
+                }
                 if (v) codes.add(v);
             });
         });
@@ -1333,7 +1336,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 )}
 
                                                 {/* Botón para mostrar/ocultar totales */}
-                                                {!isMobile && !isGridMaximized && (
+                                                {!isMobile && (
                                                     <div className="flex items-end gap-2">
                                                         <Button
                                                             variant={showTotals ? 'ghost' : 'outline'}
