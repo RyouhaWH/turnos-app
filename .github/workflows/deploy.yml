@@ -3,8 +3,6 @@ name: Deploy to Server
 on:
   push:
     branches: [ main, beta ]   # main = producción, beta = staging
-  pull_request:
-    branches: [ main, beta ]
 
 jobs:
   deploy:
@@ -43,31 +41,7 @@ jobs:
       run: npm run build
 
     - name: Create deployment artifact
-      env:
-        GITHUB_SHA: ${{ github.sha }}
-      run: tar -czf "${GITHUB_SHA}".tar.gz --exclude=*.git --exclude=node_modules *
-
-    - name: Store artifact for distribution
-      uses: actions/upload-artifact@v4
-      with:
-        name: app-build
-        path: ${{ github.sha }}.tar.gz
-
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        port: ${{ secrets.PORT }}
-        script: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            APP_PATH="/var/www/amzoma"
-          else
-            APP_PATH="/var/www/amzoma-beta"
-          fi
-
-          mkdir -p $APP_PATH/releases/${{ github.sha }}
+      run: tar -czf "${{ github.sha }}.tar.gz" --exclude=*.git --exclude=node_modules *
 
     - name: Upload app to server
       uses: appleboy/scp-action@v0.1.7
@@ -79,7 +53,7 @@ jobs:
         source: "${{ github.sha }}.tar.gz"
         target: "/tmp"
 
-    - name: Extract archive and create symlink
+    - name: Deploy on server
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -89,8 +63,10 @@ jobs:
         script: |
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             APP_PATH="/var/www/amzoma"
+            ENV_FILE="$APP_PATH/.env"
           else
             APP_PATH="/var/www/amzoma-beta"
+            ENV_FILE="$APP_PATH/.env.beta"
           fi
 
           mkdir -p $APP_PATH/releases/${{ github.sha }}
@@ -103,15 +79,12 @@ jobs:
           rm -rf $APP_PATH/releases/${{ github.sha }}/storage
           ln -nfs $APP_PATH/storage $APP_PATH/releases/${{ github.sha }}/storage
 
-          # Symlink .env único de cada app (prod o beta)
-          ln -nfs $APP_PATH/.env $APP_PATH/releases/${{ github.sha }}/.env
+          # Symlink archivo .env correspondiente
+          ln -nfs $ENV_FILE $APP_PATH/releases/${{ github.sha }}/.env
 
           # Optimizar Laravel
-          cd $APP_PATH/releases/${{ github.sha }}
           php artisan migrate --force || true
-          php artisan config:cache
-          php artisan route:cache
-          php artisan view:cache
+          php artisan optimize
           php artisan storage:link
 
           # Cambiar symlink de current
