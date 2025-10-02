@@ -53,6 +53,8 @@ interface OptimizedExcelGridProps {
     onRowClicked?: (event: any) => void;
     onGridReady?: (api: any) => void; // Para sistema de undo
     onRowDataChanged?: (newRowData: TurnoData[]) => void; // Callback para cuando se reordenen las filas
+    onCustomOrderChanged?: (customOrder: string[]) => void; // Callback para guardar el orden personalizado
+    customOrder?: string[]; // Orden personalizado de IDs de empleados
     editable?: boolean;
     month?: number;
     year?: number;
@@ -71,6 +73,7 @@ export interface OptimizedExcelGridRef {
     autoSizeColumns: (columns?: string[]) => void;
     sizeColumnsToFit: () => void;
     refreshCells: () => void;
+    applyCustomOrder: () => void; // Nueva función para forzar aplicación del orden personalizado
     api?: GridApi<TurnoData>;
 }
 
@@ -238,6 +241,78 @@ const calculateTotalsByShiftType = (data: TurnoData[], columnKeys: string[], sel
     return totalsRows;
 };
 
+// Función para aplicar orden personalizado
+const applyCustomOrder = (data: TurnoData[], customOrder: string[]): TurnoData[] => {
+    if (!customOrder || customOrder.length === 0) return data;
+
+    // Separar empleados de separadores y totales
+    const employees: TurnoData[] = [];
+    const groupSeparators: TurnoData[] = []; // Separadores de grupos (MUNICIPAL, AMZOMA)
+    const totalsSeparators: TurnoData[] = []; // Separadores de totales
+    const totals: TurnoData[] = []; // Filas de totales
+
+    data.forEach(item => {
+        if (item.isTotalsRow) {
+            totals.push(item);
+        } else if (item.isSeparator || item.isGroupHeader) {
+            // Separar separadores de grupos de separadores de totales
+            if (item.groupType === 'totals' || item.id === 'totals-separator') {
+                totalsSeparators.push(item);
+            } else {
+                groupSeparators.push(item);
+            }
+        } else {
+            employees.push(item);
+        }
+    });
+
+    // Si no hay empleados, retornar datos originales
+    if (employees.length === 0) return data;
+
+    // Aplicar orden personalizado a los empleados
+    const orderedEmployees: TurnoData[] = [];
+    const employeeMap = new Map(employees.map(emp => [String(emp.employee_id || emp.id), emp]));
+
+    // Primero agregar empleados en el orden personalizado
+    customOrder.forEach(id => {
+        const employee = employeeMap.get(id);
+        if (employee) {
+            orderedEmployees.push(employee);
+            employeeMap.delete(id);
+        }
+    });
+
+    // Agregar empleados que no están en el orden personalizado (nuevos empleados)
+    employeeMap.forEach(employee => {
+        orderedEmployees.push(employee);
+    });
+
+    // Reconstruir el array: separadores de grupos + empleados ordenados + separadores de totales + totales
+    const result: TurnoData[] = [];
+
+    // 1. Agregar separadores de grupos (MUNICIPAL, AMZOMA)
+    groupSeparators.forEach(separator => {
+        result.push(separator);
+    });
+
+    // 2. Agregar empleados en el orden personalizado
+    orderedEmployees.forEach(employee => {
+        result.push(employee);
+    });
+
+    // 3. Agregar separadores de totales
+    totalsSeparators.forEach(separator => {
+        result.push(separator);
+    });
+
+    // 4. Agregar totales al final
+    totals.forEach(total => {
+        result.push(total);
+    });
+
+    return result;
+};
+
 // Función para agregar separadores optimizada
 const addOptimizedSeparators = (data: TurnoData[]): TurnoData[] => {
     if (!data || data.length === 0) return data;
@@ -305,6 +380,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         onRowClicked,
         onGridReady,
         onRowDataChanged,
+        onCustomOrderChanged,
+        customOrder = [],
         editable = true,
         month,
         year,
@@ -330,6 +407,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
     // Procesar datos con separadores y grupos colapsados
     const processedRowData = useMemo(() => {
+        // Primero procesar datos normalmente (sin orden personalizado)
         const dataWithSeparators = addOptimizedSeparators(rowData);
 
         let filteredData: TurnoData[] = [];
@@ -384,8 +462,13 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             }
         }
 
+        // APLICAR ORDEN PERSONALIZADO AL FINAL - esto es crucial
+        if (customOrder.length > 0) {
+            return applyCustomOrder(filteredData, customOrder);
+        }
+
         return filteredData;
-    }, [rowData, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
+    }, [rowData, customOrder, collapsedGroups, showTotals, selectedTotalsShiftTypes, pendingChanges]);
 
     // Extraer días y generar información
     const daysInData = useMemo(() => extractDaysFromData(processedRowData), [processedRowData]);
@@ -415,7 +498,12 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         const nameCol: ColDef = {
             headerName: 'Nombre',
             field: 'nombre',
-            rowDrag: true,
+            rowDrag: (params) => {
+                // Solo permitir arrastre para empleados, no para separadores o totales
+                return !params.data?.isSeparator &&
+                       !params.data?.isTotalsRow &&
+                       !params.data?.isGroupHeader;
+            },
             pinned: 'left',
             minWidth: 60,
             maxWidth: 150,
@@ -756,19 +844,29 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
 
     // Manejar el final del arrastre de filas
     const onRowDragEnd = useCallback((event: any) => {
-        if (!onRowDataChanged || !event.api) return;
+        if (!event.api) return;
 
-        // Obtener todas las filas en el nuevo orden
+        // Obtener todas las filas en el nuevo orden (solo empleados)
         const allRows: TurnoData[] = [];
+        const newOrder: string[] = [];
+
         event.api.forEachNode((node: any) => {
-            if (node.data && !node.data.isSeparator && !node.data.isTotalsRow) {
+            if (node.data && !node.data.isSeparator && !node.data.isTotalsRow && !node.data.isGroupHeader) {
                 allRows.push(node.data);
+                newOrder.push(String(node.data.employee_id || node.data.id));
             }
         });
 
         // Notificar al componente padre con los nuevos datos
-        onRowDataChanged(allRows);
-    }, [onRowDataChanged]);
+        if (onRowDataChanged) {
+            onRowDataChanged(allRows);
+        }
+
+        // Guardar el nuevo orden personalizado (solo IDs de empleados)
+        if (onCustomOrderChanged) {
+            onCustomOrderChanged(newOrder);
+        }
+    }, [onRowDataChanged, onCustomOrderChanged]);
 
     // Configurar grid cuando esté listo
     const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
@@ -828,6 +926,19 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         refreshCells: () => {
             gridRef.current?.api?.refreshCells({ force: true });
         },
+        applyCustomOrder: () => {
+            // Forzar aplicación del orden personalizado
+            if (gridRef.current?.api && customOrder.length > 0) {
+                requestAnimationFrame(() => {
+                    const api = gridRef.current?.api;
+                    if (api) {
+                        api.refreshCells({ force: true });
+                        api.autoSizeColumns(['nombre']);
+                        api.sizeColumnsToFit();
+                    }
+                });
+            }
+        },
         api: gridRef.current?.api,
     }));
 
@@ -845,6 +956,42 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             });
         }
     }, [processedRowData]);
+
+    // Asegurar que el orden personalizado se mantenga cuando cambien los datos del backend
+    useEffect(() => {
+        if (gridRef.current?.api && customOrder.length > 0 && processedRowData.length > 0) {
+            // Forzar actualización del grid para aplicar el orden personalizado
+            requestAnimationFrame(() => {
+                const api = gridRef.current?.api;
+                if (api) {
+                    // Refrescar las celdas para asegurar que el orden se aplique
+                    api.refreshCells({ force: true });
+                    // Redimensionar columnas después del refresh
+                    requestAnimationFrame(() => {
+                        api.autoSizeColumns(['nombre']);
+                        api.sizeColumnsToFit();
+                    });
+                }
+            });
+        }
+    }, [rowData, customOrder]); // Dependencias: cuando cambien los datos del backend o el orden personalizado
+
+    // Efecto específico para mantener el orden cuando se muestran/ocultan totales
+    useEffect(() => {
+        if (gridRef.current?.api && customOrder.length > 0) {
+            // Pequeño delay para asegurar que el grid se haya actualizado
+            const timeoutId = setTimeout(() => {
+                const api = gridRef.current?.api;
+                if (api) {
+                    api.refreshCells({ force: true });
+                    api.autoSizeColumns(['nombre']);
+                    api.sizeColumnsToFit();
+                }
+            }, 100);
+
+            return () => clearTimeout(timeoutId);
+        }
+    }, [showTotals, selectedTotalsShiftTypes, customOrder]); // Dependencias: cuando cambien los totales
 
     return (
         <div className={`w-full h-full ${className}`} style={{ minHeight: '100%', height: '100%' }}>
@@ -1165,6 +1312,24 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     color: #94a3b8 !important;
                     font-size: 12px !important;
                     line-height: 1 !important;
+                }
+
+                /* Estilos para separadores de totales (no arrastrables) */
+                .ag-theme-alpine .ag-row.separator-row .ag-cell[col-id="nombre"] {
+                    cursor: default !important;
+                }
+
+                .ag-theme-alpine .ag-row.separator-row .ag-cell[col-id="nombre"]:hover {
+                    background-color: #f9fafb !important;
+                }
+
+                /* Estilos para filas de totales (no arrastrables) */
+                .ag-theme-alpine .ag-row.totals-row .ag-cell[col-id="nombre"] {
+                    cursor: default !important;
+                }
+
+                .ag-theme-alpine .ag-row.totals-row .ag-cell[col-id="nombre"]:hover {
+                    background-color: #f8fafc !important;
                 }
             `}</style>
 

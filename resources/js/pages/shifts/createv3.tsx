@@ -13,6 +13,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { toast } from 'sonner';
 import { WhatsAppNotificationsConfig } from '@/components/ui/whatsapp-notifications-config';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCustomOrder } from '@/hooks/useCustomOrder';
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, usePage } from '@inertiajs/react';
@@ -411,6 +412,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         clearAllEmployees,
         closeEmployeeSelector,
     } = useOptimizedShiftsManager(employee_rol_id);
+
+    // Hook para manejar el orden personalizado de empleados
+    const { customOrder, updateCustomOrder } = useCustomOrder({
+        storageKey: `custom-order-${selectedDate.getFullYear()}-${selectedDate.getMonth()}`,
+    });
 
     // Función para abrir el popup de confirmación
     const handleOpenConfirmDialog = useCallback(() => {
@@ -939,6 +945,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             rowData: filteredRowData,
             onCellValueChanged: handleCellValueChanged,
             onGridReady: setGridApi, // ¡Crucial para el sistema de undo!
+            onCustomOrderChanged: updateCustomOrder, // Callback para guardar orden personalizado
+            customOrder, // Orden personalizado actual
             editable: hasEditPermissions && !isProcessingChanges,
             month: selectedDate.getMonth(),
             year: selectedDate.getFullYear(),
@@ -974,6 +982,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             filteredRowData,
             handleCellValueChanged,
             setGridApi,
+            updateCustomOrder,
+            customOrder,
             hasEditPermissions,
             isProcessingChanges,
             selectedDate,
