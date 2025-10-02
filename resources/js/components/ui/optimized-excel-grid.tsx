@@ -52,6 +52,7 @@ interface OptimizedExcelGridProps {
     onCellValueChanged?: (change: OptimizedGridChange) => void;
     onRowClicked?: (event: any) => void;
     onGridReady?: (api: any) => void; // Para sistema de undo
+    onRowDataChanged?: (newRowData: TurnoData[]) => void; // Callback para cuando se reordenen las filas
     editable?: boolean;
     month?: number;
     year?: number;
@@ -303,6 +304,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         onCellValueChanged,
         onRowClicked,
         onGridReady,
+        onRowDataChanged,
         editable = true,
         month,
         year,
@@ -413,13 +415,14 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
         const nameCol: ColDef = {
             headerName: 'Nombre',
             field: 'nombre',
+            rowDrag: true,
             pinned: 'left',
             minWidth: 60,
             maxWidth: 150,
             flex: 0,
             suppressSizeToFit: true,
-            lockPosition: true,
-            suppressMovable: true,
+            lockPosition: false,
+            suppressMovable: false,
             resizable: true,
             sortable: true,
             filter: false,
@@ -750,6 +753,22 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
             onRowClicked(event);
         }
     }, [onRowClicked]);
+
+    // Manejar el final del arrastre de filas
+    const onRowDragEnd = useCallback((event: any) => {
+        if (!onRowDataChanged || !event.api) return;
+
+        // Obtener todas las filas en el nuevo orden
+        const allRows: TurnoData[] = [];
+        event.api.forEachNode((node: any) => {
+            if (node.data && !node.data.isSeparator && !node.data.isTotalsRow) {
+                allRows.push(node.data);
+            }
+        });
+
+        // Notificar al componente padre con los nuevos datos
+        onRowDataChanged(allRows);
+    }, [onRowDataChanged]);
 
     // Configurar grid cuando esté listo
     const handleGridReady = useCallback((params: GridReadyEvent<TurnoData>) => {
@@ -1106,6 +1125,47 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                     width: 100% !important;
                     text-align: center !important;
                 }
+
+                /* Estilos para arrastre de filas */
+                .ag-theme-alpine .ag-row-dragging {
+                    background-color: #f0f9ff !important;
+                    border: 2px solid #0ea5e9 !important;
+                    border-radius: 4px !important;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+                }
+
+                .ag-theme-alpine .ag-row-dragging .ag-cell {
+                    background-color: #f0f9ff !important;
+                }
+
+                .ag-theme-alpine .ag-row-drag-handle {
+                    cursor: grab !important;
+                    color: #64748b !important;
+                    font-size: 14px !important;
+                    padding: 4px !important;
+                }
+
+                .ag-theme-alpine .ag-row-drag-handle:hover {
+                    color: #0ea5e9 !important;
+                }
+
+                .ag-theme-alpine .ag-row-drag-handle:active {
+                    cursor: grabbing !important;
+                }
+
+                /* Indicador visual para filas que se pueden arrastrar */
+                .ag-theme-alpine .ag-row:not(.separator-row):not(.totals-row):hover .ag-cell[col-id="nombre"] {
+                    background-color: #f8fafc !important;
+                }
+
+                .ag-theme-alpine .ag-row:not(.separator-row):not(.totals-row):hover .ag-cell[col-id="nombre"]::before {
+                    content: "⋮⋮" !important;
+                    position: absolute !important;
+                    left: 4px !important;
+                    color: #94a3b8 !important;
+                    font-size: 12px !important;
+                    line-height: 1 !important;
+                }
             `}</style>
 
             <AgGridReact
@@ -1121,6 +1181,7 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 onCellValueChanged={handleCellChange}
                 onGridReady={handleGridReady}
                 onRowClicked={onRowClicked}
+                onRowDragEnd={onRowDragEnd}
                 getRowId={getRowId}
                 getRowClass={getRowClass}
                 getRowHeight={(params) => {
@@ -1134,6 +1195,8 @@ const OptimizedExcelGrid = forwardRef<OptimizedExcelGridRef, OptimizedExcelGridP
                 animateRows={false}
                 suppressContextMenu={true}
                 rowBuffer={10}
+                rowDragManaged={true}
+                rowDragMultiRow={false}
             />
         </div>
     );
