@@ -600,3 +600,4 @@ Usa `/api/v1/employees` con query parameters para aplicar múltiples filtros.
 **Última actualización**: Octubre 2025
 
 
+

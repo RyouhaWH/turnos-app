@@ -37,11 +37,11 @@ class ItemController extends Controller
     }
 
     /**
-     * Obtener item por ID
+     * Obtener item por ID (incluye ítems eliminados)
      */
     public function show($id): JsonResponse
     {
-        $item = Item::with('movements', 'parent')->find($id);
+        $item = Item::withTrashed()->with('movements', 'parent')->find($id);
 
         if (!$item) {
             return response()->json([
@@ -50,9 +50,14 @@ class ItemController extends Controller
             ], 404);
         }
 
+        // Agregar información sobre el estado de eliminación
+        $itemData = $item->toArray();
+        $itemData['is_deleted'] = $item->trashed();
+        $itemData['deleted_at'] = $item->deleted_at;
+
         return response()->json([
             'success' => true,
-            'data' => $item
+            'data' => $itemData
         ]);
     }
 

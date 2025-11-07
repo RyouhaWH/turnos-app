@@ -32,6 +32,27 @@ class StorePurchaseRequest extends FormRequest
             'documentos.*.fechaSubida' => 'nullable|date',
             'lotes' => 'nullable|array',
             'lotes.*' => 'exists:items_parents,id',
+
+            // Validación de items
+            'items' => 'nullable|array',
+            'items.*.nombre' => 'required_with:items|string|max:255',
+            'items.*.categoria' => 'required_with:items|string|max:255',
+            'items.*.cantidad' => 'required_with:items|integer|min:1',
+            'items.*.unidad' => 'nullable|string|max:50',
+            'items.*.precioUnitario' => 'nullable|numeric|min:0',
+            'items.*.precioTotal' => 'nullable|numeric|min:0',
+            'items.*.codigo' => 'nullable|string|max:255',
+            'items.*.descripcion' => 'nullable|string',
+            'items.*.atributos' => 'nullable|array',
+            'items.*.variantes' => 'nullable|array',
+            'items.*.variantes.*.nombre' => 'required_with:items.*.variantes|string',
+            'items.*.variantes.*.cantidad' => 'required_with:items.*.variantes|integer|min:1',
+            'items.*.variantes.*.atributos' => 'nullable|array',
+            'items.*.variantes.*.valorUnitario' => 'nullable|numeric|min:0',
+            'items.*.fechaIngreso' => 'nullable|date',
+            'items.*.estado' => 'nullable|string|max:50',
+            'items.*.ubicacion' => 'nullable|string|max:255',
+            'items.*.responsable' => 'nullable|string|max:255',
         ];
     }
 

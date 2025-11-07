@@ -56,16 +56,34 @@ class MovementController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'item_id' => 'required|exists:items,id',
+            'item_id' => 'nullable|exists:items,id',
+            'itemId' => 'nullable|exists:items,id',
             'tipo' => 'required|in:Ingreso,Asignación,Devolución,Mantenimiento,Baja',
             'responsable' => 'required|string',
             'asignado_a' => 'nullable|string',
+            'asignadoA' => 'nullable|string',
             'ubicacion_origen' => 'nullable|string',
+            'ubicacionOrigen' => 'nullable|string',
             'ubicacion_destino' => 'nullable|string',
+            'ubicacionDestino' => 'nullable|string',
             'observaciones' => 'required|string',
             'fecha' => 'required|date',
             'archivos' => 'nullable|array',
         ]);
+
+        // Normalizar nombres de campos
+        $validated['item_id'] = $validated['item_id'] ?? $validated['itemId'];
+        $validated['asignado_a'] = $validated['asignado_a'] ?? $validated['asignadoA'];
+        $validated['ubicacion_origen'] = $validated['ubicacion_origen'] ?? $validated['ubicacionOrigen'];
+        $validated['ubicacion_destino'] = $validated['ubicacion_destino'] ?? $validated['ubicacionDestino'];
+
+        // Validar que al menos uno de los campos item_id esté presente
+        if (empty($validated['item_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El campo item_id es requerido'
+            ], 422);
+        }
 
         try {
             // El servicio hace TODO: crear movimiento + actualizar ítem

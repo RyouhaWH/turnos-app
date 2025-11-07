@@ -501,3 +501,4 @@ curl -X POST "http://localhost:8000/api/v1/purchases/1/generate-items" \
 **Fix implementado**: Octubre 2025
 
 
+

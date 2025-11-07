@@ -24,6 +24,12 @@ class ItemParent extends Model
         'atributos_comunes',
         'fecha_ingreso',
         'totales',
+        'variantes',
+        'codigo',
+        'descripcion',
+        'estado',
+        'ubicacion',
+        'responsable',
     ];
 
     protected $casts = [
@@ -32,6 +38,7 @@ class ItemParent extends Model
         'valor_total' => 'decimal:2',
         'atributos_comunes' => 'array',
         'totales' => 'array',
+        'variantes' => 'array',
         'fecha_ingreso' => 'date',
     ];
 

@@ -1,0 +1,12 @@
+rut, nombre, apellido paterno
+20106805-3,	Barbra,	Jara
+12343775-6,	Carlos, Soto
+19478480-5,	Cristina, Ravanal
+19304481-6,	Franco, Duran
+11587428-4,	Gaston,	Pinilla
+12325719-7,	Julio, Saez
+12294476-K,	Mauro, Vargas
+10630544-7,	Pedro, Muñoz
+12927116-7,	Rene, Calluan
+10780392-0,	Richard, Alarcon
+11948379-4, Ramon, Alfaro

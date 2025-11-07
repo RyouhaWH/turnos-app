@@ -15,9 +15,11 @@ class StoreItemRequest extends FormRequest
     {
         return [
             'parent_id' => 'nullable|exists:items_parents,id',
+            'parent_batch_id' => 'nullable|integer',
+            'purchase_id' => 'nullable|integer',
             'nombre' => 'required|string|max:255',
             'categoria' => 'required|string|max:255',
-            'sku' => 'required|string|unique:items,sku',
+            'sku' => 'nullable|string|unique:items,sku', // Nullable - se genera automáticamente si no se proporciona
             'codigo' => 'nullable|string|max:255',
             'estado' => 'required|in:Disponible,Asignado,En uso,En mantenimiento,Mantenimiento,Dado de baja',
             'ubicacion' => 'required|string|max:255',
@@ -25,6 +27,8 @@ class StoreItemRequest extends FormRequest
             'valor_unitario' => 'nullable|numeric|min:0',
             'atributos' => 'nullable|array',
             'fecha_ingreso' => 'nullable|date',
+            'proveedor_id' => 'nullable|integer',
+            'proveedor_nombre' => 'nullable|string|max:255',
         ];
     }
 }

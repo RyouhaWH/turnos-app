@@ -11,6 +11,51 @@ class Item extends Model
 {
     use HasFactory, SoftDeletes;
 
+    /**
+     * Boot del modelo para generar SKU automáticamente
+     */
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($item) {
+            if (empty($item->sku)) {
+                $item->sku = static::generateSku($item);
+            }
+        });
+    }
+
+    /**
+     * Generar SKU único automáticamente
+     * Formato: CATEGORIA-PURCHASEID-BATCHID-CONTADOR
+     * Ejemplo: TEC-5-2-0001
+     */
+    protected static function generateSku($item): string
+    {
+        // Prefijo de 3 letras basado en la categoría
+        $prefix = strtoupper(substr($item->categoria ?? 'ITEM', 0, 3));
+        $purchaseId = $item->purchase_id ?? 0;
+        $batchId = $item->parent_batch_id ?? 0;
+
+        // Buscar el último SKU con este patrón para obtener el siguiente número
+        $pattern = "{$prefix}-{$purchaseId}-{$batchId}-%";
+        $lastItem = static::withTrashed()
+            ->where('sku', 'LIKE', $pattern)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        $counter = 1;
+        if ($lastItem) {
+            // Extraer el número del último SKU
+            $parts = explode('-', $lastItem->sku);
+            if (count($parts) >= 4) {
+                $counter = intval($parts[3]) + 1;
+            }
+        }
+
+        return sprintf('%s-%d-%d-%04d', $prefix, $purchaseId, $batchId, $counter);
+    }
+
     protected $fillable = [
         'parent_id',
         'parent_batch_id',
@@ -49,6 +94,12 @@ class Item extends Model
     public function parent()
     {
         return $this->belongsTo(ItemParent::class, 'parent_id');
+    }
+
+    // Alias usando el campo parent_batch_id
+    public function parentBatch()
+    {
+        return $this->belongsTo(ItemParent::class, 'parent_batch_id');
     }
 
     // Scopes
