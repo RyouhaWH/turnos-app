@@ -28,34 +28,42 @@ class FuncionariosPatrullajeSeeder extends Seeder
 
         $funcionarios = [
             [
+                'rut' => '11811429-9',
                 'first_name' => 'Daniel',
                 'paternal_lastname' => 'Obreque',
             ],
             [
+                'rut' => '18180263-4',
                 'first_name' => 'Alvaro',
                 'paternal_lastname' => 'Caniupan',
             ],
             [
+                'rut' => '13113413-4',
                 'first_name' => 'Carlos',
                 'paternal_lastname' => 'Frigerio',
             ],
             [
+                'rut' => '9010922-7',
                 'first_name' => 'Christian',
                 'paternal_lastname' => 'Riquelme',
             ],
             [
+                'rut' => '9450803-7',
                 'first_name' => 'Hector',
                 'paternal_lastname' => 'Osorio',
             ],
             [
+                'rut' => '10157069-K',
                 'first_name' => 'Ivan',
                 'paternal_lastname' => 'Cerda',
             ],
             [
+                'rut' => '11222333-4',
                 'first_name' => 'Enrique',
                 'paternal_lastname' => 'Cuevas',
             ],
             [
+                'rut' => '18719694-9',
                 'first_name' => 'Rosa',
                 'paternal_lastname' => 'Jara',
             ],
@@ -87,10 +95,12 @@ class FuncionariosPatrullajeSeeder extends Seeder
 
             // Crear o actualizar el empleado y asociarlo con el usuario
             DB::table('employees')->updateOrInsert(
+                ['rut' => $funcionario['rut']], // Condición de búsqueda por RUT
                 [
                     'name' => $name,
                     'first_name' => $funcionario['first_name'],
                     'paternal_lastname' => $funcionario['paternal_lastname'],
+                    'rut' => $funcionario['rut'],
                     'rol_id' => $rolPatrullaje->id,
                     'status' => 'activo',
                     'amzoma' => true,
