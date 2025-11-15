@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 
-class FuncionariosFiscalizacionSeeder extends Seeder
+class FuncionariosPatrullajeSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -18,11 +18,11 @@ class FuncionariosFiscalizacionSeeder extends Seeder
     public function run(): void
     {
         // Obtener el rol de Fiscalización existente (buscar con o sin tilde)
-        $rolFiscalizacion = Rol::where('id', 1)
+        $rolPatrullaje = Rol::where('id', 1)
             ->orWhere('nombre', 'Patrullaje y Proximidad')
             ->first();
 
-        if (!$rolFiscalizacion) {
+        if (!$rolPatrullaje) {
             throw new \Exception('El rol de Patrullaje y Proximidad no existe en la base de datos. Por favor, créalo primero.');
         }
 
@@ -93,7 +93,7 @@ class FuncionariosFiscalizacionSeeder extends Seeder
                     'first_name' => $funcionario['first_name'],
                     'paternal_lastname' => $funcionario['paternal_lastname'],
                     'rut' => $funcionario['rut'],
-                    'rol_id' => $rolFiscalizacion->id,
+                    'rol_id' => $rolPatrullaje->id,
                     'status' => 'activo',
                     'amzoma' => true,
                     'user_id' => $user->id,
