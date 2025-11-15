@@ -87,12 +87,10 @@ class FuncionariosPatrullajeSeeder extends Seeder
 
             // Crear o actualizar el empleado y asociarlo con el usuario
             DB::table('employees')->updateOrInsert(
-                ['rut' => $funcionario['rut']], // Condición de búsqueda por RUT
                 [
                     'name' => $name,
                     'first_name' => $funcionario['first_name'],
                     'paternal_lastname' => $funcionario['paternal_lastname'],
-                    'rut' => $funcionario['rut'],
                     'rol_id' => $rolPatrullaje->id,
                     'status' => 'activo',
                     'amzoma' => true,
