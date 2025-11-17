@@ -716,7 +716,7 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     }, [employee_rol_id, sortByAmzomaAndName]);
 
     // Función para manejar actualización de cambios
-    const handleActualizarCambios = useCallback(async (comentario: string) => {
+    const handleActualizarCambios = useCallback(async (comentario: string, retryCount: number = 0) => {
         if (Object.keys(resumen).length === 0) {
             toast.warning('No hay cambios pendientes para actualizar');
             return;
@@ -758,6 +758,46 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 fechaParaCambios: fechaParaCambios.toISOString(),
             });
 
+            // Función auxiliar para refrescar el token CSRF
+            const refreshCsrfToken = async (): Promise<boolean> => {
+                try {
+                    // Hacer una petición GET para refrescar el token CSRF sin recargar la página
+                    const response = await fetch(window.location.href, {
+                        method: 'GET',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'text/html',
+                        },
+                        credentials: 'same-origin',
+                    });
+                    
+                    if (response.ok) {
+                        // Extraer el nuevo token del HTML
+                        const html = await response.text();
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newToken = doc.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                        
+                        if (newToken) {
+                            // Actualizar el token en el meta tag y en axios
+                            const metaTag = document.querySelector('meta[name="csrf-token"]');
+                            if (metaTag) {
+                                metaTag.setAttribute('content', newToken);
+                            }
+                            if (window.axios) {
+                                window.axios.defaults.headers.common['X-CSRF-TOKEN'] = newToken;
+                            }
+                            console.log('✅ Token CSRF refrescado correctamente');
+                            return true;
+                        }
+                    }
+                    return false;
+                } catch (error) {
+                    console.error('Error al refrescar token CSRF:', error);
+                    return false;
+                }
+            };
+
             // Enviar usando router.post directamente
             router.post('/turnos-mes/actualizar', formData, {
                 onSuccess: () => {
@@ -775,9 +815,38 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                         simpleClearAllChanges();
                     }, 100);
                 },
-                onError: (errors: any) => {
+                onError: async (errors: any) => {
                     console.error('Error al actualizar cambios:', errors);
-                    toast.error('Error al actualizar cambios');
+                    
+                    // Verificar si es un error 419 (CSRF token expired)
+                    // Inertia puede pasar el error de diferentes maneras
+                    const errorMessage = errors?.message || errors?.error || JSON.stringify(errors);
+                    const isCsrfError = errorMessage?.includes('419') || 
+                                       errors?.status === 419 ||
+                                       (typeof errors === 'string' && errors.includes('419')) ||
+                                       errorMessage?.toLowerCase().includes('csrf') ||
+                                       errorMessage?.toLowerCase().includes('page expired');
+                    
+                    if (isCsrfError && retryCount < 1) {
+                        console.log('⚠️ Error 419 detectado, refrescando token CSRF y reintentando...');
+                        toast.info('Refrescando sesión...', { duration: 2000 });
+                        
+                        // Refrescar el token CSRF usando router.reload
+                        const refreshed = await refreshCsrfToken();
+                        
+                        if (refreshed) {
+                            // Esperar un momento antes de reintentar
+                            await new Promise(resolve => setTimeout(resolve, 1000));
+                            
+                            // Reintentar la petición
+                            clearTimeout(safetyTimer);
+                            handleActualizarCambios(comentario, retryCount + 1);
+                            return;
+                        }
+                    }
+                    
+                    // Si no es un error CSRF o ya se intentó, mostrar error
+                    toast.error('Error al actualizar cambios. Por favor, recarga la página e intenta nuevamente.');
                     setIsProcessingChanges(false);
                 },
                 onFinish: () => {
@@ -798,12 +867,36 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 }
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error en handleActualizarCambios:', error);
-            toast.error('Error al procesar cambios');
+            
+            // Verificar si es un error 419
+            const errorMessage = error?.message || error?.error || JSON.stringify(error);
+            const isCsrfError = error?.response?.status === 419 || 
+                               errorMessage?.includes('419') ||
+                               (typeof error === 'string' && error.includes('419')) ||
+                               errorMessage?.toLowerCase().includes('csrf') ||
+                               errorMessage?.toLowerCase().includes('page expired');
+            
+            if (isCsrfError && retryCount < 1) {
+                console.log('⚠️ Error 419 detectado en catch, refrescando token CSRF y reintentando...');
+                toast.info('Refrescando sesión...', { duration: 2000 });
+                
+                // Refrescar el token CSRF
+                const refreshed = await refreshCsrfToken();
+                
+                if (refreshed) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    clearTimeout(safetyTimer);
+                    handleActualizarCambios(comentario, retryCount + 1);
+                    return;
+                }
+            }
+            
+            toast.error('Error al procesar cambios. Por favor, recarga la página e intenta nuevamente.');
             setIsProcessingChanges(false);
         }
-    }, [resumen, employee_rol_id, originalChangeDate, selectedDate, setData, post, simpleClearAllChanges]);
+    }, [resumen, employee_rol_id, originalChangeDate, selectedDate, setData, post, simpleClearAllChanges, gridChanges]);
 
     // Función utilitaria para obtener el objeto canónico del empleado (con claves de turnos correctas)
     const getCanonicalEmployeeData = useCallback((employee: TurnoData): TurnoData => {
