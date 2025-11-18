@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -185,6 +185,15 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [emailDomain, setEmailDomain] = useState('@amzoma.cl');
     const [customDomain, setCustomDomain] = useState('');
     const [isCustomDomain, setIsCustomDomain] = useState(false);
+    const [availableRoles, setAvailableRoles] = useState<string[]>([]);
+    const [loadingUser, setLoadingUser] = useState(false);
+
+    const defaultUserRole = useMemo(() => {
+        if (!availableRoles || availableRoles.length === 0) return null;
+        const match = availableRoles.find(role => role.toLowerCase() === 'usuario');
+        return match || availableRoles[0];
+    }, [availableRoles]);
+
     const [newEmployeeUserData, setNewEmployeeUserData] = useState<{
         name: string;
         email: string;
@@ -194,7 +203,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         name: '',
         email: '',
         password: '',
-        roles: ['usuario'] // Siempre incluir rol usuario
+        roles: ['usuario'] // Se ajustará cuando se carguen los roles reales
     });
 
     // Estados para gestión de usuario
@@ -209,9 +218,6 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         password: '',
         roles: []
     });
-    const [availableRoles, setAvailableRoles] = useState<string[]>([]);
-    const [loadingUser, setLoadingUser] = useState(false);
-
     // Estados para vinculación
     const [linkingData, setLinkingData] = useState<LinkingData>({ unlinked_employees: [], available_users: [] });
     const [loadingLinking, setLoadingLinking] = useState(false);
@@ -367,15 +373,15 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 toast.error('Debes completar todos los campos del usuario (nombre, email y contraseña)');
                 return;
             }
-            // Asegurar que siempre tenga el rol "usuario"
-            const roles = newEmployeeUserData.roles.includes('usuario')
-                ? newEmployeeUserData.roles
-                : ['usuario', ...newEmployeeUserData.roles];
+            if (!defaultUserRole) {
+                toast.error('No hay roles disponibles para crear la cuenta de usuario. Configura roles en Spatie antes de continuar.');
+                return;
+            }
 
             dataToSend.user_name = newEmployeeUserData.name;
             dataToSend.user_email = newEmployeeUserData.email;
             dataToSend.user_password = newEmployeeUserData.password;
-            dataToSend.user_roles = roles;
+            dataToSend.user_roles = [defaultUserRole];
         }
 
         router.post('/platform-data/employees', dataToSend, {
@@ -395,7 +401,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                     name: '',
                     email: '',
                     password: '',
-                    roles: ['usuario']
+                    roles: defaultUserRole ? [defaultUserRole] : []
                 });
                 toast.success(createUserForNewEmployee ? 'Empleado y usuario creados correctamente' : 'Empleado creado correctamente');
                 // Recargar solo los empleados
@@ -695,7 +701,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             setNewEmployeeUserData(prev => ({
                 ...prev,
                 name: fullName,
-                roles: prev.roles.length === 0 || !prev.roles.includes('usuario') ? ['usuario'] : prev.roles
+                roles: defaultUserRole ? [defaultUserRole] : prev.roles
             }));
 
             // Generar email automáticamente: nombre.apellido_paterno@dominio
@@ -707,15 +713,23 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         }
     }, [createUserForNewEmployee, newEmployeeData.first_name, newEmployeeData.paternal_lastname, newEmployeeData.maternal_lastname, emailDomain, isCustomDomain, customDomain]);
 
-    // Asegurar que siempre tenga el rol "usuario"
+    // Asegurar que siempre tenga un rol válido para el usuario
     useEffect(() => {
-        if (createUserForNewEmployee && !newEmployeeUserData.roles.includes('usuario')) {
-            setNewEmployeeUserData(prev => ({
-                ...prev,
-                roles: ['usuario', ...prev.roles]
-            }));
+        if (!createUserForNewEmployee) {
+            return;
         }
-    }, [createUserForNewEmployee, newEmployeeUserData.roles]);
+
+        if (!defaultUserRole) {
+            toast.error('No hay roles disponibles para crear cuentas de usuario. Solicita a un administrador que configure roles en Spatie.');
+            setCreateUserForNewEmployee(false);
+            return;
+        }
+
+        setNewEmployeeUserData(prev => ({
+            ...prev,
+            roles: [defaultUserRole]
+        }));
+    }, [createUserForNewEmployee, defaultUserRole]);
 
     // Cargar roles disponibles al montar el componente
     useEffect(() => {
@@ -1657,7 +1671,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                 <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
                                                                     <div className="flex items-center space-x-2">
                                                                         <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                                                                            usuario
+                                                                            {defaultUserRole || 'Sin rol disponible'}
                                                                         </Badge>
                                                                         <span className="text-sm text-gray-600 dark:text-gray-400">
                                                                             (Asignado automáticamente)
@@ -1665,7 +1679,9 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                     </div>
                                                                 </div>
                                                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                                                                    Todos los empleados tienen el rol "usuario" por defecto
+                                                                    {defaultUserRole
+                                                                        ? `Todos los empleados reciben el rol "${defaultUserRole}" por defecto`
+                                                                        : 'Configura un rol en Spatie para poder crear cuentas de usuario'}
                                                                 </p>
                                                             </div>
                                                         </div>
