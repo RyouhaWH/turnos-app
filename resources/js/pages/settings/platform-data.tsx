@@ -368,10 +368,10 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 return;
             }
             // Asegurar que siempre tenga el rol "usuario"
-            const roles = newEmployeeUserData.roles.includes('usuario') 
-                ? newEmployeeUserData.roles 
+            const roles = newEmployeeUserData.roles.includes('usuario')
+                ? newEmployeeUserData.roles
                 : ['usuario', ...newEmployeeUserData.roles];
-            
+
             dataToSend.user_name = newEmployeeUserData.name;
             dataToSend.user_email = newEmployeeUserData.email;
             dataToSend.user_password = newEmployeeUserData.password;
@@ -386,7 +386,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 setEmailDomain('@amzoma.cl');
                 setCustomDomain('');
                 setIsCustomDomain(false);
-                setNewEmployeeData({ 
+                setNewEmployeeData({
                     rol_id: data.roles[0]?.id || undefined,
                     amzoma: false,
                     status: 'activo'
@@ -691,9 +691,9 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             const firstName = (newEmployeeData.first_name || '').trim();
             const paternalLastname = (newEmployeeData.paternal_lastname || '').trim();
             const fullName = buildFullName(firstName, paternalLastname, newEmployeeData.maternal_lastname || '');
-            
-            setNewEmployeeUserData(prev => ({ 
-                ...prev, 
+
+            setNewEmployeeUserData(prev => ({
+                ...prev,
                 name: fullName,
                 roles: prev.roles.length === 0 || !prev.roles.includes('usuario') ? ['usuario'] : prev.roles
             }));
@@ -710,8 +710,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     // Asegurar que siempre tenga el rol "usuario"
     useEffect(() => {
         if (createUserForNewEmployee && !newEmployeeUserData.roles.includes('usuario')) {
-            setNewEmployeeUserData(prev => ({ 
-                ...prev, 
+            setNewEmployeeUserData(prev => ({
+                ...prev,
                 roles: ['usuario', ...prev.roles]
             }));
         }
@@ -832,7 +832,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             if (response.data.success) {
                 setMissingDataResponse(response.data.data);
                 const totalMissing = response.data.data.stats.total_employees - response.data.data.stats.complete_data;
-                
+
                 // Solo mostrar toast si se solicita explícitamente
                 if (showToast) {
                     toast.success(`Datos cargados correctamente. ${totalMissing} funcionarios tienen datos faltantes.`);
@@ -1568,8 +1568,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                         onChange={(e) => {
                                                                             const localPart = e.target.value.toLowerCase().replace(/\s+/g, '');
                                                                             const domain = isCustomDomain && customDomain ? customDomain : emailDomain;
-                                                                            setNewEmployeeUserData(prev => ({ 
-                                                                                ...prev, 
+                                                                            setNewEmployeeUserData(prev => ({
+                                                                                ...prev,
                                                                                 email: `${localPart}${domain}`
                                                                             }));
                                                                         }}
@@ -1587,8 +1587,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                                 setIsCustomDomain(false);
                                                                                 setEmailDomain(value);
                                                                                 const localPart = newEmployeeUserData.email.split('@')[0] || '';
-                                                                                setNewEmployeeUserData(prev => ({ 
-                                                                                    ...prev, 
+                                                                                setNewEmployeeUserData(prev => ({
+                                                                                    ...prev,
                                                                                     email: `${localPart}${value}`
                                                                                 }));
                                                                             }
@@ -1614,8 +1614,8 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                                 }
                                                                                 setCustomDomain(domain);
                                                                                 const localPart = newEmployeeUserData.email.split('@')[0] || '';
-                                                                                setNewEmployeeUserData(prev => ({ 
-                                                                                    ...prev, 
+                                                                                setNewEmployeeUserData(prev => ({
+                                                                                    ...prev,
                                                                                     email: `${localPart}${domain || '@'}`
                                                                                 }));
                                                                             }}
@@ -1692,7 +1692,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                         setEmailDomain('@amzoma.cl');
                                                         setCustomDomain('');
                                                         setIsCustomDomain(false);
-                                                        setNewEmployeeData({ 
+                                                        setNewEmployeeData({
                                                             rol_id: data.roles[0]?.id || undefined,
                                                             amzoma: false,
                                                             status: 'activo'
@@ -2396,7 +2396,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                             ) : (
                                                 filteredMissingDataEmployees.map((employee) => (
                                                     <div key={employee.id}>
-                                                        <Card 
+                                                        <Card
                                                             className={`border-l-4 cursor-pointer transition-all hover:shadow-md ${selectedEmployeeForCompletion?.id === employee.id ? 'ring-2 ring-blue-500' : ''}`}
                                                             style={{ borderLeftColor: employee.missing_fields.length > 1 ? '#ef4444' : '#f59e0b' }}
                                                             onClick={() => openCompletionForm(employee)}
