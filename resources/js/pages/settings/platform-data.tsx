@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { AVAILABLE_COLORS } from '@/lib/role-colors';
@@ -27,7 +28,9 @@ import {
     Unlink,
     RefreshCw,
     AlertCircle,
-    CheckCircle
+    CheckCircle,
+    Eye,
+    EyeOff
 } from 'lucide-react';
 
 interface Rol {
@@ -53,6 +56,7 @@ interface Empleado {
     department?: string;
     start_date?: string;
     status?: string;
+    amzoma?: boolean;
     rol_id: number;
     rol_nombre: string;
     user_id?: number;
@@ -145,8 +149,53 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [editingEmployeeData, setEditingEmployeeData] = useState<Partial<Empleado>>({});
     const [searchEmployee, setSearchEmployee] = useState('');
     const [filteredEmployees, setFilteredEmployees] = useState<Empleado[]>(data.empleados);
+
+    // Sincronizar estado cuando cambien los props
+    useEffect(() => {
+        setData(prev => ({
+            ...prev,
+            empleados: empleados || []
+        }));
+    }, [empleados]);
+
+    // Actualizar empleados filtrados cuando cambien los empleados o la búsqueda
+    useEffect(() => {
+        if (searchEmployee.trim() === '') {
+            setFilteredEmployees(data.empleados);
+        } else {
+            const filtered = data.empleados.filter(emp =>
+                emp.name?.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+                emp.rut?.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+                emp.email?.toLowerCase().includes(searchEmployee.toLowerCase()) ||
+                `${emp.first_name || ''} ${emp.paternal_lastname || ''} ${emp.maternal_lastname || ''}`.toLowerCase().includes(searchEmployee.toLowerCase())
+            );
+            setFilteredEmployees(filtered);
+        }
+    }, [searchEmployee, data.empleados]);
     const [loadingEmployee, setLoadingEmployee] = useState(false);
     const [expandedEmployee, setExpandedEmployee] = useState<number | null>(null);
+    const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
+    const [newEmployeeData, setNewEmployeeData] = useState<Partial<Empleado>>({
+        rol_id: data.roles[0]?.id || undefined,
+        amzoma: false,
+        status: 'activo'
+    });
+    const [createUserForNewEmployee, setCreateUserForNewEmployee] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [emailDomain, setEmailDomain] = useState('@amzoma.cl');
+    const [customDomain, setCustomDomain] = useState('');
+    const [isCustomDomain, setIsCustomDomain] = useState(false);
+    const [newEmployeeUserData, setNewEmployeeUserData] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        roles: string[];
+    }>({
+        name: '',
+        email: '',
+        password: '',
+        roles: ['usuario'] // Siempre incluir rol usuario
+    });
 
     // Estados para gestión de usuario
     const [editingUserData, setEditingUserData] = useState<{
@@ -176,6 +225,13 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [loadingMissingData, setLoadingMissingData] = useState(false);
     const [selectedCategory, setSelectedCategory] = useState<keyof MissingDataCategories | 'all'>('all');
     const [searchMissingData, setSearchMissingData] = useState('');
+    const [selectedEmployeeForCompletion, setSelectedEmployeeForCompletion] = useState<EmployeeWithMissingData | null>(null);
+    const [completionFormData, setCompletionFormData] = useState<{
+        rut?: string;
+        phone?: string;
+        email?: string;
+    }>({});
+    const [loadingCompletion, setLoadingCompletion] = useState(false);
 
     // Función para obtener el color del rol
     const getRoleColor = (roleName: string) => {
@@ -287,6 +343,66 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             },
             onError: (errors) => {
                 toast.error('Error al crear rol');
+                console.error('Errores:', errors);
+            }
+        });
+    };
+
+    // Crear empleado
+    const createEmployee = (employeeData: Partial<Empleado>) => {
+        if (!employeeData.rol_id) {
+            toast.error('Debes seleccionar un rol para el empleado');
+            return;
+        }
+
+        // Preparar datos para enviar
+        const dataToSend: any = {
+            ...employeeData,
+            create_user: createUserForNewEmployee
+        };
+
+        // Si se va a crear usuario, agregar los datos del usuario
+        if (createUserForNewEmployee) {
+            if (!newEmployeeUserData.name || !newEmployeeUserData.email || !newEmployeeUserData.password) {
+                toast.error('Debes completar todos los campos del usuario (nombre, email y contraseña)');
+                return;
+            }
+            // Asegurar que siempre tenga el rol "usuario"
+            const roles = newEmployeeUserData.roles.includes('usuario') 
+                ? newEmployeeUserData.roles 
+                : ['usuario', ...newEmployeeUserData.roles];
+            
+            dataToSend.user_name = newEmployeeUserData.name;
+            dataToSend.user_email = newEmployeeUserData.email;
+            dataToSend.user_password = newEmployeeUserData.password;
+            dataToSend.user_roles = roles;
+        }
+
+        router.post('/platform-data/employees', dataToSend, {
+            onSuccess: () => {
+                setIsCreatingEmployee(false);
+                setCreateUserForNewEmployee(false);
+                setShowPassword(false);
+                setEmailDomain('@amzoma.cl');
+                setCustomDomain('');
+                setIsCustomDomain(false);
+                setNewEmployeeData({ 
+                    rol_id: data.roles[0]?.id || undefined,
+                    amzoma: false,
+                    status: 'activo'
+                });
+                setNewEmployeeUserData({
+                    name: '',
+                    email: '',
+                    password: '',
+                    roles: ['usuario']
+                });
+                toast.success(createUserForNewEmployee ? 'Empleado y usuario creados correctamente' : 'Empleado creado correctamente');
+                // Recargar solo los empleados
+                router.reload({ only: ['empleados'] });
+            },
+            onError: (errors) => {
+                toast.error('Error al crear empleado');
                 console.error('Errores:', errors);
             }
         });
@@ -560,14 +676,6 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         }
     };
 
-    // Filtrar empleados
-    useEffect(() => {
-        const filtered = data.empleados.filter(employee =>
-            employee.name.toLowerCase().includes(searchEmployee.toLowerCase()) ||
-            (employee.rut && employee.rut.includes(searchEmployee))
-        );
-        setFilteredEmployees(filtered);
-    }, [searchEmployee, data.empleados]);
 
     // Actualizar nombre completo automáticamente
     useEffect(() => {
@@ -575,6 +683,39 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             updateFullName();
         }
     }, [editingEmployeeData.first_name, editingEmployeeData.paternal_lastname, editingEmployeeData.maternal_lastname]);
+
+    // Generar nombre y email automáticamente cuando se activa crear usuario o cambian los datos del empleado
+    useEffect(() => {
+        if (createUserForNewEmployee && newEmployeeData.first_name && newEmployeeData.paternal_lastname) {
+            // Generar nombre completo automáticamente
+            const firstName = (newEmployeeData.first_name || '').trim();
+            const paternalLastname = (newEmployeeData.paternal_lastname || '').trim();
+            const fullName = buildFullName(firstName, paternalLastname, newEmployeeData.maternal_lastname || '');
+            
+            setNewEmployeeUserData(prev => ({ 
+                ...prev, 
+                name: fullName,
+                roles: prev.roles.length === 0 || !prev.roles.includes('usuario') ? ['usuario'] : prev.roles
+            }));
+
+            // Generar email automáticamente: nombre.apellido_paterno@dominio
+            if (firstName && paternalLastname) {
+                const domain = isCustomDomain && customDomain ? customDomain : emailDomain;
+                const emailLocal = `${firstName.toLowerCase()}.${paternalLastname.toLowerCase().replace(/\s+/g, '')}${domain}`;
+                setNewEmployeeUserData(prev => ({ ...prev, email: emailLocal }));
+            }
+        }
+    }, [createUserForNewEmployee, newEmployeeData.first_name, newEmployeeData.paternal_lastname, newEmployeeData.maternal_lastname, emailDomain, isCustomDomain, customDomain]);
+
+    // Asegurar que siempre tenga el rol "usuario"
+    useEffect(() => {
+        if (createUserForNewEmployee && !newEmployeeUserData.roles.includes('usuario')) {
+            setNewEmployeeUserData(prev => ({ 
+                ...prev, 
+                roles: ['usuario', ...prev.roles]
+            }));
+        }
+    }, [createUserForNewEmployee, newEmployeeUserData.roles]);
 
     // Cargar roles disponibles al montar el componente
     useEffect(() => {
@@ -674,7 +815,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     };
 
     // Funciones para datos faltantes
-    const loadMissingData = async () => {
+    const loadMissingData = async (showToast: boolean = true) => {
         setLoadingMissingData(true);
         try {
             console.log('Fetching missing data from: /platform-data/employees/missing-data');
@@ -691,31 +832,38 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
             if (response.data.success) {
                 setMissingDataResponse(response.data.data);
                 const totalMissing = response.data.data.stats.total_employees - response.data.data.stats.complete_data;
-                toast.success(`Datos cargados correctamente. ${totalMissing} funcionarios tienen datos faltantes.`);
+                
+                // Solo mostrar toast si se solicita explícitamente
+                if (showToast) {
+                    toast.success(`Datos cargados correctamente. ${totalMissing} funcionarios tienen datos faltantes.`);
+                }
             } else {
                 throw new Error(response.data.message || 'Error en la respuesta del servidor');
             }
         } catch (error: any) {
             console.error('Error loading missing data:', error);
 
-            if (error.response) {
-                // Error de respuesta del servidor
-                const status = error.response.status;
-                if (status === 403) {
-                    toast.error('No tienes permisos para acceder a esta funcionalidad. Necesitas ser administrador.');
-                } else if (status === 401) {
-                    toast.error('No estás autenticado. Por favor, inicia sesión.');
-                } else if (status === 404) {
-                    toast.error('Endpoint no encontrado. Verifica la configuración de rutas.');
+            // Solo mostrar errores si se solicita el toast
+            if (showToast) {
+                if (error.response) {
+                    // Error de respuesta del servidor
+                    const status = error.response.status;
+                    if (status === 403) {
+                        toast.error('No tienes permisos para acceder a esta funcionalidad. Necesitas ser administrador.');
+                    } else if (status === 401) {
+                        toast.error('No estás autenticado. Por favor, inicia sesión.');
+                    } else if (status === 404) {
+                        toast.error('Endpoint no encontrado. Verifica la configuración de rutas.');
+                    } else {
+                        toast.error(`Error del servidor (${status}): ${error.response.data?.message || 'Error desconocido'}`);
+                    }
+                } else if (error.request) {
+                    // Error de red
+                    toast.error('Error de conexión. Verifica tu conexión a internet.');
                 } else {
-                    toast.error(`Error del servidor (${status}): ${error.response.data?.message || 'Error desconocido'}`);
+                    // Error de configuración
+                    toast.error(`Error al cargar datos faltantes: ${error.message || 'Error desconocido'}`);
                 }
-            } else if (error.request) {
-                // Error de red
-                toast.error('Error de conexión. Verifica tu conexión a internet.');
-            } else {
-                // Error de configuración
-                toast.error(`Error al cargar datos faltantes: ${error.message || 'Error desconocido'}`);
             }
         } finally {
             setLoadingMissingData(false);
@@ -784,6 +932,67 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
         (emp.rut && emp.rut.includes(searchMissingData))
     );
 
+    // Función para abrir formulario de completar datos
+    const openCompletionForm = (employee: EmployeeWithMissingData) => {
+        setSelectedEmployeeForCompletion(employee);
+        // Inicializar formulario solo con campos faltantes
+        const formData: { rut?: string; phone?: string; email?: string } = {};
+        employee.missing_fields.forEach(field => {
+            if (field === 'rut') formData.rut = '';
+            if (field === 'phone') formData.phone = '+569';
+            if (field === 'email') formData.email = '';
+        });
+        setCompletionFormData(formData);
+    };
+
+    // Función para cerrar formulario de completar datos
+    const closeCompletionForm = () => {
+        setSelectedEmployeeForCompletion(null);
+        setCompletionFormData({});
+    };
+
+    // Función para guardar datos completados
+    const saveCompletionData = (employeeId: number) => {
+        if (!selectedEmployeeForCompletion) {
+            toast.error('No se ha seleccionado un funcionario.');
+            return;
+        }
+
+        setLoadingCompletion(true);
+        const employee = selectedEmployeeForCompletion;
+
+        router.put(`/platform-data/employees/${employeeId}`, completionFormData, {
+            preserveScroll: true,
+            onSuccess: () => {
+                closeCompletionForm();
+
+                const employeeName = employee?.name || 'el funcionario';
+                const completedFields = employee?.missing_fields.map(field => {
+                    if (field === 'rut') return 'RUT';
+                    if (field === 'phone') return 'Teléfono';
+                    if (field === 'email') return 'Email';
+                    return field;
+                }).join(', ') || 'datos';
+
+                toast.success(`✅ Datos de ${employeeName} actualizados correctamente (${completedFields})`, {
+                    duration: 4000,
+                });
+
+                setTimeout(() => {
+                    loadMissingData(false);
+                }, 500);
+            },
+            onError: (errors) => {
+                console.error('Error saving completion data:', errors);
+                const message = errors?.rut?.[0] || errors?.phone?.[0] || errors?.email?.[0] || 'Error al guardar los datos';
+                toast.error(message);
+            },
+            onFinish: () => {
+                setLoadingCompletion(false);
+            }
+        });
+    };
+
     // Inicializar configuración de roles operativos
 
 
@@ -842,7 +1051,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                             <UserCheck className="h-4 w-4" />
                             Empleados
                         </TabsTrigger>
-                        <TabsTrigger value="missing-data" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300" onClick={loadMissingData}>
+                        <TabsTrigger value="missing-data" className="flex items-center gap-2 data-[state=active]:bg-blue-50 dark:data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-700 dark:data-[state=active]:text-blue-300" onClick={() => loadMissingData(true)}>
                             <AlertCircle className="h-4 w-4" />
                             Datos Faltantes
                         </TabsTrigger>
@@ -1117,9 +1326,394 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                             Gestiona funcionarios, sus datos y cuentas de usuario asociadas
                                         </CardDescription>
                                     </div>
+                                    <Button
+                                        onClick={() => setIsCreatingEmployee(true)}
+                                        className="flex items-center gap-2"
+                                    >
+                                        <Plus className="h-4 w-4" />
+                                        Añadir Empleado
+                                    </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
+                                {/* Formulario de creación de empleado */}
+                                {isCreatingEmployee && (
+                                    <Card className="mb-6 border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20">
+                                        <CardHeader>
+                                            <CardTitle className="text-lg">Nuevo Empleado</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {/* Información Personal */}
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información Personal</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <Label htmlFor="new-employee-first-name">Nombre</Label>
+                                                        <Input
+                                                            id="new-employee-first-name"
+                                                            value={newEmployeeData.first_name || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, first_name: e.target.value }))}
+                                                            placeholder="Nombre"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-paternal-lastname">Apellido Paterno</Label>
+                                                        <Input
+                                                            id="new-employee-paternal-lastname"
+                                                            value={newEmployeeData.paternal_lastname || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, paternal_lastname: e.target.value }))}
+                                                            placeholder="Apellido paterno"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-maternal-lastname">Apellido Materno</Label>
+                                                        <Input
+                                                            id="new-employee-maternal-lastname"
+                                                            value={newEmployeeData.maternal_lastname || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, maternal_lastname: e.target.value }))}
+                                                            placeholder="Apellido materno"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-rut">RUT</Label>
+                                                        <Input
+                                                            id="new-employee-rut"
+                                                            value={newEmployeeData.rut || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, rut: e.target.value }))}
+                                                            placeholder="12.345.678-9"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-phone">Teléfono</Label>
+                                                        <Input
+                                                            id="new-employee-phone"
+                                                            value={newEmployeeData.phone || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, phone: e.target.value }))}
+                                                            placeholder="+56 9 1234 5678"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-email">Email</Label>
+                                                        <Input
+                                                            id="new-employee-email"
+                                                            type="email"
+                                                            value={newEmployeeData.email || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, email: e.target.value }))}
+                                                            placeholder="email@ejemplo.com"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Información Laboral */}
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Información Laboral</h4>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div>
+                                                        <Label htmlFor="new-employee-position">Cargo</Label>
+                                                        <Input
+                                                            id="new-employee-position"
+                                                            value={newEmployeeData.position || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, position: e.target.value }))}
+                                                            placeholder="Ej: Patrullero, Supervisor"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-department">Departamento</Label>
+                                                        <Input
+                                                            id="new-employee-department"
+                                                            value={newEmployeeData.department || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, department: e.target.value }))}
+                                                            placeholder="Ej: Operaciones"
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-start-date">Fecha de Inicio</Label>
+                                                        <Input
+                                                            id="new-employee-start-date"
+                                                            type="date"
+                                                            value={newEmployeeData.start_date || ''}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, start_date: e.target.value }))}
+                                                            className="mt-1"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <Label htmlFor="new-employee-status">Estado</Label>
+                                                        <select
+                                                            id="new-employee-status"
+                                                            value={newEmployeeData.status || 'activo'}
+                                                            onChange={(e) => setNewEmployeeData(prev => ({ ...prev, status: e.target.value }))}
+                                                            className="w-full p-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white mt-1"
+                                                        >
+                                                            <option value="activo">Activo</option>
+                                                            <option value="inactivo">Inactivo</option>
+                                                            <option value="vacaciones">Vacaciones</option>
+                                                            <option value="licencia">Licencia</option>
+                                                        </select>
+                                                    </div>
+                                                    <div className="flex items-center space-x-2 pt-6">
+                                                        <Checkbox
+                                                            id="new-employee-amzoma"
+                                                            checked={newEmployeeData.amzoma || false}
+                                                            onCheckedChange={(checked) => setNewEmployeeData(prev => ({ ...prev, amzoma: checked === true }))}
+                                                        />
+                                                        <Label htmlFor="new-employee-amzoma" className="cursor-pointer">
+                                                            Es AMZOMA
+                                                        </Label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Dirección */}
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Dirección</h4>
+                                                <div>
+                                                    <Label htmlFor="new-employee-address">Dirección</Label>
+                                                    <Input
+                                                        id="new-employee-address"
+                                                        value={newEmployeeData.address || ''}
+                                                        onChange={(e) => setNewEmployeeData(prev => ({ ...prev, address: e.target.value }))}
+                                                        placeholder="Dirección completa"
+                                                        className="mt-1"
+                                                    />
+                                                </div>
+                                            </div>
+
+                                            {/* Rol/Facción */}
+                                            <div>
+                                                <h4 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Rol/Facción *</h4>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                                    {data.roles.map((role) => {
+                                                        const isSelected = newEmployeeData.rol_id === role.id;
+                                                        return (
+                                                            <div
+                                                                key={role.id}
+                                                                className={`p-3 border rounded-lg cursor-pointer transition-all duration-200 ${
+                                                                    isSelected
+                                                                        ? 'ring-2 ring-blue-500 border-blue-500 dark:ring-blue-400 dark:border-blue-400'
+                                                                        : 'border-gray-200 hover:border-gray-300 dark:border-gray-600 dark:hover:border-gray-500'
+                                                                }`}
+                                                                style={{
+                                                                    backgroundColor: isSelected ? role.color + '10' : 'transparent',
+                                                                    borderColor: isSelected ? role.color : undefined
+                                                                }}
+                                                                onClick={() => setNewEmployeeData(prev => ({ ...prev, rol_id: role.id }))}
+                                                            >
+                                                                <div className="flex items-center gap-2">
+                                                                    <div
+                                                                        className="w-4 h-4 rounded-full"
+                                                                        style={{ backgroundColor: role.color || '#3B82F6' }}
+                                                                    ></div>
+                                                                    <span className={`text-sm font-medium ${
+                                                                        isSelected ? 'text-blue-700 dark:text-blue-300' : 'text-gray-700 dark:text-gray-300'
+                                                                    }`}>
+                                                                        {role.nombre === "Alerta Móvil" ? "Patrullaje y Proximidad" : role.nombre}
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                {data.roles.length === 0 && (
+                                                    <p className="text-sm text-red-600 dark:text-red-400 mt-2">
+                                                        Debes crear al menos un rol antes de añadir empleados
+                                                    </p>
+                                                )}
+                                            </div>
+
+                                            {/* Crear/Vincular Usuario */}
+                                            <div className="border-t pt-4">
+                                                <div className="flex items-center space-x-2 mb-4">
+                                                    <Checkbox
+                                                        id="create-user-checkbox"
+                                                        checked={createUserForNewEmployee}
+                                                        onCheckedChange={(checked) => setCreateUserForNewEmployee(checked === true)}
+                                                    />
+                                                    <Label htmlFor="create-user-checkbox" className="cursor-pointer text-lg font-semibold">
+                                                        Crear cuenta de usuario para este empleado
+                                                    </Label>
+                                                </div>
+
+                                                {createUserForNewEmployee && (
+                                                    <div className="ml-6 space-y-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            <div>
+                                                                <Label htmlFor="new-user-name">Nombre de Usuario *</Label>
+                                                                <Input
+                                                                    id="new-user-name"
+                                                                    value={newEmployeeUserData.name}
+                                                                    readOnly
+                                                                    className="mt-1 bg-gray-100 dark:bg-gray-700 cursor-not-allowed"
+                                                                    placeholder="Se genera automáticamente"
+                                                                />
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    Generado automáticamente desde nombre y apellido paterno
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="new-user-email">Email *</Label>
+                                                                <div className="flex gap-2 mt-1">
+                                                                    <Input
+                                                                        id="new-user-email"
+                                                                        type="email"
+                                                                        value={newEmployeeUserData.email.split('@')[0] || ''}
+                                                                        onChange={(e) => {
+                                                                            const localPart = e.target.value.toLowerCase().replace(/\s+/g, '');
+                                                                            const domain = isCustomDomain && customDomain ? customDomain : emailDomain;
+                                                                            setNewEmployeeUserData(prev => ({ 
+                                                                                ...prev, 
+                                                                                email: `${localPart}${domain}`
+                                                                            }));
+                                                                        }}
+                                                                        placeholder="nombre.apellido"
+                                                                        className="flex-1"
+                                                                    />
+                                                                    <select
+                                                                        value={isCustomDomain ? 'other' : emailDomain}
+                                                                        onChange={(e) => {
+                                                                            const value = e.target.value;
+                                                                            if (value === 'other') {
+                                                                                setIsCustomDomain(true);
+                                                                                setCustomDomain('');
+                                                                            } else {
+                                                                                setIsCustomDomain(false);
+                                                                                setEmailDomain(value);
+                                                                                const localPart = newEmployeeUserData.email.split('@')[0] || '';
+                                                                                setNewEmployeeUserData(prev => ({ 
+                                                                                    ...prev, 
+                                                                                    email: `${localPart}${value}`
+                                                                                }));
+                                                                            }
+                                                                        }}
+                                                                        className="px-3 py-2 border border-gray-300 rounded-md dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                                                                    >
+                                                                        <option value="@amzoma.cl">@amzoma.cl</option>
+                                                                        <option value="@temuco.cl">@temuco.cl</option>
+                                                                        <option value="@gmail.com">@gmail.com</option>
+                                                                        <option value="@outlook.com">@outlook.com</option>
+                                                                        <option value="other">Otro</option>
+                                                                    </select>
+                                                                </div>
+                                                                {isCustomDomain && (
+                                                                    <div className="mt-2">
+                                                                        <Input
+                                                                            type="text"
+                                                                            value={customDomain}
+                                                                            onChange={(e) => {
+                                                                                let domain = e.target.value.trim();
+                                                                                if (domain && !domain.startsWith('@')) {
+                                                                                    domain = '@' + domain;
+                                                                                }
+                                                                                setCustomDomain(domain);
+                                                                                const localPart = newEmployeeUserData.email.split('@')[0] || '';
+                                                                                setNewEmployeeUserData(prev => ({ 
+                                                                                    ...prev, 
+                                                                                    email: `${localPart}${domain || '@'}`
+                                                                                }));
+                                                                            }}
+                                                                            placeholder="@ejemplo.com"
+                                                                            className="w-full"
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                    Formato: nombre.apellido_paterno@dominio
+                                                                </p>
+                                                            </div>
+                                                            <div>
+                                                                <Label htmlFor="new-user-password">Contraseña *</Label>
+                                                                <div className="relative mt-1">
+                                                                    <Input
+                                                                        id="new-user-password"
+                                                                        type={showPassword ? "text" : "password"}
+                                                                        value={newEmployeeUserData.password}
+                                                                        onChange={(e) => setNewEmployeeUserData(prev => ({ ...prev, password: e.target.value }))}
+                                                                        placeholder="Mínimo 8 caracteres"
+                                                                        className="pr-10"
+                                                                    />
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setShowPassword(!showPassword)}
+                                                                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                                                                    >
+                                                                        {showPassword ? (
+                                                                            <EyeOff className="h-4 w-4" />
+                                                                        ) : (
+                                                                            <Eye className="h-4 w-4" />
+                                                                        )}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <Label>Rol del Usuario</Label>
+                                                                <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                                                                    <div className="flex items-center space-x-2">
+                                                                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                                                            usuario
+                                                                        </Badge>
+                                                                        <span className="text-sm text-gray-600 dark:text-gray-400">
+                                                                            (Asignado automáticamente)
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                                                    Todos los empleados tienen el rol "usuario" por defecto
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Botones */}
+                                            <div className="flex gap-2 pt-4 border-t">
+                                                <Button
+                                                    onClick={() => createEmployee(newEmployeeData)}
+                                                    disabled={!newEmployeeData.rol_id || data.roles.length === 0}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <Save className="h-4 w-4" />
+                                                    Guardar Empleado
+                                                </Button>
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setIsCreatingEmployee(false);
+                                                        setCreateUserForNewEmployee(false);
+                                                        setShowPassword(false);
+                                                        setEmailDomain('@amzoma.cl');
+                                                        setCustomDomain('');
+                                                        setIsCustomDomain(false);
+                                                        setNewEmployeeData({ 
+                                                            rol_id: data.roles[0]?.id || undefined,
+                                                            amzoma: false,
+                                                            status: 'activo'
+                                                        });
+                                                        setNewEmployeeUserData({
+                                                            name: '',
+                                                            email: '',
+                                                            password: '',
+                                                            roles: ['usuario']
+                                                        });
+                                                    }}
+                                                    className="flex items-center gap-2"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                    Cancelar
+                                                </Button>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                )}
+
                                 {/* Buscador */}
                                 <div className="mb-6">
                                     <div className="relative">
@@ -1660,7 +2254,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                         </CardDescription>
                                     </div>
                                     <Button
-                                        onClick={loadMissingData}
+                                        onClick={() => loadMissingData(true)}
                                         variant="outline"
                                         className="flex items-center gap-2"
                                         disabled={loadingMissingData}
@@ -1801,54 +2395,162 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                 </div>
                                             ) : (
                                                 filteredMissingDataEmployees.map((employee) => (
-                                                    <Card key={employee.id} className="border-l-4" style={{ borderLeftColor: employee.missing_fields.length > 1 ? '#ef4444' : '#f59e0b' }}>
-                                                        <CardContent className="pt-4 pb-4">
-                                                            <div className="flex items-start justify-between">
-                                                                <div className="flex-1">
-                                                                    <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
-                                                                        {employee.name}
-                                                                    </h3>
-                                                                    <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                                                                        {employee.rut && <span>RUT: {employee.rut}</span>}
-                                                                        {employee.phone && (
-                                                                            <>
-                                                                                {employee.rut && <span>•</span>}
-                                                                                <span>Tel: {employee.phone}</span>
-                                                                            </>
-                                                                        )}
-                                                                        {employee.email && (
-                                                                            <>
-                                                                                {(employee.rut || employee.phone) && <span>•</span>}
-                                                                                <span>Email: {employee.email}</span>
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                    <div className="flex flex-wrap items-center gap-2">
-                                                                        <Badge variant="outline" className="text-xs">
-                                                                            {employee.rol_nombre}
-                                                                        </Badge>
-                                                                                                                                    <Badge variant="secondary" className="text-xs">
-                                                                {employee.amzoma ? 'Amzoma' : 'Municipal'}
-                                                            </Badge>
-                                                                        <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="ml-4">
-                                                                    <div className="flex flex-col gap-1">
-                                                                        {employee.missing_fields.map((field) => (
-                                                                            <Badge
-                                                                                key={field}
-                                                                                variant="outline"
-                                                                                className="text-xs text-red-600 border-red-300 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
-                                                                            >
-                                                                                {getMissingFieldIcon(field)} Falta {getMissingFieldLabel(field)}
+                                                    <div key={employee.id}>
+                                                        <Card 
+                                                            className={`border-l-4 cursor-pointer transition-all hover:shadow-md ${selectedEmployeeForCompletion?.id === employee.id ? 'ring-2 ring-blue-500' : ''}`}
+                                                            style={{ borderLeftColor: employee.missing_fields.length > 1 ? '#ef4444' : '#f59e0b' }}
+                                                            onClick={() => openCompletionForm(employee)}
+                                                        >
+                                                            <CardContent className="pt-4 pb-4">
+                                                                <div className="flex items-start justify-between">
+                                                                    <div className="flex-1">
+                                                                        <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                                                                            {employee.name}
+                                                                        </h3>
+                                                                        <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400 mb-2">
+                                                                            {employee.rut && <span>RUT: {employee.rut}</span>}
+                                                                            {employee.phone && (
+                                                                                <>
+                                                                                    {employee.rut && <span>•</span>}
+                                                                                    <span>Tel: {employee.phone}</span>
+                                                                                </>
+                                                                            )}
+                                                                            {employee.email && (
+                                                                                <>
+                                                                                    {(employee.rut || employee.phone) && <span>•</span>}
+                                                                                    <span>Email: {employee.email}</span>
+                                                                                </>
+                                                                            )}
+                                                                        </div>
+                                                                        <div className="flex flex-wrap items-center gap-2">
+                                                                            <Badge variant="outline" className="text-xs">
+                                                                                {employee.rol_nombre}
                                                                             </Badge>
-                                                                        ))}
+                                                                            <Badge variant="secondary" className="text-xs">
+                                                                                {employee.amzoma ? 'Amzoma' : 'Municipal'}
+                                                                            </Badge>
+                                                                            <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="ml-4">
+                                                                        <div className="flex flex-col gap-1">
+                                                                            {employee.missing_fields.map((field) => (
+                                                                                <Badge
+                                                                                    key={field}
+                                                                                    variant="outline"
+                                                                                    className="text-xs text-red-600 border-red-300 bg-red-50 dark:bg-red-900/20 dark:text-red-300 dark:border-red-700"
+                                                                                >
+                                                                                    {getMissingFieldIcon(field)} Falta {getMissingFieldLabel(field)}
+                                                                                </Badge>
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
                                                                 </div>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
+                                                            </CardContent>
+                                                        </Card>
+
+                                                        {/* Formulario de completar datos */}
+                                                        {selectedEmployeeForCompletion?.id === employee.id && (
+                                                            <Card className="mt-2 border-2 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-900/20">
+                                                                <CardHeader>
+                                                                    <CardTitle className="text-lg flex items-center justify-between">
+                                                                        <span>Completar Datos Faltantes</span>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="sm"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                closeCompletionForm();
+                                                                            }}
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </CardTitle>
+                                                                    <CardDescription>
+                                                                        Completa solo los campos que faltan para este funcionario
+                                                                    </CardDescription>
+                                                                </CardHeader>
+                                                                <CardContent className="space-y-4">
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                        {employee.missing_fields.includes('rut') && (
+                                                                            <div>
+                                                                                <Label htmlFor={`completion-rut-${employee.id}`}>RUT *</Label>
+                                                                                <Input
+                                                                                    id={`completion-rut-${employee.id}`}
+                                                                                    value={completionFormData.rut || ''}
+                                                                                    onChange={(e) => setCompletionFormData(prev => ({ ...prev, rut: e.target.value }))}
+                                                                                    placeholder="12.345.678-9"
+                                                                                    className="mt-1"
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                        {employee.missing_fields.includes('phone') && (
+                                                                            <div>
+                                                                                <Label htmlFor={`completion-phone-${employee.id}`}>Teléfono *</Label>
+                                                                                <Input
+                                                                                    id={`completion-phone-${employee.id}`}
+                                                                                    value={completionFormData.phone || '+569'}
+                                                                                    onChange={(e) => {
+                                                                                        let value = e.target.value.replace(/\s+/g, '');
+                                                                                        if (!value.startsWith('+569')) {
+                                                                                            value = '+569' + value.replace(/^\+?56?9?/, '');
+                                                                                        }
+                                                                                        setCompletionFormData(prev => ({ ...prev, phone: value }));
+                                                                                    }}
+                                                                                    placeholder="+569XXXXXXXX"
+                                                                                    className="mt-1"
+                                                                                />
+                                                                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                                                                    Todos los teléfonos deben comenzar con +569
+                                                                                </p>
+                                                                            </div>
+                                                                        )}
+                                                                        {employee.missing_fields.includes('email') && (
+                                                                            <div>
+                                                                                <Label htmlFor={`completion-email-${employee.id}`}>Email *</Label>
+                                                                                <Input
+                                                                                    id={`completion-email-${employee.id}`}
+                                                                                    type="email"
+                                                                                    value={completionFormData.email || ''}
+                                                                                    onChange={(e) => setCompletionFormData(prev => ({ ...prev, email: e.target.value }))}
+                                                                                    placeholder="email@ejemplo.com"
+                                                                                    className="mt-1"
+                                                                                />
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex gap-2 pt-2 border-t">
+                                                                        <Button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                saveCompletionData(employee.id);
+                                                                            }}
+                                                                            disabled={loadingCompletion}
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            {loadingCompletion ? (
+                                                                                <RefreshCw className="h-4 w-4 animate-spin" />
+                                                                            ) : (
+                                                                                <Save className="h-4 w-4" />
+                                                                            )}
+                                                                            Guardar Datos
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                closeCompletionForm();
+                                                                            }}
+                                                                            className="flex items-center gap-2"
+                                                                        >
+                                                                            <X className="h-4 w-4" />
+                                                                            Cancelar
+                                                                        </Button>
+                                                                    </div>
+                                                                </CardContent>
+                                                            </Card>
+                                                        )}
+                                                    </div>
                                                 ))
                                             )}
                                         </div>

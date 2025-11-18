@@ -16,6 +16,52 @@ class EmployeeCrudService
     }
 
     /**
+     * Crear empleado
+     */
+    public function createEmployee(array $data): array
+    {
+        try {
+            // Construir el nombre completo si se proporcionan los componentes
+            if (isset($data['first_name']) || isset($data['paternal_lastname']) || isset($data['maternal_lastname'])) {
+                $nameParts = array_filter([
+                    $data['first_name'] ?? '',
+                    $data['paternal_lastname'] ?? '',
+                    $data['maternal_lastname'] ?? ''
+                ]);
+                $data['name'] = implode(' ', $nameParts);
+            }
+
+            // Si no se proporciona nombre completo ni componentes, usar un valor por defecto
+            if (empty($data['name'])) {
+                $data['name'] = 'Sin nombre';
+            }
+
+            $employee = Employees::create($data);
+
+            Log::info('Employee created successfully', [
+                'employee_id' => $employee->id,
+                'created_by' => auth()->id() ?? 'unknown',
+                'data' => $data
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Empleado creado correctamente',
+                'data' => $employee->load('rol'),
+                'status' => 201
+            ];
+
+        } catch (\Exception $e) {
+            Log::error('Error creating employee: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al crear empleado: ' . $e->getMessage(),
+                'status' => 500
+            ];
+        }
+    }
+
+    /**
      * Actualizar empleado
      */
     public function updateEmployee(int $id, array $data): array
@@ -50,14 +96,14 @@ class EmployeeCrudService
     /**
      * Validar datos de empleado
      */
-    public function validateEmployeeData(array $data): array
+    public function validateEmployeeData(array $data, bool $isCreate = false): array
     {
         $rules = [
             'name'              => 'nullable|string|max:255',
             'first_name'        => 'nullable|string|max:255',
             'paternal_lastname' => 'nullable|string|max:255',
             'maternal_lastname' => 'nullable|string|max:255',
-            'rut'               => 'nullable|string|max:20',
+            'rut'               => 'nullable|string|max:20' . ($isCreate ? '|unique:employees,rut' : ''),
             'phone'             => 'nullable|string|max:20',
             'email'             => 'nullable|email|max:255',
             'address'           => 'nullable|string',
@@ -65,7 +111,8 @@ class EmployeeCrudService
             'department'        => 'nullable|string|max:255',
             'start_date'        => 'nullable|date',
             'status'            => 'nullable|in:activo,inactivo,vacaciones,licencia',
-            'rol_id'            => 'nullable|integer|exists:rols,id',
+            'amzoma'            => 'nullable|boolean',
+            'rol_id'            => ($isCreate ? 'required' : 'nullable') . '|integer|exists:rols,id',
         ];
 
         $validator = validator($data, $rules);

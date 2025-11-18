@@ -168,17 +168,81 @@ class PlatformDataController extends Controller
     }
 
     /**
+     * Crear empleado
+     */
+    public function storeEmployee(Request $request)
+    {
+        try {
+            // Separar datos del empleado de los datos del usuario
+            $employeeData = $request->except(['user_name', 'user_email', 'user_password', 'user_roles', 'create_user']);
+            $createUser = $request->boolean('create_user', false);
+            $userData = null;
+
+            if ($createUser) {
+                $request->validate([
+                    'user_name' => 'required|string|max:255',
+                    'user_email' => 'required|email|max:255|unique:users,email',
+                    'user_password' => 'required|string|min:8',
+                    'user_roles' => 'required|array|min:1',
+                    'user_roles.*' => 'exists:roles,name'
+                ]);
+
+                $userData = [
+                    'name' => $request->user_name,
+                    'email' => $request->user_email,
+                    'password' => $request->user_password,
+                    'roles' => $request->user_roles
+                ];
+            }
+
+            // Validar datos del empleado
+            $validation = $this->employeeCrudService->validateEmployeeData($employeeData, true);
+
+            if (!$validation['success']) {
+                return redirect()->back()->withErrors($validation['errors']);
+            }
+
+            // Crear empleado
+            $result = $this->employeeCrudService->createEmployee($validation['data']);
+
+            if (!$result['success']) {
+                return redirect()->back()->withErrors(['error' => $result['message']]);
+            }
+
+            $employeeId = $result['data']->id;
+
+            // Crear usuario si se solicitó
+            if ($createUser && $userData) {
+                $userResult = $this->employeeLinkingService->createUserForEmployee($employeeId, $userData);
+                if (!$userResult['success']) {
+                    Log::warning('Employee created but user creation failed', [
+                        'employee_id' => $employeeId,
+                        'error' => $userResult['message']
+                    ]);
+                    return redirect()->back()->with('success', 'Empleado creado correctamente, pero hubo un error al crear el usuario: ' . $userResult['message']);
+                }
+            }
+
+            return redirect()->back()->with('success', $createUser && $userData ? 'Empleado y usuario creados correctamente' : $result['message']);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating employee: ' . $e->getMessage());
+            return redirect()->back()->withErrors(['error' => 'Error al crear empleado: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
      * Actualizar empleado
      */
     public function updateEmployee(Request $request, $id)
     {
         try {
             // Validar datos
-            $validation = $this->employeeCrudService->validateEmployeeData($request->all());
+            $validation = $this->employeeCrudService->validateEmployeeData($request->all(), false);
 
-                    if (!$validation['success']) {
-            return redirect()->back()->withErrors($validation['errors']);
-        }
+            if (!$validation['success']) {
+                return redirect()->back()->withErrors($validation['errors']);
+            }
 
             $result = $this->employeeCrudService->updateEmployee($id, $validation['data']);
 

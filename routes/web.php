@@ -226,6 +226,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
             // Rutas específicas primero (antes de las rutas con parámetros)
             Route::get('/missing-data', [PlatformDataController::class, 'getMissingData'])->name('missing-data');
             Route::get('/unlinked', [PlatformDataController::class, 'getLinkingData'])->name('unlinked');
+            
+            // Ruta para crear empleado (debe ir antes de las rutas con parámetros)
+            Route::post('/', [PlatformDataController::class, 'storeEmployee'])->name('store');
 
             // Rutas con parámetros al final
             Route::get('/{id}', [PlatformDataController::class, 'getEmployee'])->name('show');
