@@ -177,7 +177,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
     const [isCreatingEmployee, setIsCreatingEmployee] = useState(false);
     const [newEmployeeData, setNewEmployeeData] = useState<Partial<Empleado>>({
         rol_id: data.roles[0]?.id || undefined,
-        amzoma: false,
+        amzoma: true,
         status: 'activo'
     });
     const [createUserForNewEmployee, setCreateUserForNewEmployee] = useState(false);
@@ -394,7 +394,7 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                 setIsCustomDomain(false);
                 setNewEmployeeData({
                     rol_id: data.roles[0]?.id || undefined,
-                    amzoma: false,
+                    amzoma: true,
                     status: 'activo'
                 });
                 setNewEmployeeUserData({
@@ -1804,6 +1804,12 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                     {employee.status}
                                                                 </Badge>
                                                             )}
+                                                            <Badge
+                                                                variant={employee.amzoma ? "default" : "outline"}
+                                                                className={`text-xs ${employee.amzoma ? 'bg-green-500 text-white border-green-500' : 'text-gray-600 border-gray-300'}`}
+                                                            >
+                                                                {employee.amzoma ? 'Amzoma' : 'No Amzoma'}
+                                                            </Badge>
                                                             <span className="text-xs text-gray-400 dark:text-gray-500">ID: {employee.id}</span>
                                                         </div>
                                                         {(employee.department || employee.start_date) && (
@@ -1951,6 +1957,16 @@ export default function PlatformData({ roles, empleados }: { roles: Rol[], emple
                                                                         <option value="licencia">Licencia</option>
                                                                         <option value="desvinculado">Desvinculado</option>
                                                                     </select>
+                                                                </div>
+                                                                <div className="flex items-center space-x-2 pt-6">
+                                                                    <Checkbox
+                                                                        id={`employee-amzoma-${employee.id}`}
+                                                                        checked={editingEmployeeData.amzoma ?? true}
+                                                                        onCheckedChange={(checked) => setEditingEmployeeData(prev => ({ ...prev, amzoma: checked === true }))}
+                                                                    />
+                                                                    <Label htmlFor={`employee-amzoma-${employee.id}`} className="cursor-pointer">
+                                                                        Es AMZOMA
+                                                                    </Label>
                                                                 </div>
                                                             </div>
                                                         </div>

@@ -36,6 +36,11 @@ class EmployeeCrudService
                 $data['name'] = 'Sin nombre';
             }
 
+            // Establecer amzoma en true por defecto si no se proporciona
+            if (!isset($data['amzoma'])) {
+                $data['amzoma'] = true;
+            }
+
             $employee = Employees::create($data);
 
             Log::info('Employee created successfully', [
