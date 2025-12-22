@@ -244,21 +244,25 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className="space-y-3">
-                        {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                        {/* Turnos Mañana, Tarde, Noche - Ordenados: M, T, N */}
+                        {(['M', 'T', 'N'] as const)
+                            .filter((turno) => turnosMañanaTardeNoche[turno] && turnosMañanaTardeNoche[turno].employees.length > 0)
+                            .map((turno) => {
+                                const data = turnosMañanaTardeNoche[turno];
+                                return (
                                     <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                ),
-                        )}
+                                );
+                            })}
 
-                        {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                        {/* Turnos Numéricos - Ordenados: 1, 2, 3 */}
+                        {(['1', '2', '3'] as const)
+                            .filter((turno) => turnosNumericos[turno] && turnosNumericos[turno].employees.length > 0)
+                            .map((turno) => {
+                                const data = turnosNumericos[turno];
+                                return (
                                     <TurnoSection key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                ),
-                        )}
+                                );
+                            })}
                     </div>
                 )}
             </CardContent>
@@ -305,21 +309,25 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className="space-y-3">
-                        {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                        {/* Turnos Mañana, Tarde, Noche - Ordenados: M, T, N */}
+                        {(['M', 'T', 'N'] as const)
+                            .filter((turno) => turnosMañanaTardeNoche[turno] && turnosMañanaTardeNoche[turno].employees.length > 0)
+                            .map((turno) => {
+                                const data = turnosMañanaTardeNoche[turno];
+                                return (
                                     <TurnoSectionWithIndicator key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                ),
-                        )}
+                                );
+                            })}
 
-                        {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(
-                            ([turno, data]) =>
-                                data.employees.length > 0 && (
+                        {/* Turnos Numéricos - Ordenados: 1, 2, 3 */}
+                        {(['1', '2', '3'] as const)
+                            .filter((turno) => turnosNumericos[turno] && turnosNumericos[turno].employees.length > 0)
+                            .map((turno) => {
+                                const data = turnosNumericos[turno];
+                                return (
                                     <TurnoSectionWithIndicator key={turno} title={`${data.emoji} ${data.label}`} employees={data.employees} showAll={showAll} />
-                                ),
-                        )}
+                                );
+                            })}
                     </div>
                 )}
             </CardContent>

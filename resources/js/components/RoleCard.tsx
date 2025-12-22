@@ -118,11 +118,11 @@ export function RoleCard({ roleId, roleName, roleColor, employees, compact = fal
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className={`${compact ? "space-y-2" : "space-y-3"}`}>
-                        {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(
-                            ([turno, data]) => {
-                                if (data.allEmployees.length === 0) return null;
-
+                        {/* Turnos Mañana, Tarde, Noche - Ordenados: M, T, N */}
+                        {(['M', 'T', 'N'] as const)
+                            .filter((turno) => turnosMañanaTardeNoche[turno] && turnosMañanaTardeNoche[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosMañanaTardeNoche[turno];
                                 return (
                                     <div key={turno} className={`${compact ? "space-y-1" : "space-y-2"}`}>
                                         <h5
@@ -161,14 +161,13 @@ export function RoleCard({ roleId, roleName, roleColor, employees, compact = fal
                                         </div>
                                     </div>
                                 );
-                            }
-                        )}
+                            })}
 
-                        {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(
-                            ([turno, data]) => {
-                                if (data.allEmployees.length === 0) return null;
-
+                        {/* Turnos Numéricos - Ordenados: 1, 2, 3 */}
+                        {(['1', '2', '3'] as const)
+                            .filter((turno) => turnosNumericos[turno] && turnosNumericos[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosNumericos[turno];
                                 return (
                                     <div key={turno} className={`${compact ? "space-y-1" : "space-y-2"}`}>
                                         <h5
@@ -207,8 +206,7 @@ export function RoleCard({ roleId, roleName, roleColor, employees, compact = fal
                                         </div>
                                     </div>
                                 );
-                            }
-                        )}
+                            })}
                     </div>
                 )}
             </CardContent>

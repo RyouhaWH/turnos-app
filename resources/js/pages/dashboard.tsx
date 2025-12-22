@@ -321,35 +321,37 @@ function RoleColumn({ roleId, roleName, employees, roleColor }: RoleColumnProps)
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className="space-y-3">
-                        {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(([turno, data]) => {
-                            if (data.allEmployees.length === 0) return null;
+                        {/* Turnos Mañana, Tarde, Noche - Ordenados: M, T, N */}
+                        {(['M', 'T', 'N'] as const)
+                            .filter((turno) => turnosMañanaTardeNoche[turno] && turnosMañanaTardeNoche[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosMañanaTardeNoche[turno];
+                                return (
+                                    <TurnoSection
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            })}
 
-                            return (
-                                <TurnoSection
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.allEmployees}
-                                    showAll={showAll}
-                                    roleColor={roleColor}
-                                />
-                            );
-                        })}
-
-                        {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(([turno, data]) => {
-                            if (data.allEmployees.length === 0) return null;
-
-                            return (
-                                <TurnoSection
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.allEmployees}
-                                    showAll={showAll}
-                                    roleColor={roleColor}
-                                />
-                            );
-                        })}
+                        {/* Turnos Numéricos - Ordenados: 1, 2, 3 */}
+                        {(['1', '2', '3'] as const)
+                            .filter((turno) => turnosNumericos[turno] && turnosNumericos[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosNumericos[turno];
+                                return (
+                                    <TurnoSection
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            })}
                     </div>
                 )}
             </CardContent>
@@ -389,35 +391,37 @@ function AlertaMovilColumn({ roleId, roleName, employees, roleColor }: RoleColum
                     <p className="text-xs text-muted-foreground italic">Sin personal trabajando</p>
                 ) : (
                     <div className="space-y-3">
-                        {/* Turnos Mañana, Tarde, Noche */}
-                        {Object.entries(turnosMañanaTardeNoche).map(([turno, data]) => {
-                            if (data.allEmployees.length === 0) return null;
+                        {/* Turnos Mañana, Tarde, Noche - Ordenados: M, T, N */}
+                        {(['M', 'T', 'N'] as const)
+                            .filter((turno) => turnosMañanaTardeNoche[turno] && turnosMañanaTardeNoche[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosMañanaTardeNoche[turno];
+                                return (
+                                    <TurnoSectionWithIndicator
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            })}
 
-                            return (
-                                <TurnoSectionWithIndicator
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.allEmployees}
-                                    showAll={showAll}
-                                    roleColor={roleColor}
-                                />
-                            );
-                        })}
-
-                        {/* Turnos Numéricos */}
-                        {Object.entries(turnosNumericos).map(([turno, data]) => {
-                            if (data.allEmployees.length === 0) return null;
-
-                            return (
-                                <TurnoSectionWithIndicator
-                                    key={turno}
-                                    title={`${data.emoji} ${data.label}`}
-                                    employees={data.allEmployees}
-                                    showAll={showAll}
-                                    roleColor={roleColor}
-                                />
-                            );
-                        })}
+                        {/* Turnos Numéricos - Ordenados: 1, 2, 3 */}
+                        {(['1', '2', '3'] as const)
+                            .filter((turno) => turnosNumericos[turno] && turnosNumericos[turno].allEmployees.length > 0)
+                            .map((turno) => {
+                                const data = turnosNumericos[turno];
+                                return (
+                                    <TurnoSectionWithIndicator
+                                        key={turno}
+                                        title={`${data.emoji} ${data.label}`}
+                                        employees={data.allEmployees}
+                                        showAll={showAll}
+                                        roleColor={roleColor}
+                                    />
+                                );
+                            })}
                     </div>
                 )}
             </CardContent>
