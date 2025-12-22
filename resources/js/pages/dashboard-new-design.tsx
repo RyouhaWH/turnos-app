@@ -782,34 +782,34 @@ export default function DashboardV2() {
                         </CardContent>
                     </Card>
 
-                            {/* Coordinador Despacho - Todos los turnos */}
+                            {/* Despachadores - Todos los turnos */}
                             <Card className="bg-indigo-50 dark:bg-indigo-900/20 border-indigo-200 dark:border-indigo-700/30">
                                 <CardContent className="p-4">
                                     <div className="flex items-center gap-2 mb-3">
                                         <UserCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-300" />
                                 <div>
-                                            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Coordinador Despacho</p>
+                                            <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-200">Despachadores</p>
                                             <p className="text-xs text-indigo-600 dark:text-indigo-300">Todos los turnos</p>
                                         </div>
                                     </div>
                                     <div className="grid grid-cols-3 gap-2 mb-3">
                                         <div className="text-center">
                                             <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '1').length}
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && (emp.shift === '1' || emp.shift === 'M')).length}
                                             </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">1er Turno</p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">Mañana</p>
                                         </div>
                                         <div className="text-center">
                                             <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '2').length}
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && (emp.shift === '2' || emp.shift === 'T')).length}
                                             </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">2do Turno</p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">Tarde</p>
                                         </div>
                                         <div className="text-center">
                                             <p className="text-lg font-bold text-indigo-700 dark:text-indigo-200">
-                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && emp.shift === '3').length}
+                                                {employeeStatus.trabajando.filter(emp => emp.rol_id === 8 && (emp.shift === '3' || emp.shift === 'N')).length}
                                             </p>
-                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">3er Turno</p>
+                                            <p className="text-xs text-indigo-600 dark:text-indigo-300">Noche</p>
                                 </div>
                             </div>
                                     <div className="text-center pt-3 border-t border-indigo-200 dark:border-indigo-700/30">

@@ -1127,12 +1127,12 @@ export default function DashboardV2() {
 
                                         // Determinar los turnos según el rol
                                         const getShiftsForRole = (roleId: number) => {
-                                            if (roleId === 1) {
-                                                // Alerta Móvil/Patrullaje usa M, T, N
+                                            if (roleId === 1 || roleId === 8) {
+                                                // Alerta Móvil/Patrullaje y Despachadores usan M, T, N
                                                 return [
-                                                    { shift: 'M', label: 'Mañana' },
-                                                    { shift: 'T', label: 'Tarde' },
-                                                    { shift: 'N', label: 'Noche' },
+                                                    { shift: 'M', label: 'Mañana', altShift: '1' },
+                                                    { shift: 'T', label: 'Tarde', altShift: '2' },
+                                                    { shift: 'N', label: 'Noche', altShift: '3' },
                                                 ];
                                             } else {
                                                 // Otros roles usan 1, 2, 3
@@ -1163,7 +1163,8 @@ export default function DashboardV2() {
                                                                 <p className="text-lg font-bold">
                                                                     {
                                                                         employeeStatus.trabajando.filter(
-                                                                            (emp) => emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift,
+                                                                            (emp) => emp.rol_id === roleIdNum && 
+                                                                            (emp.shift === shiftInfo.shift || (shiftInfo.altShift && emp.shift === shiftInfo.altShift)),
                                                                         ).length
                                                                     }
                                                                 </p>
@@ -1217,12 +1218,12 @@ export default function DashboardV2() {
 
                                     // Determinar los turnos según el rol
                                     const getShiftsForRole = (roleId: number) => {
-                                        if (roleId === 1) {
-                                            // Alerta Móvil/Patrullaje usa M, T, N
+                                        if (roleId === 1 || roleId === 8) {
+                                            // Alerta Móvil/Patrullaje y Despachadores usan M, T, N
                                             return [
-                                                { shift: 'M', label: 'Mañana' },
-                                                { shift: 'T', label: 'Tarde' },
-                                                { shift: 'N', label: 'Noche' },
+                                                { shift: 'M', label: 'Mañana', altShift: '1' },
+                                                { shift: 'T', label: 'Tarde', altShift: '2' },
+                                                { shift: 'N', label: 'Noche', altShift: '3' },
                                             ];
                                         } else {
                                             // Otros roles usan 1, 2, 3
@@ -1256,7 +1257,8 @@ export default function DashboardV2() {
                                                         <p className="text-base font-bold">
                                                             {
                                                                 employeeStatus.trabajando.filter(
-                                                                    (emp) => emp.rol_id === roleIdNum && emp.shift === shiftInfo.shift,
+                                                                    (emp) => emp.rol_id === roleIdNum && 
+                                                                    (emp.shift === shiftInfo.shift || (shiftInfo.altShift && emp.shift === shiftInfo.altShift)),
                                                                 ).length
                                                             }
                                                         </p>
