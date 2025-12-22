@@ -1141,6 +1141,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         selected={tempRangeStart as any}
                                                         defaultMonth={(tempRangeStart as any) || selectedDate}
                                                         captionLayout="dropdown"
+                                                        fromYear={2020}
+                                                        toYear={2030}
                                                         onSelect={(d: any) => {
                                                             if (!d) return;
                                                             setTempRangeStart(d);
@@ -1157,6 +1159,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         selected={tempRangeEnd as any}
                                                         defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
                                                         captionLayout="dropdown"
+                                                        fromYear={2020}
+                                                        toYear={2030}
                                                         onSelect={(d: any) => {
                                                             if (!d) return;
                                                             setTempRangeEnd(d);
@@ -2432,6 +2436,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             selected={tempRangeStart as any}
                             defaultMonth={tempRangeStart as any || selectedDate}
                             captionLayout="dropdown"
+                            fromYear={2020}
+                            toYear={2030}
                             onSelect={(d) => {
                                 setTempRangeStart(d || null);
                                 setShowStartDatePopup(false);
@@ -2454,6 +2460,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                             selected={tempRangeEnd as any}
                             defaultMonth={tempRangeEnd as any || tempRangeStart as any || selectedDate}
                             captionLayout="dropdown"
+                            fromYear={2020}
+                            toYear={2030}
                             onSelect={(d) => {
                                 setTempRangeEnd(d || null);
                                 setShowEndDatePopup(false);
