@@ -460,28 +460,16 @@ function TurnoSectionWithIndicator({ title, employees, showAll, roleColor = '#3B
             </h5>
             <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
                 {displayEmployees.map((employee) => (
-                    <div key={employee.id} className="flex items-center justify-between gap-2 rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50">
-                        <div className="flex items-center gap-1">
-                            <span className="truncate text-xs font-medium">{employee.name}</span>
-                            {employee.is_extra && (
-                                <Badge
-                                    variant="outline"
-                                    className="border-orange-300 bg-orange-100 px-1 py-0 text-xs text-orange-700 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-300"
-                                >
-                                    EX
-                                </Badge>
-                            )}
-                        </div>
-                        <Badge
-                            variant="outline"
-                            className={`flex-shrink-0 px-1 py-0 text-xs ${
-                                Boolean(employee.amzoma)
-                                    ? 'border-red-300 bg-red-100 text-red-700 dark:border-red-700/50 dark:bg-red-900/30 dark:text-red-300'
-                                    : 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700/50 dark:bg-blue-900/30 dark:text-blue-300'
-                            }`}
-                        >
-                            {Boolean(employee.amzoma) ? 'AMZ' : 'MUN'}
-                        </Badge>
+                    <div key={employee.id} className="flex items-center justify-center gap-1 rounded-md bg-white/50 p-1.5 dark:bg-slate-800/50">
+                        <span className="truncate text-xs font-medium">{employee.name}</span>
+                        {employee.is_extra && (
+                            <Badge
+                                variant="outline"
+                                className="border-orange-300 bg-orange-100 px-1 py-0 text-xs text-orange-700 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-300"
+                            >
+                                EX
+                            </Badge>
+                        )}
                     </div>
                 ))}
                 {!showAll && employees.length > 4 && (
@@ -1167,7 +1155,7 @@ export default function DashboardV2() {
                                                                 <p className="text-lg font-bold">
                                                                     {
                                                                         employeeStatus.trabajando.filter(
-                                                                            (emp) => emp.rol_id === roleIdNum && 
+                                                                            (emp) => emp.rol_id === roleIdNum &&
                                                                             (emp.shift === shiftInfo.shift || (shiftInfo.altShift && emp.shift === shiftInfo.altShift)),
                                                                         ).length
                                                                     }
@@ -1261,7 +1249,7 @@ export default function DashboardV2() {
                                                         <p className="text-base font-bold">
                                                             {
                                                                 employeeStatus.trabajando.filter(
-                                                                    (emp) => emp.rol_id === roleIdNum && 
+                                                                    (emp) => emp.rol_id === roleIdNum &&
                                                                     (emp.shift === shiftInfo.shift || (shiftInfo.altShift && emp.shift === shiftInfo.altShift)),
                                                                 ).length
                                                             }
@@ -1336,31 +1324,18 @@ export default function DashboardV2() {
                                                                             return (
                                                                                 <div
                                                                                     key={emp.id}
-                                                                                    className="flex items-center justify-between rounded bg-white/50 p-1 text-xs dark:bg-slate-800/50"
+                                                                                    className="flex items-center justify-center gap-1 rounded bg-white/50 p-1 text-xs dark:bg-slate-800/50"
                                                                                 >
                                                                                     <span className="truncate">{fullName}</span>
-                                                                                    <div className="flex items-center gap-1">
-                                                                                        {/* Badge de empresa (AMZ/MUN) */}
+                                                                                    {/* Badge de turno extra */}
+                                                                                    {emp.shift && emp.shift.length > 1 && (
                                                                                         <Badge
                                                                                             variant="outline"
-                                                                                            className={`flex-shrink-0 px-1 py-0 text-xs ${
-                                                                                                Boolean(emp.amzoma)
-                                                                                                    ? 'border-red-300 bg-red-100 text-red-700 dark:border-red-700/50 dark:bg-red-900/30 dark:text-red-300'
-                                                                                                    : 'border-blue-300 bg-blue-100 text-blue-700 dark:border-blue-700/50 dark:bg-blue-900/30 dark:text-blue-300'
-                                                                                            }`}
+                                                                                            className="border-orange-300 bg-orange-100 px-1 py-0 text-xs text-orange-700 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-300"
                                                                                         >
-                                                                                            {Boolean(emp.amzoma) ? 'AMZ' : 'MUN'}
+                                                                                            EX
                                                                                         </Badge>
-                                                                                        {/* Badge de turno extra */}
-                                                                                        {emp.shift && emp.shift.length > 1 && (
-                                                                                            <Badge
-                                                                                                variant="outline"
-                                                                                                className="border-orange-300 bg-orange-100 px-1 py-0 text-xs text-orange-700 dark:border-orange-700/50 dark:bg-orange-900/30 dark:text-orange-300"
-                                                                                            >
-                                                                                                EX
-                                                                                            </Badge>
-                                                                                        )}
-                                                                                    </div>
+                                                                                    )}
                                                                                 </div>
                                                                             );
                                                                         })}

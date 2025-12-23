@@ -134,23 +134,16 @@ export function RoleCard({ roleId, roleName, roleColor, employees, compact = fal
                                             {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
-                                                    className={`flex items-center justify-between rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
+                                                    className={`flex items-center justify-center gap-1 rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
                                                 >
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}
                                                     </span>
-                                                    <div className="flex items-center gap-1">
-                                                        {employee.is_extra && (
-                                                            <Badge variant="outline" className="px-1 py-0 text-xs bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50">
-                                                                EX
-                                                            </Badge>
-                                                        )}
-                                                        <span
-                                                            className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
-                                                        >
-                                                            {employee.amzoma ? 'Amz' : 'Mun'}
-                                                        </span>
-                                                    </div>
+                                                    {employee.is_extra && (
+                                                        <Badge variant="outline" className="px-1 py-0 text-xs bg-orange-100 text-orange-700 border-orange-300 dark:bg-orange-900/30 dark:text-orange-300 dark:border-orange-700/50">
+                                                            EX
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             ))}
                                             {!showAll && data.allEmployees.length > 4 && (
@@ -179,23 +172,16 @@ export function RoleCard({ roleId, roleName, roleColor, employees, compact = fal
                                             {data.allEmployees.slice(0, showAll ? undefined : 4).map((employee: any) => (
                                                 <div
                                                     key={employee.id}
-                                                    className={`flex items-center justify-between rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
+                                                    className={`flex items-center justify-center gap-1 rounded-md bg-white/50 ${compact ? "p-1" : "p-1.5"} dark:bg-slate-800/50`}
                                                 >
                                                     <span className="truncate text-xs font-medium">
                                                         {getDisplayName(employee.name, employee.paternal_lastname)}
                                                     </span>
-                                                    <div className="flex items-center gap-1">
-                                                        {employee.is_extra && (
-                                                            <Badge variant="outline" className="rounded px-1 py-0 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-none">
-                                                                Extra
-                                                            </Badge>
-                                                        )}
-                                                        <span
-                                                            className={`rounded px-1 text-xs ${employee.amzoma ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800'}`}
-                                                        >
-                                                            {employee.amzoma ? 'Amz' : 'Mun'}
-                                                        </span>
-                                                    </div>
+                                                    {employee.is_extra && (
+                                                        <Badge variant="outline" className="rounded px-1 py-0 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 border-none">
+                                                            Extra
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             ))}
                                             {!showAll && data.allEmployees.length > 4 && (
