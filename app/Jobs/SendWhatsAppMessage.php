@@ -40,7 +40,7 @@ class SendWhatsAppMessage implements ShouldQueue
                 'mensaje_length' => strlen($this->mensaje)
             ]);
 
-            $response = Http::timeout(30)->post('http://localhost:3001/send-message', [
+            $response = Http::timeout(30)->post('http://localhost:3003/send-message', [
                 'mensaje' => $this->mensaje,
                 'numero'  => "56" . $this->numero,
             ]);
