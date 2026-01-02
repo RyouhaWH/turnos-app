@@ -118,18 +118,8 @@ class ShiftsUpdateController extends Controller
     {
         return [
             Employees::where('rut', '12282547-7')->first()->phone ?? '' => 'Julio Sarmiento',
-            Employees::where('rut', '10604235-7')->first()->phone ?? '' => 'Marianela Huequelef',
             Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
-            Employees::where('rut', '18984596-0')->first()->phone ?? '' => 'Javier Alvarado',
-            Employees::where('rut', '16948150-4')->first()->phone ?? '' => 'Eduardo Esparza',
-            '981841759'                                                 => 'Dayana Chávez',
             '964949887'                                                 => 'Central',
-            Employees::where('rut', '15987971-2')->first()->phone ?? '' => 'Manuel Verdugo',
-            Employees::where('rut', '12389084-1')->first()->phone ?? '' => 'Paola Carrasco',
-            Employees::where('rut', '16533970-3')->first()->phone ?? '' => 'César Soto',
-            '975952121'                                                 => 'Cristian Montecinos',
-            '985639782'                                                 => 'Informaciones Amzoma',
-            Employees::where('rut', '18198426-0')->first()->phone ?? '' => 'Jorge Waltemath',
         ];
     }
 
@@ -140,18 +130,8 @@ class ShiftsUpdateController extends Controller
     {
         // Números reales (comentados para evitar envíos accidentales)
         $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
-        $numeroMarianelaHuequelef  = Employees::where('rut', '10604235-7')->first()->phone ?? '';
         $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
-        $numeroJavierAlvarado      = Employees::where('rut', '18984596-0')->first()->phone ?? '';
-        $numeroEduardoEsparza      = Employees::where('rut', '16948150-4')->first()->phone ?? '';
-        $numeroDayanaChavez        = "981841759";
         $numeroCentral             = "964949887";
-        $numeroMunuelVerdugo       = Employees::where('rut', '15987971-2')->first()->phone ?? '';
-        $numeroPaolaCarrasco       = Employees::where('rut', '12389084-1')->first()->phone ?? '';
-        $numeroCesarSoto           = Employees::where('rut', '16533970-3')->first()->phone ?? '';
-        $numeroCristianMontecinos  = "975952121";
-        $numeroInformacionesAmzoma = "985639782";
-        $numeroJorgeWaltemath      = Employees::where('rut', '18198426-0')->first()->phone ?? '';
 
         // Número de prueba
         $testNumber = "951004035";
@@ -159,40 +139,25 @@ class ShiftsUpdateController extends Controller
         // Mapeo de IDs a números de teléfono
         $recipientsMap = [
             'julio-sarmiento'      => $testingMode ? $testNumber : $numeroJulioSarmiento,
-            'marianela-huequelef'  => $testingMode ? $testNumber : $numeroMarianelaHuequelef,
             'priscila-escobar'     => $testingMode ? $testNumber : $numeroPriscilaEscobar,
-            'javier-alvarado'      => $testingMode ? $testNumber : $numeroJavierAlvarado,
-            'eduardo-esparza'      => $testingMode ? $testNumber : $numeroEduardoEsparza,
-            'dayana-chavez'        => $testingMode ? $testNumber : $numeroDayanaChavez,
             'central'              => $testingMode ? $testNumber : $numeroCentral,
-            'manuel-verdugo'       => $testingMode ? $testNumber : $numeroMunuelVerdugo,
-            'paola-carrasco'       => $testingMode ? $testNumber : $numeroPaolaCarrasco,
-            'cesar-soto'           => $testingMode ? $testNumber : $numeroCesarSoto,
-            'cristian-montecinos'  => $testingMode ? $testNumber : $numeroCristianMontecinos,
-            'informaciones-amzoma' => $testingMode ? $testNumber : $numeroInformacionesAmzoma,
-            'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
         ];
 
         // Si hay destinatarios seleccionados, usar solo esos
         if (! empty($selectedRecipients)) {
-            $selectedNumbers          = [];
-            $includeAffectedEmployees = false;
+            $selectedNumbers = [];
 
             foreach ($selectedRecipients as $recipientId) {
-                if ($recipientId === 'funcionarios-afectados') {
-                    $includeAffectedEmployees = true;
-                    Log::info('📱 Opción "Funcionarios Afectados" seleccionada - se incluirán empleados con turnos modificados');
-                } elseif (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
+                if (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
                     $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
                 }
             }
 
             Log::info('📱 Usando destinatarios WhatsApp seleccionados:', [
-                'selected_recipients'        => $selectedRecipients,
-                'selected_numbers'           => $selectedNumbers,
-                'include_affected_employees' => $includeAffectedEmployees,
-                'total_count'                => count($selectedNumbers),
-                'testing_mode'               => $testingMode,
+                'selected_recipients' => $selectedRecipients,
+                'selected_numbers'   => $selectedNumbers,
+                'total_count'        => count($selectedNumbers),
+                'testing_mode'       => $testingMode,
             ]);
 
             return $selectedNumbers;
@@ -204,10 +169,10 @@ class ShiftsUpdateController extends Controller
                 // En modo testing, enviar a múltiples instancias del número de prueba
                 return [$testNumber, $testNumber, $testNumber]; // Simular múltiples destinatarios
             }
-            return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath];
+            return [$numeroJulioSarmiento, $numeroPriscilaEscobar, $numeroCentral];
         }
 
-        return [$numeroInformacionesAmzoma, $numeroJorgeWaltemath];
+        return [$numeroJulioSarmiento, $numeroPriscilaEscobar, $numeroCentral];
     }
 
     /**

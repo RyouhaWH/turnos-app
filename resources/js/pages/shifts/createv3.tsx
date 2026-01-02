@@ -901,20 +901,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
         // Lista de destinatarios basada en los números del ShiftsUpdateController
         const availableRecipients = [
-            { id: 'funcionarios-afectados', name: 'Funcionarios Afectados', phone: 'Automático', role: 'Especial' },
             { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'marianela-huequelef', name: 'Marianela Huequelef', phone: 'Se obtiene de BD', role: 'Supervisor' },
             { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'javier-alvarado', name: 'Javier Alvarado', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'eduardo-esparza', name: 'Eduardo Esparza', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'dayana-chavez', name: 'Dayana Chavez', phone: '981841759', role: 'Supervisor' },
             { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
-            { id: 'manuel-verdugo', name: 'Manuel Verdugo', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'paola-carrasco', name: 'Paola Carrasco', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'cesar-soto', name: 'Cesar Soto', phone: 'Se obtiene de BD', role: 'Supervisor' },
-            { id: 'cristian-montecinos', name: 'Cristian Montecinos', phone: '975952121', role: 'Supervisor' },
-            { id: 'informaciones-amzoma', name: 'Informaciones Amzoma', phone: '985639782', role: 'Central' },
-            { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: 'Se obtiene de BD', role: 'Supervisor' },
         ];
 
         // Filtrar solo los destinatarios seleccionados
