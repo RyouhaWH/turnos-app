@@ -493,35 +493,42 @@ class ShiftsUpdateController extends Controller
             ]);
         }
 
-        // Send to employee ONLY if they are in the notification list (asíncrono)
-        if ($datosFuncionario['telefono'] && in_array($datosFuncionario['telefono'], $numerosAReportarCambios)) {
-            Log::info('🔍 DEBUG - Enviando a empleado (está en lista de notificaciones):', [
-                'testing_mode' => $testingMode,
-                'telefono_empleado' => $datosFuncionario['telefono'],
-                'test_number' => $testNumber,
-                'numero_final_calculado' => $testingMode ? $testNumber : $datosFuncionario['telefono'],
-                'esta_en_lista' => true
-            ]);
+        // Send to employee ALWAYS if they have a phone number (asíncrono)
+        if (!empty($datosFuncionario['telefono'])) {
+            // Verificar que no se haya enviado ya (para evitar duplicados)
+            $yaEnviado = in_array($datosFuncionario['telefono'], $numerosAReportarCambios);
 
-            $mensajeFinal = $testingMode ?
-                "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría al empleado: {$datosFuncionario['telefono']}\n\n📱 Mensaje original:\n{$mensaje}" :
-                $mensaje;
+            if (!$yaEnviado) {
+                Log::info('🔍 DEBUG - Enviando a empleado afectado (siempre se notifica):', [
+                    'testing_mode' => $testingMode,
+                    'telefono_empleado' => $datosFuncionario['telefono'],
+                    'test_number' => $testNumber,
+                    'numero_final_calculado' => $testingMode ? $testNumber : $datosFuncionario['telefono'],
+                ]);
 
-            $numeroFinal = $testingMode ? $testNumber : $datosFuncionario['telefono'];
+                $mensajeFinal = $testingMode ?
+                    "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría al empleado: {$datosFuncionario['telefono']}\n\n📱 Mensaje original:\n{$mensaje}" :
+                    $mensaje;
 
-            // Enviar mensaje de forma asíncrona
-            SendWhatsAppMessage::dispatch($mensajeFinal, $numeroFinal, $testingMode, $datosFuncionario['telefono']);
+                $numeroFinal = $testingMode ? $testNumber : $datosFuncionario['telefono'];
 
-            Log::info('📤 Mensaje encolado para envío asíncrono a empleado', [
-                'numero_original' => $datosFuncionario['telefono'],
-                'numero_enviado'  => $numeroFinal,
-                'testing_mode'    => $testingMode,
-            ]);
+                // Enviar mensaje de forma asíncrona
+                SendWhatsAppMessage::dispatch($mensajeFinal, $numeroFinal, $testingMode, $datosFuncionario['telefono']);
+
+                Log::info('📤 Mensaje encolado para envío asíncrono a empleado afectado', [
+                    'numero_original' => $datosFuncionario['telefono'],
+                    'numero_enviado'  => $numeroFinal,
+                    'testing_mode'    => $testingMode,
+                ]);
+            } else {
+                Log::info('🔍 DEBUG - Empleado ya recibió mensaje (está en lista de notificaciones):', [
+                    'telefono_empleado' => $datosFuncionario['telefono'],
+                ]);
+            }
         } else {
-            Log::info('🔍 DEBUG - NO enviando a empleado:', [
-                'telefono_empleado' => $datosFuncionario['telefono'] ?? 'No disponible',
-                'esta_en_lista' => $datosFuncionario['telefono'] ? in_array($datosFuncionario['telefono'], $numerosAReportarCambios) : false,
-                'numeros_a_reportar' => $numerosAReportarCambios
+            Log::info('🔍 DEBUG - NO enviando a empleado (sin teléfono):', [
+                'empleado_id' => $datosFuncionario['id'] ?? 'N/A',
+                'nombre_empleado' => $datosFuncionario['nombre'] ?? 'N/A',
             ]);
         }
     }

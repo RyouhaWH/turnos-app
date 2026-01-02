@@ -235,6 +235,7 @@ export function WhatsAppNotificationsConfig({
                             <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
                             <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                             <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
+                            <li>• <strong>Los funcionarios afectados recibirán automáticamente el mensaje</strong> (si tienen teléfono registrado)</li>
                         </ul>
                     </div>
                 </div>
@@ -380,9 +381,9 @@ export function WhatsAppNotificationsConfig({
                                             </h4>
                                             <ul className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
                                                 <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
-                                                <li>• <strong>Funcionarios Afectados:</strong> Envía mensajes a los empleados cuyos turnos se modificaron</li>
                                                 <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                                                 <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
+                                                <li>• <strong>Los funcionarios afectados recibirán automáticamente el mensaje</strong> (si tienen teléfono registrado)</li>
                                             </ul>
                                         </div>
                                     </div>

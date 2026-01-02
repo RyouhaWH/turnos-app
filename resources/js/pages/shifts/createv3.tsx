@@ -1931,6 +1931,11 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                     </p>
                                                 </div>
                                             )}
+                                            <div className="mt-2 rounded-md bg-blue-100 p-2">
+                                                <p className="text-xs text-blue-800">
+                                                    📱 <strong>Nota:</strong> Los funcionarios afectados recibirán automáticamente el mensaje (si tienen teléfono registrado)
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
