@@ -156,63 +156,27 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
     // Estado para destinatarios de WhatsApp seleccionados
     const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
+        // IDs válidos de destinatarios
+        const validRecipientIds = ['julio-sarmiento', 'priscila-escobar', 'central', 'jorge-waltemath'];
+        
         // Cargar destinatarios guardados desde localStorage o usar todos por defecto
         try {
             const saved = localStorage.getItem('whatsapp-recipients');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                return parsed.length > 0
-                    ? parsed
-                    : [
-                        'julio-sarmiento',
-                        'marianela-huequelef',
-                        'priscila-escobar',
-                        'javier-alvarado',
-                        'eduardo-esparza',
-                        'dayana-chavez',
-                        'central',
-                        'manuel-verdugo',
-                        'paola-carrasco',
-                        'cesar-soto',
-                        'cristian-montecinos',
-                        'informaciones-amzoma',
-                        'jorge-waltemath',
-                    ];
+                // Filtrar solo los IDs válidos (por si hay IDs antiguos en localStorage)
+                const filtered = Array.isArray(parsed) 
+                    ? parsed.filter(id => validRecipientIds.includes(id))
+                    : [];
+                // Si después de filtrar hay valores, usarlos; si no, usar todos por defecto
+                return filtered.length > 0 ? filtered : validRecipientIds;
             }
-            // Si no hay nada guardado, seleccionar todos por defecto
-            return [
-                'julio-sarmiento',
-                'marianela-huequelef',
-                'priscila-escobar',
-                'javier-alvarado',
-                'eduardo-esparza',
-                'dayana-chavez',
-                'central',
-                'manuel-verdugo',
-                'paola-carrasco',
-                'cesar-soto',
-                'cristian-montecinos',
-                'informaciones-amzoma',
-                'jorge-waltemath',
-            ];
+            // Si no hay nada guardado, no seleccionar ninguno por defecto (vacío)
+            return [];
         } catch (error) {
             console.error('Error al cargar destinatarios WhatsApp:', error);
             // En caso de error, seleccionar todos por defecto
-            return [
-                'julio-sarmiento',
-                'marianela-huequelef',
-                'priscila-escobar',
-                'javier-alvarado',
-                'eduardo-esparza',
-                'dayana-chavez',
-                'central',
-                'manuel-verdugo',
-                'paola-carrasco',
-                'cesar-soto',
-                'cristian-montecinos',
-                'informaciones-amzoma',
-                'jorge-waltemath',
-            ];
+            return validRecipientIds;
         }
     });
 
@@ -224,6 +188,17 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         } catch (error) {
             console.error('Error al cargar modo testing WhatsApp:', error);
             return false;
+        }
+    });
+
+    // Estado para enviar mensaje al funcionario afectado
+    const [sendToEmployee, setSendToEmployee] = useState<boolean>(() => {
+        try {
+            const saved = localStorage.getItem('whatsapp-send-to-employee');
+            return saved ? JSON.parse(saved) : true; // Por defecto, enviar al funcionario
+        } catch (error) {
+            console.error('Error al cargar opción de enviar a funcionario:', error);
+            return true;
         }
     });
 
@@ -333,12 +308,14 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     }, [isMobile, showShiftFilter]);
 
     // Función para guardar la configuración de WhatsApp
-    const handleSaveWhatsAppConfig = useCallback((recipients: string[], testingMode: boolean) => {
+    const handleSaveWhatsAppConfig = useCallback((recipients: string[], testingMode: boolean, sendToEmployee: boolean) => {
         setSelectedWhatsAppRecipients(recipients);
         setWhatsappTestingMode(testingMode);
+        setSendToEmployee(sendToEmployee);
         // Guardar la configuración en localStorage
         localStorage.setItem('whatsapp-recipients', JSON.stringify(recipients));
         localStorage.setItem('whatsapp-testing-mode', JSON.stringify(testingMode));
+        localStorage.setItem('whatsapp-send-to-employee', JSON.stringify(sendToEmployee));
     }, []);
 
 
@@ -772,8 +749,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
     const handleConfirmChanges = useCallback(async () => {
         setShowConfirmDialog(false);
         // Usar una cadena vacía como comentario por defecto y pasar los destinatarios de WhatsApp
-        await handleActualizarCambios('');
-    }, [handleActualizarCambios, selectedWhatsAppRecipients]);
+        await handleActualizarCambios('', 0, selectedWhatsAppRecipients, whatsappTestingMode, sendToEmployee);
+    }, [handleActualizarCambios, selectedWhatsAppRecipients, whatsappTestingMode, sendToEmployee]);
 
     // Función para obtener el nombre completo del turno
     const getTurnoLabel = useCallback((turno: string) => {
@@ -904,6 +881,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
             { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
             { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
+            { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: '951004035', role: 'Supervisor' },
         ];
 
         // Filtrar solo los destinatarios seleccionados
@@ -1971,6 +1949,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         onSave={handleSaveWhatsAppConfig}
                                         selectedRecipients={selectedWhatsAppRecipients}
                                         initialTestingMode={whatsappTestingMode}
+                                        initialSendToEmployee={sendToEmployee}
                                         isMobile={false}
                                     />
                                 </DialogContent>
@@ -1985,6 +1964,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 onSave={handleSaveWhatsAppConfig}
                                 selectedRecipients={selectedWhatsAppRecipients}
                                 initialTestingMode={whatsappTestingMode}
+                                initialSendToEmployee={sendToEmployee}
                                 isMobile={true}
                             />
                         )}

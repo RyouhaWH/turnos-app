@@ -18,10 +18,11 @@ interface WhatsAppRecipient {
 interface WhatsAppNotificationsConfigProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (selectedRecipients: string[], testingMode: boolean) => void;
+    onSave: (selectedRecipients: string[], testingMode: boolean, sendToEmployee: boolean) => void;
     selectedRecipients?: string[];
     isMobile?: boolean;
     initialTestingMode?: boolean;
+    initialSendToEmployee?: boolean;
 }
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
@@ -30,6 +31,7 @@ const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
     { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
     { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
+    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: '951004035', role: 'Supervisor' },
 ];
 
 export function WhatsAppNotificationsConfig({
@@ -39,6 +41,7 @@ export function WhatsAppNotificationsConfig({
     selectedRecipients = [],
     isMobile = false,
     initialTestingMode = false,
+    initialSendToEmployee = true,
 }: WhatsAppNotificationsConfigProps) {
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
@@ -48,14 +51,36 @@ export function WhatsAppNotificationsConfig({
         role.name === 'Administrador'
     ) || false;
 
-    const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(
-        selectedRecipients.length > 0 ? selectedRecipients : DEFAULT_RECIPIENTS.map(r => r.id)
-    );
+    const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(() => {
+        // Si hay selectedRecipients, usarlos; si no, usar todos por defecto
+        return selectedRecipients.length > 0 ? selectedRecipients : DEFAULT_RECIPIENTS.map(r => r.id);
+    });
     const [isLoading, setIsLoading] = useState(false);
     const [testingMode, setTestingMode] = useState<boolean>(initialTestingMode);
+    const [sendToEmployee, setSendToEmployee] = useState<boolean>(initialSendToEmployee);
 
     // Estado para los números de teléfono actualizados
     const [phoneNumbers, setPhoneNumbers] = useState<Record<string, string>>({});
+
+    // Sincronizar estado local con props cuando se abre el modal
+    useEffect(() => {
+        if (isOpen) {
+            // Filtrar solo los IDs válidos (por si hay IDs antiguos)
+            const validIds = DEFAULT_RECIPIENTS.map(r => r.id);
+            const filteredRecipients = Array.isArray(selectedRecipients)
+                ? selectedRecipients.filter(id => validIds.includes(id))
+                : [];
+            
+            // Si selectedRecipients tiene valores válidos, usarlos; si no, usar todos por defecto
+            const recipientsToUse = filteredRecipients.length > 0 
+                ? filteredRecipients 
+                : validIds;
+            
+            setLocalSelectedRecipients(recipientsToUse);
+            setTestingMode(initialTestingMode);
+            setSendToEmployee(initialSendToEmployee);
+        }
+    }, [isOpen, selectedRecipients, initialTestingMode, initialSendToEmployee]);
 
     // Cargar números de teléfono desde la base de datos
     useEffect(() => {
@@ -124,7 +149,7 @@ export function WhatsAppNotificationsConfig({
     };
 
     const handleSave = () => {
-        onSave(localSelectedRecipients, testingMode);
+        onSave(localSelectedRecipients, testingMode, sendToEmployee);
         onClose();
     };
 
@@ -223,6 +248,19 @@ export function WhatsAppNotificationsConfig({
                 </div>
             </ScrollArea>
 
+            {/* Checkbox para enviar al funcionario afectado */}
+            <div className="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/30 dark:border-green-600 shadow-sm">
+                <Checkbox
+                    id="send-to-employee-desktop"
+                    checked={sendToEmployee}
+                    onCheckedChange={(checked) => setSendToEmployee(checked as boolean)}
+                    className="h-5 w-5 text-green-600 focus:ring-green-500 border-2 border-green-400 rounded data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 dark:border-green-500 dark:data-[state=checked]:bg-green-400 dark:data-[state=checked]:border-green-400"
+                />
+                <label htmlFor="send-to-employee-desktop" className="text-sm font-semibold text-green-900 dark:text-green-100 cursor-pointer">
+                    Enviar mensaje al funcionario afectado
+                </label>
+            </div>
+
             {/* Información adicional */}
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-600 dark:bg-blue-800/40">
                 <div className="flex items-start gap-3">
@@ -235,7 +273,7 @@ export function WhatsAppNotificationsConfig({
                             <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
                             <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                             <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
-                            <li>• <strong>Los funcionarios afectados recibirán automáticamente el mensaje</strong> (si tienen teléfono registrado)</li>
+                            <li>• Los funcionarios afectados recibirán el mensaje solo si está habilitada la opción "Enviar mensaje al funcionario afectado"</li>
                         </ul>
                     </div>
                 </div>
@@ -316,6 +354,19 @@ export function WhatsAppNotificationsConfig({
                                     </div>
                                 )}
 
+                                {/* Checkbox para enviar al funcionario afectado */}
+                                <div className="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg dark:bg-green-900/30 dark:border-green-600 shadow-sm">
+                                    <Checkbox
+                                        id="send-to-employee"
+                                        checked={sendToEmployee}
+                                        onCheckedChange={(checked) => setSendToEmployee(checked as boolean)}
+                                        className="h-5 w-5 text-green-600 focus:ring-green-500 border-2 border-green-400 rounded data-[state=checked]:bg-green-500 data-[state=checked]:border-green-500 dark:border-green-500 dark:data-[state=checked]:bg-green-400 dark:data-[state=checked]:border-green-400"
+                                    />
+                                    <label htmlFor="send-to-employee" className="text-sm font-semibold text-green-900 dark:text-green-100 cursor-pointer">
+                                        Enviar mensaje al funcionario afectado
+                                    </label>
+                                </div>
+
                                 {/* Lista de destinatarios sin agrupación */}
                                 <div className="w-full ">
                                     <ScrollArea className="h-[400px] w-full">
@@ -383,7 +434,7 @@ export function WhatsAppNotificationsConfig({
                                                 <li>• Los mensajes se enviarán automáticamente cuando se modifiquen turnos en el grid</li>
                                                 <li>• Solo se notificarán cambios que afecten a empleados asignados</li>
                                                 <li>• Los números sin teléfono se obtendrán automáticamente de la base de datos</li>
-                                                <li>• <strong>Los funcionarios afectados recibirán automáticamente el mensaje</strong> (si tienen teléfono registrado)</li>
+                                                <li>• Los funcionarios afectados recibirán el mensaje solo si está habilitada la opción "Enviar mensaje al funcionario afectado"</li>
                                             </ul>
                                         </div>
                                     </div>
@@ -400,7 +451,6 @@ export function WhatsAppNotificationsConfig({
                             <Button
                                 onClick={handleSave}
                                 className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                                disabled={selectedCount === 0}
                             >
                                 <CheckCircle2 className="h-4 w-4 mr-2" />
                                 Guardar ({selectedCount})
@@ -430,7 +480,6 @@ export function WhatsAppNotificationsConfig({
                         <Button
                             onClick={handleSave}
                             className="bg-green-600 hover:bg-green-700 text-white"
-                            disabled={selectedCount === 0}
                         >
                             <CheckCircle2 className="h-4 w-4 mr-2" />
                             Guardar ({selectedCount})

@@ -35,6 +35,7 @@ class ShiftsUpdateController extends Controller
             $actualUser         = Auth::id();
             $whatsappRecipients = $request->input('whatsapp_recipients', []);
             $testingMode        = $request->input('whatsapp_testing_mode', false);
+            $sendToEmployee     = $request->input('send_to_employee', true);
 
             // Validar que solo administradores puedan usar el modo testing
             if ($testingMode && !Auth::user()->hasRole('Administrador')) {
@@ -86,7 +87,7 @@ class ShiftsUpdateController extends Controller
                 'user_id' => Auth::id(),
             ]);
 
-            $this->sendConsolidatedMessages($cambiosPorFuncionario, $numerosAReportarCambios, $testingMode);
+            $this->sendConsolidatedMessages($cambiosPorFuncionario, $numerosAReportarCambios, $testingMode, $sendToEmployee);
 
             DB::commit();
 
@@ -120,6 +121,7 @@ class ShiftsUpdateController extends Controller
             Employees::where('rut', '12282547-7')->first()->phone ?? '' => 'Julio Sarmiento',
             Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
             '964949887'                                                 => 'Central',
+            '951004035'                                                 => 'Jorge Waltemath',
         ];
     }
 
@@ -132,6 +134,7 @@ class ShiftsUpdateController extends Controller
         $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
         $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
         $numeroCentral             = "964949887";
+        $numeroJorgeWaltemath      = "951004035";
 
         // Número de prueba
         $testNumber = "951004035";
@@ -141,6 +144,7 @@ class ShiftsUpdateController extends Controller
             'julio-sarmiento'      => $testingMode ? $testNumber : $numeroJulioSarmiento,
             'priscila-escobar'     => $testingMode ? $testNumber : $numeroPriscilaEscobar,
             'central'              => $testingMode ? $testNumber : $numeroCentral,
+            'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
         ];
 
         // Si hay destinatarios seleccionados, usar solo esos
@@ -163,16 +167,9 @@ class ShiftsUpdateController extends Controller
             return $selectedNumbers;
         }
 
-        // Si no hay destinatarios seleccionados, usar la lógica por defecto
-        if (app()->environment('production')) {
-            if ($testingMode) {
-                // En modo testing, enviar a múltiples instancias del número de prueba
-                return [$testNumber, $testNumber, $testNumber]; // Simular múltiples destinatarios
-            }
-            return [$numeroJulioSarmiento, $numeroPriscilaEscobar, $numeroCentral];
-        }
-
-        return [$numeroJulioSarmiento, $numeroPriscilaEscobar, $numeroCentral];
+        // Si no hay destinatarios seleccionados, no enviar a nadie (solo al funcionario si está habilitado)
+        // Esto se maneja en sendProductionMessages con el parámetro send_to_employee
+        return [];
     }
 
     /**
@@ -379,7 +376,7 @@ class ShiftsUpdateController extends Controller
     /**
      * Send consolidated messages to notification numbers
      */
-    private function sendConsolidatedMessages(array $cambiosPorFuncionario, array $numerosAReportarCambios, bool $testingMode = false): void
+    private function sendConsolidatedMessages(array $cambiosPorFuncionario, array $numerosAReportarCambios, bool $testingMode = false, bool $sendToEmployee = true): void
     {
         foreach ($cambiosPorFuncionario as $funcionarioId => $datosFuncionario) {
             if (empty($datosFuncionario['cambios'])) {
@@ -410,7 +407,7 @@ class ShiftsUpdateController extends Controller
             }
 
             // Siempre usar sendProductionMessages, pero con números de prueba si está en testing mode
-            $this->sendProductionMessages($mensaje, $numerosConEmpleado, $datosFuncionario, $testingMode);
+            $this->sendProductionMessages($mensaje, $numerosConEmpleado, $datosFuncionario, $testingMode, $sendToEmployee);
         }
     }
 
@@ -464,7 +461,7 @@ class ShiftsUpdateController extends Controller
     /**
      * Send production messages
      */
-    private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, bool $testingMode = false): void
+    private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, bool $testingMode = false, bool $sendToEmployee = true): void
     {
         $testNumber = "951004035";
 
@@ -493,8 +490,8 @@ class ShiftsUpdateController extends Controller
             ]);
         }
 
-        // Send to employee ALWAYS if they have a phone number (asíncrono)
-        if (!empty($datosFuncionario['telefono'])) {
+        // Send to employee if enabled and they have a phone number (asíncrono)
+        if ($sendToEmployee && !empty($datosFuncionario['telefono'])) {
             // Verificar que no se haya enviado ya (para evitar duplicados)
             $yaEnviado = in_array($datosFuncionario['telefono'], $numerosAReportarCambios);
 

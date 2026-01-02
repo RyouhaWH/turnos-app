@@ -108,16 +108,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware(['auth', 'admin'])->get('/api/whatsapp-recipients', function (Request $request) {
         $phoneNumbers = [];
 
-        // Obtener números de teléfono de empleados por RUT
+        // Obtener números de teléfono de empleados por RUT (solo los 4 contactos permitidos)
         $ruts = [
             'julio-sarmiento' => '12282547-7',
-            'marianela-huequelef' => '10604235-7',
             'priscila-escobar' => '18522287-K',
-            'javier-alvarado' => '18984596-0',
-            'eduardo-esparza' => '16948150-4',
-            'manuel-verdugo' => '15987971-2',
-            'paola-carrasco' => '12389084-1',
-            'cesar-soto' => '16533970-3',
             'jorge-waltemath' => '18198426-0',
         ];
 
@@ -131,10 +125,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         }
 
         // Números fijos
-        $phoneNumbers['dayana-chavez'] = '981841759';
         $phoneNumbers['central'] = '964949887';
-        $phoneNumbers['cristian-montecinos'] = '975952121';
-        $phoneNumbers['informaciones-amzoma'] = '985639782';
+        // Jorge Waltemath tiene número fijo para pruebas
+        $phoneNumbers['jorge-waltemath'] = '951004035';
 
         Log::info('📱 Números de teléfono cargados:', $phoneNumbers);
 

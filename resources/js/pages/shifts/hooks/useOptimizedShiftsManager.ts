@@ -716,7 +716,13 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
     }, [employee_rol_id, sortByAmzomaAndName]);
 
     // Función para manejar actualización de cambios
-    const handleActualizarCambios = useCallback(async (comentario: string, retryCount: number = 0) => {
+    const handleActualizarCambios = useCallback(async (
+        comentario: string, 
+        retryCount: number = 0,
+        whatsappRecipients: string[] = [],
+        whatsappTestingMode: boolean = false,
+        sendToEmployee: boolean = true
+    ) => {
         if (Object.keys(resumen).length === 0) {
             toast.warning('No hay cambios pendientes para actualizar');
             return;
@@ -746,6 +752,9 @@ export const useOptimizedShiftsManager = (employee_rol_id: number) => {
                 employee_rol_id: parseInt(String(employee_rol_id)),
                 comentario: comentario || '',
                 multi_month: hasMultiMonthChanges, // Flag para indicar cambios multi-mes
+                whatsapp_recipients: whatsappRecipients,
+                whatsapp_testing_mode: whatsappTestingMode,
+                send_to_employee: sendToEmployee,
             };
 
             // Debug: Log de los datos que se van a enviar
