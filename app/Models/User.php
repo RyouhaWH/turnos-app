@@ -43,7 +43,7 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password'          => 'hashed',
+            'password' => 'hashed',
         ];
     }
 
@@ -54,7 +54,7 @@ class User extends Authenticatable
 
     public function shifts()
     {
-        return $this->belongsTo(shifts::class);
+        return $this->hasManyThrough(EmployeeShifts::class , Employees::class , 'user_id', 'employee_id');
     }
 
     public function employee()

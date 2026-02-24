@@ -33,6 +33,15 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        $user = $request->user();
+        
+        $employeeRole = $user?->employee?->rol?->nombre;
+        $targetRoles = ['Patrullaje y proximidad', 'Fiscalizacion', 'FiscalizaciÃ³n', 'Ciclopatrullaje', 'Drone', 'Motorizado'];
+
+        if ($employeeRole && in_array($employeeRole, $targetRoles)) {
+            return redirect('/turno-mensual');
+        }
+
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

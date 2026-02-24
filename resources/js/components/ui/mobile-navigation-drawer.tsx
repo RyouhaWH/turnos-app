@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
-import { Home, FileSpreadsheet, User, Key, Palette, LogOut } from 'lucide-react';
+import { Home, FileSpreadsheet, User, Key, Palette, LogOut, Calendar } from 'lucide-react';
 import React from 'react';
 
 interface MobileNavigationDrawerProps {
@@ -16,6 +16,7 @@ export const MobileNavigationDrawer: React.FC<MobileNavigationDrawerProps> = ({
     const navigationItems = [
         { label: 'Dashboard', href: '/dashboard', icon: Home },
         { label: 'Turnos', href: '/turnos', icon: FileSpreadsheet },
+        { label: 'Mi Calendario', href: '/turno-mensual', icon: Calendar },
     ];
 
     const userSettingsItems = [

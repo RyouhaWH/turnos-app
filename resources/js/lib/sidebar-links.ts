@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings} from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings, Calendar } from 'lucide-react';
 import { route } from 'ziggy-js';
 
 
@@ -14,6 +14,11 @@ const mainNavItems: NavItem[] = [
         title: 'Turnos',
         href: '/turnos',
         icon: Calendar1,
+    },
+    {
+        title: 'Mi Calendario',
+        href: '/turno-mensual',
+        icon: Calendar,
     },
     // {
     //     title: 'Personal',
@@ -43,4 +48,4 @@ const footerNavItems: NavItem[] = [
 
 ];
 
-export { mainNavItems, footerNavItems}
+export { mainNavItems, footerNavItems }
