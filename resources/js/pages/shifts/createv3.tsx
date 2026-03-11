@@ -1951,6 +1951,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         initialTestingMode={whatsappTestingMode}
                                         initialSendToEmployee={sendToEmployee}
                                         isMobile={false}
+                                        allowTestingToggle={user?.name?.toLowerCase?.() === 'jorge waltemath'}
                                     />
                                 </DialogContent>
                             </Dialog>
@@ -1966,6 +1967,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                 initialTestingMode={whatsappTestingMode}
                                 initialSendToEmployee={sendToEmployee}
                                 isMobile={true}
+                                allowTestingToggle={user?.name?.toLowerCase?.() === 'jorge waltemath'}
                             />
                         )}
 

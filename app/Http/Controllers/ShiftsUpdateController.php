@@ -122,6 +122,7 @@ class ShiftsUpdateController extends Controller
             Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
             '964949887'                                                 => 'Central',
             '951004035'                                                 => 'Jorge Waltemath',
+            '968012847'                                                 => 'Eduardo Esparza',
         ];
     }
 
@@ -135,6 +136,7 @@ class ShiftsUpdateController extends Controller
         $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
         $numeroCentral             = "964949887";
         $numeroJorgeWaltemath      = "951004035";
+        $numeroEduardoEsparza      = "968012847";
 
         // Número de prueba
         $testNumber = "951004035";
@@ -145,6 +147,7 @@ class ShiftsUpdateController extends Controller
             'priscila-escobar'     => $testingMode ? $testNumber : $numeroPriscilaEscobar,
             'central'              => $testingMode ? $testNumber : $numeroCentral,
             'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
+            'eduardo-esparza'      => $numeroEduardoEsparza,
         ];
 
         // Si hay destinatarios seleccionados, usar solo esos
@@ -153,7 +156,11 @@ class ShiftsUpdateController extends Controller
 
             foreach ($selectedRecipients as $recipientId) {
                 if (isset($recipientsMap[$recipientId]) && ! empty($recipientsMap[$recipientId])) {
-                    $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
+                    if($recipientId === 'eduardo-esparza') {
+                        $selectedNumbers[] = $numeroEduardoEsparza;
+                    } else {
+                        $selectedNumbers[] = $testingMode ? $testNumber : $recipientsMap[$recipientId];
+                    }
                 }
             }
 
@@ -461,7 +468,7 @@ class ShiftsUpdateController extends Controller
     /**
      * Send production messages
      */
-    private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, bool $testingMode = false, bool $sendToEmployee = true): void
+        private function sendProductionMessages(string $mensaje, array $numerosAReportarCambios, array $datosFuncionario, bool $testingMode = false, bool $sendToEmployee = true): void
     {
         $testNumber = "951004035";
 
@@ -472,21 +479,26 @@ class ShiftsUpdateController extends Controller
             'empleado_telefono' => $datosFuncionario['telefono'] ?? 'No disponible'
         ]);
 
+        $numeroEduardoEsparza = "968012847";
+
         // Send to notification contacts (asíncrono)
         foreach ($numerosAReportarCambios as $numero) {
-            $mensajeFinal = $testingMode ?
+            $esEduardoInfoReal = ($numero === $numeroEduardoEsparza);
+            $aplicarTest = $testingMode && !$esEduardoInfoReal;
+
+            $mensajeFinal = $aplicarTest ?
                 "🧪 MODO TESTING - WhatsApp\n\n📋 Este mensaje se enviaría a: {$numero}\n\n📱 Mensaje original:\n{$mensaje}" :
                 $mensaje;
 
-            $numeroFinal = $testingMode ? $testNumber : $numero;
+            $numeroFinal = $aplicarTest ? $testNumber : $numero;
 
             // Enviar mensaje de forma asíncrona
-            SendWhatsAppMessage::dispatch($mensajeFinal, $numeroFinal, $testingMode, $numero);
+            SendWhatsAppMessage::dispatch($mensajeFinal, $numeroFinal, $aplicarTest, $numero);
 
             Log::info('📤 Mensaje encolado para envío asíncrono a destinatario', [
                 'numero_original' => $numero,
                 'numero_enviado'  => $numeroFinal,
-                'testing_mode'    => $testingMode,
+                'testing_mode'    => $aplicarTest,
             ]);
         }
 

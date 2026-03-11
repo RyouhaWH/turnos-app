@@ -19,6 +19,10 @@ export default function AppSidebarLayout({ children, breadcrumbs = []}: PropsWit
         ? breadcrumbs[breadcrumbs.length - 1]?.title || 'Página'
         : (props as any)?.title || 'Turnos App';
 
+    // Icono opcional tomado del último breadcrumb para mostrar en la cabecera móvil
+    const pageIcon = breadcrumbs.length > 0 ? breadcrumbs[breadcrumbs.length - 1]?.icon : null;
+    const PageIconComponent = pageIcon || null;
+
     return (
         <AppShell variant="sidebar">
             <AppSidebar />
@@ -27,12 +31,19 @@ export default function AppSidebarLayout({ children, breadcrumbs = []}: PropsWit
 
                 {/* Barra superior móvil */}
                 {isMobile && (
-                    <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 dark:bg-slate-900/95 dark:border-slate-700">
+                    <div className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-slate-200 dark:bg-slate-900/95 dark:border-slate-700">
                         <div className="flex items-center justify-between h-14 px-4">
-                            {/* Título de la página */}
-                            <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
-                                {pageTitle}
-                            </h1>
+                            {/* Título de la página con posible icono */}
+                            <div className="flex items-center gap-2 truncate">
+                                {PageIconComponent && (
+                                    <span className="text-slate-700 dark:text-slate-300">
+                                        <PageIconComponent className="h-5 w-5" />
+                                    </span>
+                                )}
+                                <h1 className="text-lg font-semibold text-slate-900 dark:text-white truncate">
+                                    {pageTitle}
+                                </h1>
+                            </div>
 
                             {/* Botón de menú */}
                             <MobileNavigationDrawer>

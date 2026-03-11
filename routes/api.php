@@ -31,9 +31,11 @@ Route::get('/test', function () {
 // Turnos: rango de fechas (requiere auth:sanctum)
 Route::middleware('auth:sanctum')->get('/turnos/rango', [TurnController::class, 'getShiftsByDateRange']);
 
-
-
-
+// Rutas protegidas con API Key
+Route::middleware('api.key')->group(function () {
+    // Obtener estado de empleados (funcionarios) usando API Key
+    Route::get('/v1/employee-status-external', [TurnController::class, 'getEmployeeStatusExternal']);
+});
 
 
 

@@ -23,6 +23,7 @@ interface WhatsAppNotificationsConfigProps {
     isMobile?: boolean;
     initialTestingMode?: boolean;
     initialSendToEmployee?: boolean;
+    allowTestingToggle?: boolean;
 }
 
 // Lista de destinatarios basada en los números del ShiftsUpdateController
@@ -42,6 +43,7 @@ export function WhatsAppNotificationsConfig({
     isMobile = false,
     initialTestingMode = false,
     initialSendToEmployee = true,
+    allowTestingToggle = true,
 }: WhatsAppNotificationsConfigProps) {
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
@@ -70,12 +72,12 @@ export function WhatsAppNotificationsConfig({
             const filteredRecipients = Array.isArray(selectedRecipients)
                 ? selectedRecipients.filter(id => validIds.includes(id))
                 : [];
-            
+
             // Si selectedRecipients tiene valores válidos, usarlos; si no, usar todos por defecto
-            const recipientsToUse = filteredRecipients.length > 0 
-                ? filteredRecipients 
+            const recipientsToUse = filteredRecipients.length > 0
+                ? filteredRecipients
                 : validIds;
-            
+
             setLocalSelectedRecipients(recipientsToUse);
             setTestingMode(initialTestingMode);
             setSendToEmployee(initialSendToEmployee);
@@ -170,6 +172,20 @@ export function WhatsAppNotificationsConfig({
 
     const content = (
         <div className="space-y-6">
+            {/* Checkbox para modo testing (solo si el usuario está autorizado) */}
+            {allowTestingToggle && (
+                <div className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/30 dark:border-yellow-600 shadow-sm">
+                    <Checkbox
+                        id="testing-mode-desktop"
+                        checked={testingMode}
+                        onCheckedChange={(checked) => setTestingMode(checked as boolean)}
+                        className="h-5 w-5 text-yellow-600 focus:ring-yellow-500 border-2 border-yellow-400 rounded data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 dark:border-yellow-500 dark:data-[state=checked]:bg-yellow-400 dark:data-[state=checked]:border-yellow-400"
+                    />
+                    <label htmlFor="testing-mode-desktop" className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 cursor-pointer">
+                        🧪 Modo Testing - Para realizar pruebas de envío de mensajes
+                    </label>
+                </div>
+            )}
             {/* Controles de selección masiva */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -329,18 +345,20 @@ export function WhatsAppNotificationsConfig({
                                     </Button>
                                 </div>
 
-                                {/* Checkbox de Modo Testing */}
-                                <div className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/30 dark:border-yellow-600 shadow-sm">
-                                    <Checkbox
-                                        id="testing-mode"
-                                        checked={testingMode}
-                                        onCheckedChange={(checked) => setTestingMode(checked as boolean)}
-                                        className="h-5 w-5 text-yellow-600 focus:ring-yellow-500 border-2 border-yellow-400 rounded data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 dark:border-yellow-500 dark:data-[state=checked]:bg-yellow-400 dark:data-[state=checked]:border-yellow-400"
-                                    />
-                                    <label htmlFor="testing-mode" className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 cursor-pointer">
-                                        🧪 Modo Testing - Para realizar pruebas de envío de mensajes
-                                    </label>
-                                </div>
+                                {/* Checkbox de Modo Testing (solo si está permitido) */}
+                                {allowTestingToggle && (
+                                    <div className="flex items-center space-x-3 p-4 bg-yellow-50 border border-yellow-200 rounded-lg dark:bg-yellow-900/30 dark:border-yellow-600 shadow-sm">
+                                        <Checkbox
+                                            id="testing-mode"
+                                            checked={testingMode}
+                                            onCheckedChange={(checked) => setTestingMode(checked as boolean)}
+                                            className="h-5 w-5 text-yellow-600 focus:ring-yellow-500 border-2 border-yellow-400 rounded data-[state=checked]:bg-yellow-500 data-[state=checked]:border-yellow-500 dark:border-yellow-500 dark:data-[state=checked]:bg-yellow-400 dark:data-[state=checked]:border-yellow-400"
+                                        />
+                                        <label htmlFor="testing-mode" className="text-sm font-semibold text-yellow-900 dark:text-yellow-100 cursor-pointer">
+                                            🧪 Modo Testing - Para realizar pruebas de envío de mensajes
+                                        </label>
+                                    </div>
+                                )}
 
                                 {testingMode && (
                                     <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg dark:bg-blue-900/40 dark:border-blue-500 shadow-sm">

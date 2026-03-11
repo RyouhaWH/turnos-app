@@ -3,6 +3,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router } from '@inertiajs/react';
 import { ChevronLeft, ChevronRight, Calendar, Settings } from 'lucide-react';
 import { useState, useCallback, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -72,12 +73,13 @@ function formatDateKey(year: number, month: number, day: number): string {
 // ── Breadcrumbs ─────────────────────────────────────────────────────────────────
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
-    { title: 'Mi Calendario', href: '/turno-mensual' },
+    { title: 'Mi Calendario', href: '/turno-mensual', icon: Calendar },
 ];
 
 // ── Component ───────────────────────────────────────────────────────────────────
 export default function MonthlyCalendar({ shifts, year, month, userName, error }: MonthlyCalendarProps) {
     const [loading, setLoading] = useState(false);
+    const isMobile = useIsMobile();
 
     // Inicializar estado desde localStorage si existe
     const [showLabels, setShowLabels] = useState(() => {
@@ -168,22 +170,24 @@ export default function MonthlyCalendar({ shifts, year, month, userName, error }
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Mi Calendario de Turnos" />
 
-            <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6">
+            <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6">
                 {/* ── Header ─────────────────────────────────────────── */}
                 <div className="mb-3 dark:border-slate-700 dark:bg-slate-900 sm:p-6">
                     <div className="flex flex-col gap-4">
-                        {/* Title Row */}
-                        <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md">
-                                <Calendar className="h-5 w-5" />
+                        {/* Title Row: hidden on mobile because header bar already shows the title/icon */}
+                        {!isMobile && (
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-md">
+                                    <Calendar className="h-5 w-5" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-bold text-slate-900 dark:text-white sm:text-xl leading-none">
+                                        Mi Calendario
+                                    </h1>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{userName}</p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-lg font-bold text-slate-900 dark:text-white sm:text-xl leading-none">
-                                    Mi Calendario
-                                </h1>
-                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{userName}</p>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Controls Row */}
                         <div className="flex items-center w-full gap-2 sm:gap-3">
@@ -314,7 +318,7 @@ export default function MonthlyCalendar({ shifts, year, month, userName, error }
                             return (
                                 <div
                                     key={day}
-                                    className={`relative flex min-h-[105px] flex-col items-center justify-center border-b border-r transition-all sm:min-h-[100px] ${shiftStyle
+                                    className={`relative flex min-h-[85px] flex-col items-center justify-center border-b border-r transition-all sm:min-h-[100px] ${shiftStyle
                                         ? `${shiftStyle.bg} ${shiftStyle.border}`
                                         : isToday
                                             ? 'border-slate-100 bg-blue-50/80 ring-2 ring-inset ring-blue-400 dark:border-slate-800 dark:bg-blue-950/40 dark:ring-blue-500'
@@ -325,7 +329,7 @@ export default function MonthlyCalendar({ shifts, year, month, userName, error }
                                 >
                                     {/* Day number */}
                                     <span
-                                        className={`absolute top-1 left-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium sm:h-7 sm:w-7 sm:text-sm ${isToday
+                                        className={`absolute top-1 left-1 z-10 inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium sm:h-6 sm:w-6 sm:text-sm ${isToday
                                             ? 'bg-blue-600 font-bold text-white shadow-sm'
                                             : shiftStyle
                                                 ? `${shiftStyle.text} opacity-70`

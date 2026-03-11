@@ -5,9 +5,13 @@ export interface Auth {
     user: User;
 }
 
+import { LucideIcon } from 'lucide-react';
+
 export interface BreadcrumbItem {
     title: string;
     href: string;
+    /** optional icon to display for the breadcrumb (used for mobile page header) */
+    icon?: LucideIcon | null;
 }
 
 export interface NavGroup {

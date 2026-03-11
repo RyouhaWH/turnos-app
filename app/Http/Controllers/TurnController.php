@@ -919,4 +919,209 @@ class TurnController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Obtener estado de empleados por fecha usando API Key
+     * Endpoint protegido por API Key en lugar de autenticación de sesión
+     * GET /api/v1/employee-status-external?date=YYYY-MM-DD
+     * Headers: X-API-Key: <api_key>
+     */
+    public function getEmployeeStatusExternal(Request $request)
+    {
+        try {
+            // Usar fecha de la request o hoy por defecto
+            $selectedDate = $request->get('date') ? Carbon::parse($request->get('date')) : Carbon::today();
+
+            // Definir roles operativos (solo estos se contarán en el dashboard)
+            $operationalRoles = [1, 2, 3, 5, 6, 8]; // Alerta Móvil, Fiscalización, Motorizado, Dron, Ciclopatrullaje, Despachadores
+
+            // Obtener solo empleados de roles operativos
+            $employees = Employees::whereIn('rol_id', $operationalRoles)->get();
+
+            // Obtener los turnos de la fecha seleccionada
+            $todayShifts = EmployeeShifts::whereDate('date', $selectedDate)->get();
+
+            $status = [
+                'trabajando' => [], // M, T, N, 1, 2, 3, A
+                'descanso' => [],   // F, L
+                'ausente' => [],    // V, LM, S
+                'sinTurno' => []    // Sin turno asignado hoy (NO ACTIVOS)
+            ];
+
+            $counts = [
+                'trabajando' => ['total' => 0, 'byRole' => []],
+                'descanso' => ['total' => 0, 'byRole' => []],
+                'ausente' => ['total' => 0, 'byRole' => []],
+                'sinTurno' => ['total' => 0, 'byRole' => []]
+            ];
+
+            // Crear un mapa de turnos por empleado_id para acceso rápido
+            $shiftsByEmployee = $todayShifts->groupBy('employee_id');
+
+            foreach ($employees as $employee) {
+                $roleId = $employee->rol_id;
+                $employeeShifts = $shiftsByEmployee->get($employee->id, collect());
+                $todayShift = $employeeShifts->first();
+
+                // Inicializar contador de rol si no existe
+                if (!isset($counts['sinTurno']['byRole'][$roleId])) {
+                    $counts['sinTurno']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['descanso']['byRole'][$roleId])) {
+                    $counts['descanso']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['ausente']['byRole'][$roleId])) {
+                    $counts['ausente']['byRole'][$roleId] = 0;
+                }
+                if (!isset($counts['trabajando']['byRole'][$roleId])) {
+                    $counts['trabajando']['byRole'][$roleId] = 0;
+                }
+
+                if (!$todayShift || !$todayShift->shift || trim($todayShift->shift) === '') {
+                    // Sin turno asignado = NO ACTIVO HOY
+                    $status['sinTurno'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
+                        'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
+                        'reason' => 'Sin turno programado'
+                    ];
+                    $counts['sinTurno']['total']++;
+                    $counts['sinTurno']['byRole'][$roleId]++;
+
+                } elseif (in_array($todayShift->shift, ['F', 'L'])) {
+                    // En descanso programado = ACTIVO (tienen turno asignado)
+                    $status['descanso'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
+                        'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
+                        'shift' => $todayShift->shift,
+                        'shift_label' => $todayShift->shift === 'F' ? 'Franco' : 'Libre'
+                    ];
+                    $counts['descanso']['total']++;
+                    $counts['descanso']['byRole'][$roleId]++;
+
+                } elseif (in_array($todayShift->shift, ['V', 'LM', 'S'])) {
+                    // Ausente pero programado = ACTIVO (tienen turno asignado)
+                    $shiftLabels = [
+                        'V' => 'Vacaciones',
+                        'LM' => 'Licencia Médica',
+                        'S' => 'Sindical'
+                    ];
+
+                    $status['ausente'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
+                        'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
+                        'shift' => $todayShift->shift,
+                        'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift
+                    ];
+                    $counts['ausente']['total']++;
+                    $counts['ausente']['byRole'][$roleId]++;
+
+                } elseif ($todayShift->shift === 'A') {
+                    // Turno administrativo = AUSENTE (no operativo)
+                    $status['ausente'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
+                        'shift' => $todayShift->shift,
+                        'shift_label' => 'Día Administrativo'
+                    ];
+                    $counts['ausente']['total']++;
+                    $counts['ausente']['byRole'][$roleId]++;
+                } else {
+                    // Trabajando = ACTIVO (M, T, N, 1, 2, 3, 1e, 2e, 3e, etc.)
+
+                    // Verificar si es un turno extra (termina en 'e' o 'E')
+                    $isExtraShift = in_array(substr($todayShift->shift, -1), ['e', 'E']);
+                    $baseShift = $isExtraShift ? substr($todayShift->shift, 0, -1) : $todayShift->shift;
+
+                    $shiftLabels = [
+                        'M' => 'Mañana', 'T' => 'Tarde', 'N' => 'Noche',
+                        '1' => '1er Turno', '2' => '2do Turno', '3' => '3er Turno'
+                    ];
+
+                    // Generar etiqueta para turnos extras
+                    $shiftLabel = '';
+                    if ($isExtraShift) {
+                        $baseLabel = $shiftLabels[$baseShift] ?? $baseShift;
+                        $shiftLabel = $baseLabel . ' (Extra)';
+                    } else {
+                        $shiftLabel = $shiftLabels[$todayShift->shift] ?? $todayShift->shift;
+                    }
+
+                    $status['trabajando'][] = [
+                        'id' => $employee->id,
+                        'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
+                        'rol_id' => $roleId,
+                        'amzoma' => $employee->amzoma,
+                        'shift' => $todayShift->shift,
+                        'shift_label' => $shiftLabel,
+                        'is_extra' => $isExtraShift,
+                        'base_shift' => $baseShift
+                    ];
+                    $counts['trabajando']['total']++;
+                    $counts['trabajando']['byRole'][$roleId]++;
+                }
+            }
+
+            // Calcular totales de activos (todos excepto sinTurno)
+            $totalActivos = $counts['trabajando']['total'] + $counts['descanso']['total'] + $counts['ausente']['total'];
+            $totalEmpleados = $employees->count();
+
+            // Obtener roles con colores desde la base de datos
+            $rolesData = Rol::whereIn('id', $operationalRoles)->get()->keyBy('id');
+            $roles = [];
+            $roleColors = [];
+
+            foreach ($rolesData as $role) {
+                $roles[$role->id] = $role->nombre;
+                $roleColors[$role->id] = $role->color ?? '#3B82F6'; // Color por defecto azul
+            }
+
+            Log::info('getEmployeeStatusExternal - Datos enviados:', [
+                'total_empleados' => $totalEmpleados,
+                'empleados_trabajando' => count($status['trabajando']),
+                'date' => $selectedDate->format('Y-m-d')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'date' => $selectedDate->format('Y-m-d'),
+                'data' => [
+                    'status' => $status,
+                    'counts' => $counts,
+                    'totalActivos' => $totalActivos,
+                    'totalEmpleados' => $totalEmpleados,
+                    'roles' => $roles,
+                    'roleColors' => $roleColors
+                ],
+                'definitions' => [
+                    'trabajando' => 'Turnos de trabajo: M, T, N, 1, 2, 3, 1e, 2e, 3e, 1E, 2E, 3E, Me, Te, Ne, ME, TE, NE',
+                    'descanso' => 'Descansos programados: F (Franco), L (Libre)',
+                    'ausente' => 'Ausencias programadas: V (Vacaciones), LM (Licencia Médica), S (Sindical), A (Día Administrativo)',
+                    'sinTurno' => 'Sin turno asignado = NO ACTIVOS hoy',
+                    'activos' => 'trabajando + descanso + ausente (tienen turno asignado)',
+                    'inactivos' => 'sinTurno (no tienen turno asignado)',
+                    'operational_roles' => 'Solo se cuentan roles operativos: Alerta Móvil (1), Fiscalización (2), Motorizado (3), Dron (5), Ciclopatrullaje (6), Despachadores (8)'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getEmployeeStatusExternal:', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error obteniendo estado de empleados',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
