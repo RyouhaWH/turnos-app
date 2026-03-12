@@ -108,6 +108,21 @@ jobs:
 
           # Optimizar Laravel
           cd $APP_PATH/releases/${{ github.sha }}
+
+          # --- backup de la base de datos SQLite existente (si hay una) ---
+          # copiamos desde el release actualmente activo antes de lanzar migraciones
+          if [ -L $APP_PATH/current ] || [ -d $APP_PATH/current ]; then
+            # posibles ubicaciones conocidas
+            for dbfile in "$APP_PATH/current/database/database.sqlite" "$APP_PATH/current/storage/database.sqlite"; do
+              if [ -f "$dbfile" ]; then
+                mkdir -p $APP_PATH/backups
+                cp "$dbfile" "$APP_PATH/backups/database-$(date +'%Y%m%d%H%M%S').sqlite"
+                echo "[deploy] respaldo de SQLite guardado en $APP_PATH/backups"
+                break
+              fi
+            done
+          fi
+
           php artisan migrate --force || true
           php artisan config:cache
           php artisan route:cache
