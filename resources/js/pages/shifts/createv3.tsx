@@ -20,6 +20,7 @@ import { Head, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     Calendar,
+    ChevronDown,
     CheckCircle2,
     Eye,
     EyeOff,
@@ -156,27 +157,20 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
 
     // Estado para destinatarios de WhatsApp seleccionados
     const [selectedWhatsAppRecipients, setSelectedWhatsAppRecipients] = useState<string[]>(() => {
-        // IDs válidos de destinatarios
-        const validRecipientIds = ['julio-sarmiento', 'priscila-escobar', 'central', 'jorge-waltemath'];
-        
-        // Cargar destinatarios guardados desde localStorage o usar todos por defecto
+        // Cargar destinatarios guardados desde localStorage
         try {
             const saved = localStorage.getItem('whatsapp-recipients');
             if (saved) {
                 const parsed = JSON.parse(saved);
-                // Filtrar solo los IDs válidos (por si hay IDs antiguos en localStorage)
-                const filtered = Array.isArray(parsed) 
-                    ? parsed.filter(id => validRecipientIds.includes(id))
-                    : [];
-                // Si después de filtrar hay valores, usarlos; si no, usar todos por defecto
-                return filtered.length > 0 ? filtered : validRecipientIds;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                    return parsed;
+                }
             }
-            // Si no hay nada guardado, no seleccionar ninguno por defecto (vacío)
+            // Si no hay nada guardado, retornar arreglo vacío. El componente hijo se encargará de inicializar con la API
             return [];
         } catch (error) {
             console.error('Error al cargar destinatarios WhatsApp:', error);
-            // En caso de error, seleccionar todos por defecto
-            return validRecipientIds;
+            return [];
         }
     });
 
@@ -1027,6 +1021,13 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
             listaCambios,
         ],
     );
+    const handleExportExcel = useCallback((format: 'talana' | 'raw') => {
+        const year = selectedDate.getFullYear();
+        const month = selectedDate.getMonth() + 1;
+        const rolId = employee_rol_id;
+        
+        window.location.href = `/turnos-exportar?year=${year}&month=${month}&rol_id=${rolId}&format=${format}`;
+    }, [selectedDate, employee_rol_id]);
 
     return (
         <>
@@ -1293,6 +1294,51 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                             <MessageSquare className="h-4 w-4" />
                                                             WhatsApp
                                                         </Button>
+
+                                                        {/* Desplegable de Exportación a Excel */}
+                                                        <Popover>
+                                                            <PopoverTrigger asChild>
+                                                                <Button
+                                                                    variant="outline"
+                                                                    size="sm"
+                                                                    className="flex items-center gap-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-800 dark:text-emerald-100 dark:hover:border-emerald-700 dark:hover:bg-emerald-700 dark:hover:text-emerald-100"
+                                                                    title="Opciones de exportación a Excel"
+                                                                >
+                                                                    <FileSpreadsheet className="h-4 w-4" />
+                                                                    Exportar
+                                                                    <ChevronDown className="h-4 w-4 opacity-50" />
+                                                                </Button>
+                                                            </PopoverTrigger>
+                                                            <PopoverContent className="w-48 p-1" align="end">
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="w-full justify-start font-normal hover:bg-emerald-50 hover:text-emerald-700 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-300"
+                                                                    onClick={() => handleExportExcel('talana')}
+                                                                >
+                                                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                                                    Subir a Talana
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="w-full justify-start font-normal mt-1 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300"
+                                                                    onClick={() => handleExportExcel('raw')}
+                                                                >
+                                                                    <FileSpreadsheet className="mr-2 h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                                                                    Descargar Vista
+                                                                </Button>
+                                                                <div className="my-1 border-t border-slate-200 dark:border-slate-800" />
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="w-full justify-start font-normal text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
+                                                                    onClick={() => window.location.href = '/admin/talana-mappings'}
+                                                                >
+                                                                    Configurar IDs Talana
+                                                                </Button>
+                                                            </PopoverContent>
+                                                        </Popover>
 
                                                         {/* Checkbox de Modo Testing */}
                                                         <div className="flex items-center space-x-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition-all duration-300 dark:border-slate-700 dark:hover:border-slate-600 dark:bg-slate-800 dark:hover:text-slate-100 border border-slate-200 px-3 h-8">

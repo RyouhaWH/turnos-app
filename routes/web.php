@@ -5,6 +5,8 @@ use App\Http\Controllers\RolController;
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
 use App\Http\Controllers\TurnController;
+use App\Http\Controllers\ShiftTalanaMappingController;
+use App\Http\Controllers\WhatsAppRecipientController;
 use App\Http\Controllers\TurnosSimplificadoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Http\Request;
@@ -141,6 +143,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/test-getShiftLog/{employeeId}', [TurnController::class , 'getShiftsChangeLogByEmployee'])
             ->name('test-shifts-history');
+            
+        Route::get('/turnos-exportar', [TurnController::class, 'exportShiftsToExcel'])->name('shifts.export');
 
         /*
      |--------------------------------------------------------------------------
@@ -156,38 +160,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         // Ruta para obtener números de teléfono de destinatarios WhatsApp
         Route::middleware(['auth', 'admin'])->get('/api/whatsapp-recipients', function (Request $request) {
-            $phoneNumbers = [];
+            $phoneNumbers = \App\Models\WhatsAppRecipient::where('is_active', true)
+                ->pluck('phone', 'identifier_id')
+                ->toArray();
 
-            // Obtener números de teléfono de empleados por RUT (solo los 4 contactos permitidos)
-            $ruts = [
-                'julio-sarmiento' => '12282547-7',
-                'priscila-escobar' => '18522287-K',
-                'jorge-waltemath' => '18198426-0',
-            ];
+            Log::info('📱 Números de teléfono cargados desde DB:', $phoneNumbers);
 
-            foreach ($ruts as $id => $rut) {
-                $employee = \App\Models\Employees::where('rut', $rut)->first();
-                if ($employee && $employee->phone) {
-                    $phoneNumbers[$id] = $employee->phone;
-                }
-                else {
-                    $phoneNumbers[$id] = 'No disponible';
-                }
-            }
-
-            // Números fijos
-            $phoneNumbers['central'] = '964949887';
-            // Jorge Waltemath tiene número fijo para pruebas
-            $phoneNumbers['jorge-waltemath'] = '951004035';
-
-            Log::info('📱 Números de teléfono cargados:', $phoneNumbers);
+            // Obtener todos los destinatarios completos para la vista
+            $recipients = \App\Models\WhatsAppRecipient::where('is_active', true)->get();
 
             return response()->json([
-            'success' => true,
-            'phoneNumbers' => $phoneNumbers
+                'success' => true,
+                'phoneNumbers' => $phoneNumbers,
+                'recipients' => $recipients
             ]);
-        }
-        );
+        });
 
         // API de turnos por rango accesible con sesión web (para el frontend Inertia)
         Route::middleware(['auth'])->get('/api/turnos/rango', [TurnController::class , 'getShiftsByDateRange'])->name('api.turnos.rango');
@@ -307,8 +294,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
                 // Ruta para obtener roles de Spatie
                 Route::get('/spatie-roles', [PlatformDataController::class , 'getSpatieRoles'])->name('spatie-roles');
-            }
-            );
+            });
+            
+            /*
+         |--------------------------------------------------------------------------
+         | Talana Mappings Routes
+         |--------------------------------------------------------------------------
+         */
+            Route::prefix('admin/talana-mappings')->name('talana-mappings.')->group(function () {
+                Route::get('/', [ShiftTalanaMappingController::class, 'index'])->name('index');
+                Route::post('/', [ShiftTalanaMappingController::class, 'store'])->name('store');
+                Route::put('/{id}', [ShiftTalanaMappingController::class, 'update'])->name('update');
+                Route::delete('/{id}', [ShiftTalanaMappingController::class, 'destroy'])->name('destroy');
+            });
+
+            /*
+         |--------------------------------------------------------------------------
+         | WhatsApp Recipients Routes
+         |--------------------------------------------------------------------------
+         */
+            Route::prefix('admin/whatsapp-recipients')->name('whatsapp-recipients.')->group(function () {
+                Route::get('/', [WhatsAppRecipientController::class, 'index'])->name('index');
+                Route::post('/', [WhatsAppRecipientController::class, 'store'])->name('store');
+                Route::put('/{id}', [WhatsAppRecipientController::class, 'update'])->name('update');
+                Route::delete('/{id}', [WhatsAppRecipientController::class, 'destroy'])->name('destroy');
+            });
 
             /*
          |--------------------------------------------------------------------------

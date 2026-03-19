@@ -9,7 +9,8 @@ import { MessageSquare, Settings, Users, Phone, CheckCircle2, AlertCircle } from
 import { usePage } from '@inertiajs/react';
 
 interface WhatsAppRecipient {
-    id: string;
+    id: number;
+    identifier_id: string;
     name: string;
     phone: string;
     role?: string;
@@ -26,14 +27,7 @@ interface WhatsAppNotificationsConfigProps {
     allowTestingToggle?: boolean;
 }
 
-// Lista de destinatarios basada en los números del ShiftsUpdateController
-const DEFAULT_RECIPIENTS: WhatsAppRecipient[] = [
-    // Supervisores y Central
-    { id: 'julio-sarmiento', name: 'Julio Sarmiento', phone: 'Se obtiene de BD', role: 'Supervisor' },
-    { id: 'priscila-escobar', name: 'Priscila Escobar', phone: 'Se obtiene de BD', role: 'Supervisor' },
-    { id: 'central', name: 'Central', phone: '964949887', role: 'Central' },
-    { id: 'jorge-waltemath', name: 'Jorge Waltemath', phone: '951004035', role: 'Supervisor' },
-];
+// Lista de destinatarios ahora se carga dinámicamente desde el backend.
 
 export function WhatsAppNotificationsConfig({
     isOpen,
@@ -53,9 +47,11 @@ export function WhatsAppNotificationsConfig({
         role.name === 'Administrador'
     ) || false;
 
+    const [availableRecipients, setAvailableRecipients] = useState<WhatsAppRecipient[]>([]);
+
     const [localSelectedRecipients, setLocalSelectedRecipients] = useState<string[]>(() => {
-        // Si hay selectedRecipients, usarlos; si no, usar todos por defecto
-        return selectedRecipients.length > 0 ? selectedRecipients : DEFAULT_RECIPIENTS.map(r => r.id);
+        // Inicializado vacío hasta que cargue la lista
+        return selectedRecipients && selectedRecipients.length > 0 ? selectedRecipients : [];
     });
     const [isLoading, setIsLoading] = useState(false);
     const [testingMode, setTestingMode] = useState<boolean>(initialTestingMode);
@@ -66,9 +62,9 @@ export function WhatsAppNotificationsConfig({
 
     // Sincronizar estado local con props cuando se abre el modal
     useEffect(() => {
-        if (isOpen) {
-            // Filtrar solo los IDs válidos (por si hay IDs antiguos)
-            const validIds = DEFAULT_RECIPIENTS.map(r => r.id);
+        if (isOpen && availableRecipients.length > 0) {
+            // Filtrar solo los IDs válidos
+            const validIds = availableRecipients.map(r => r.identifier_id);
             const filteredRecipients = Array.isArray(selectedRecipients)
                 ? selectedRecipients.filter(id => validIds.includes(id))
                 : [];
@@ -82,7 +78,7 @@ export function WhatsAppNotificationsConfig({
             setTestingMode(initialTestingMode);
             setSendToEmployee(initialSendToEmployee);
         }
-    }, [isOpen, selectedRecipients, initialTestingMode, initialSendToEmployee]);
+    }, [isOpen, selectedRecipients, initialTestingMode, initialSendToEmployee, availableRecipients]);
 
     // Cargar números de teléfono desde la base de datos
     useEffect(() => {
@@ -107,9 +103,15 @@ export function WhatsAppNotificationsConfig({
                     const data = await response.json();
                     console.log('✅ Datos recibidos:', data);
 
-                    if (data.success && data.phoneNumbers) {
-                        setPhoneNumbers(data.phoneNumbers);
-                        console.log('📱 Números de teléfono cargados exitosamente:', data.phoneNumbers);
+                    if (data.success && data.recipients) {
+                        setAvailableRecipients(data.recipients);
+                        setPhoneNumbers(data.phoneNumbers || {});
+                        console.log('📱 Destinatarios cargados exitosamente:', data.recipients);
+                        
+                        // Si no hay seleccionados y acabamos de cargar, inicializar con todos
+                        if (!selectedRecipients || selectedRecipients.length === 0) {
+                            setLocalSelectedRecipients(data.recipients.map((r: WhatsAppRecipient) => r.identifier_id));
+                        }
                     } else {
                         console.warn('⚠️ Respuesta no exitosa:', data);
                     }
@@ -143,7 +145,7 @@ export function WhatsAppNotificationsConfig({
     };
 
     const handleSelectAll = () => {
-        setLocalSelectedRecipients(DEFAULT_RECIPIENTS.map(r => r.id));
+        setLocalSelectedRecipients(availableRecipients.map(r => r.identifier_id));
     };
 
     const handleSelectNone = () => {
@@ -158,10 +160,10 @@ export function WhatsAppNotificationsConfig({
 
 
     const selectedCount = localSelectedRecipients.length;
-    const totalCount = DEFAULT_RECIPIENTS.length;
+    const totalCount = availableRecipients.length;
 
     // Agrupar destinatarios por rol
-    const recipientsByRole = DEFAULT_RECIPIENTS.reduce((acc, recipient) => {
+    const recipientsByRole = availableRecipients.reduce((acc, recipient) => {
         const role = recipient.role || 'Otros';
         if (!acc[role]) {
             acc[role] = [];
@@ -231,19 +233,19 @@ export function WhatsAppNotificationsConfig({
                             <div className="space-y-2 ml-6">
                                 {recipients.map((recipient) => (
                                     <div
-                                        key={recipient.id}
+                                        key={recipient.identifier_id}
                                         className="flex items-center space-x-3 p-3 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition-colors bg-white dark:bg-slate-800/80"
                                     >
                                         <Checkbox
-                                            id={recipient.id}
-                                            checked={localSelectedRecipients.includes(recipient.id)}
-                                            onCheckedChange={() => handleRecipientToggle(recipient.id)}
+                                            id={recipient.identifier_id}
+                                            checked={localSelectedRecipients.includes(recipient.identifier_id)}
+                                            onCheckedChange={() => handleRecipientToggle(recipient.identifier_id)}
                                             className="data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600"
                                         />
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between gap-2">
                                                 <label
-                                                    htmlFor={recipient.id}
+                                                    htmlFor={recipient.identifier_id}
                                                     className="text-sm font-medium text-slate-900 dark:text-slate-100 cursor-pointer flex-1"
                                                 >
                                                     {recipient.name}
@@ -251,7 +253,7 @@ export function WhatsAppNotificationsConfig({
                                                 <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-300">
                                                     <Phone className="h-3 w-3" />
                                                     <span className="font-mono">
-                                                        {phoneNumbers[recipient.id] || recipient.phone}
+                                                        {phoneNumbers[recipient.identifier_id] || recipient.phone}
                                                     </span>
                                                 </div>
                                             </div>
@@ -389,11 +391,11 @@ export function WhatsAppNotificationsConfig({
                                 <div className="w-full ">
                                     <ScrollArea className="h-[400px] w-full">
                                         <div className="space-y-2 w-full ">
-                                            {DEFAULT_RECIPIENTS.map((recipient) => {
-                                                const isSpecial = recipient.id === 'funcionarios-afectados';
+                                            {availableRecipients.map((recipient) => {
+                                                const isSpecial = recipient.identifier_id === 'funcionarios-afectados';
                                                 return (
                                                     <div
-                                                        key={recipient.id}
+                                                        key={recipient.identifier_id}
                                                         className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors min-w-full ${
                                                             isSpecial
                                                                 ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 hover:from-blue-100 hover:to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 dark:border-blue-700'
@@ -401,9 +403,9 @@ export function WhatsAppNotificationsConfig({
                                                         }`}
                                                     >
                                                         <Checkbox
-                                                            id={recipient.id}
-                                                            checked={localSelectedRecipients.includes(recipient.id)}
-                                                            onCheckedChange={() => handleRecipientToggle(recipient.id)}
+                                                            id={recipient.identifier_id}
+                                                            checked={localSelectedRecipients.includes(recipient.identifier_id)}
+                                                            onCheckedChange={() => handleRecipientToggle(recipient.identifier_id)}
                                                             className={`data-[state=checked]:bg-green-600 data-[state=checked]:border-green-600 ${
                                                                 isSpecial ? 'border-blue-300' : ''
                                                             }`}
@@ -411,7 +413,7 @@ export function WhatsAppNotificationsConfig({
                                                         <div className="flex-1 min-w-0 w-full">
                                                             <div className="flex items-center justify-between gap-2 w-full">
                                                                 <label
-                                                                    htmlFor={recipient.id}
+                                                                    htmlFor={recipient.identifier_id}
                                                                     className={`text-sm font-medium cursor-pointer flex-1 ${
                                                                         isSpecial
                                                                             ? 'text-blue-900 dark:text-blue-100 font-semibold'
@@ -428,7 +430,7 @@ export function WhatsAppNotificationsConfig({
                                                                 <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
                                                                     <Phone className="h-3 w-3" />
                                                                     <span className="font-mono">
-                                                                        {phoneNumbers[recipient.id] || recipient.phone}
+                                                                        {phoneNumbers[recipient.identifier_id] || recipient.phone}
                                                                     </span>
                                                                 </div>
                                                             </div>

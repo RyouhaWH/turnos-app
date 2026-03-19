@@ -5,12 +5,15 @@ use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use App\Models\Rol;
 use App\Models\ShiftChangeLog;
+use App\Models\ShiftTalanaMapping;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use League\Csv\Reader;
+use OpenSpout\Writer\XLSX\Writer;
+use OpenSpout\Common\Entity\Row;
 
 /**
  * Controlador dedicado al manejo de datos mediante api
@@ -144,6 +147,107 @@ class TurnController extends Controller
         $records = iterator_to_array($csv->getRecords());
 
         return response()->json($records);
+    }
+
+    public function exportShiftsToExcel(Request $request)
+    {
+        $year = $request->query('year', now('America/Santiago')->year);
+        $month = $request->query('month', now('America/Santiago')->month);
+        $rolId = $request->query('rol_id');
+        $format = $request->query('format', 'talana'); // 'talana' o 'raw'
+
+        $query = EmployeeShifts::whereMonth('date', $month)
+            ->whereYear('date', $year)
+            ->with('employee');
+
+        if ($rolId) {
+            $query->whereHas('employee', function ($q) use ($rolId) {
+                $q->where('rol_id', $rolId);
+            });
+        }
+
+        $shiftsEloquent = $query->get()->groupBy('employee_id');
+
+        $employeesQuery = Employees::query();
+        if ($rolId) {
+            $employeesQuery->where('rol_id', $rolId);
+        }
+        $employees = $employeesQuery->get();
+
+        $daysInMonth = Carbon::create($year, $month)->daysInMonth;
+
+        $fileName = $format === 'talana' ? "turnos_talana_{$year}_{$month}.xlsx" : "turnos_{$year}_{$month}.xlsx";
+        $tempFile = tempnam(sys_get_temp_dir(), 'export_');
+
+        $writer = new Writer();
+        $writer->openToFile($tempFile);
+
+        if ($format === 'talana') {
+            // Header mapping Talana
+            $headers = ['Rut', 'Código Contrato'];
+            for ($i = 1; $i <= $daysInMonth; $i++) {
+                $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $i);
+                $headers[] = $dateStr;
+            }
+            $writer->addRow(Row::fromValues($headers));
+
+            $talanaMappings = ShiftTalanaMapping::all()->pluck('talana_id', 'shift_code')->toArray();
+
+            foreach ($employees as $employee) {
+                $rowValues = [
+                    $employee->rut ?? '',
+                    '', // Código Contrato (vacío)
+                ];
+
+                $employeeShifts = $shiftsEloquent->get($employee->id, collect());
+                $shiftsByDay = [];
+                foreach ($employeeShifts as $shift) {
+                    $day = (int) date('d', strtotime($shift->date));
+                    $shiftsByDay[$day] = strtoupper($shift->shift);
+                }
+
+                for ($i = 1; $i <= $daysInMonth; $i++) {
+                    $shiftCode = $shiftsByDay[$i] ?? '';
+                    
+                    $val = $talanaMappings[$shiftCode] ?? 0;
+
+                    $rowValues[] = $val;
+                }
+
+                $writer->addRow(Row::fromValues($rowValues));
+            }
+        } else {
+            // Header mapping Raw (Plantilla normal)
+            $headers = ['Nombre', 'RUT'];
+            for ($i = 1; $i <= $daysInMonth; $i++) {
+                $headers[] = (string) $i;
+            }
+            $writer->addRow(Row::fromValues($headers));
+
+            foreach ($employees as $employee) {
+                $rowValues = [
+                    $employee->name ?? '',
+                    $employee->rut ?? '',
+                ];
+
+                $employeeShifts = $shiftsEloquent->get($employee->id, collect());
+                $shiftsByDay = [];
+                foreach ($employeeShifts as $shift) {
+                    $day = (int) date('d', strtotime($shift->date));
+                    $shiftsByDay[$day] = strtoupper($shift->shift);
+                }
+
+                for ($i = 1; $i <= $daysInMonth; $i++) {
+                    $rowValues[] = $shiftsByDay[$i] ?? '';
+                }
+
+                $writer->addRow(Row::fromValues($rowValues));
+            }
+        }
+
+        $writer->close();
+
+        return response()->download($tempFile, $fileName)->deleteFileAfterSend(true);
     }
 
     public function getMonthlyShifts($year, $month, $rolId)

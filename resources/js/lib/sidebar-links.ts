@@ -1,5 +1,5 @@
 import { type NavItem } from '@/types';
-import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings, Calendar } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings, Calendar, MessageSquare } from 'lucide-react';
 import { route } from 'ziggy-js';
 
 
@@ -38,6 +38,12 @@ const footerNavItems: NavItem[] = [
         href: '/platform-data',
         icon: Settings,
         adminOnly: true, // Solo visible para administradores
+    },
+    {
+        title: 'Notificaciones WhatsApp',
+        href: '/admin/whatsapp-recipients',
+        icon: MessageSquare,
+        adminOnly: true,
     },
 
     // {

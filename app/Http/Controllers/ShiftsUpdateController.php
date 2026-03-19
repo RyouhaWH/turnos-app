@@ -117,13 +117,19 @@ class ShiftsUpdateController extends Controller
      */
     private function getPhoneToNameMapping(): array
     {
-        return [
-            Employees::where('rut', '12282547-7')->first()->phone ?? '' => 'Julio Sarmiento',
-            Employees::where('rut', '18522287-K')->first()->phone ?? '' => 'Priscila Escobar',
-            '964949887'                                                 => 'Central',
-            '951004035'                                                 => 'Jorge Waltemath',
-            '968012847'                                                 => 'Eduardo Esparza',
-        ];
+        $recipients = \App\Models\WhatsAppRecipient::where('is_active', true)->get();
+        $mapping = [];
+        
+        foreach ($recipients as $recipient) {
+            if (!empty($recipient->phone)) {
+                $mapping[$recipient->phone] = $recipient->name;
+            }
+        }
+        
+        // Mantener a Eduardo Esparza
+        $mapping['968012847'] = 'Eduardo Esparza';
+        
+        return $mapping;
     }
 
     /**
@@ -131,24 +137,19 @@ class ShiftsUpdateController extends Controller
      */
     private function getNotificationNumbers(array $selectedRecipients = [], bool $testingMode = false): array
     {
-        // Números reales (comentados para evitar envíos accidentales)
-        $numeroJulioSarmiento      = Employees::where('rut', '12282547-7')->first()->phone ?? '';
-        $numeroPriscilaEscobar     = Employees::where('rut', '18522287-K')->first()->phone ?? '';
-        $numeroCentral             = "964949887";
-        $numeroJorgeWaltemath      = "951004035";
         $numeroEduardoEsparza      = "968012847";
-
-        // Número de prueba
         $testNumber = "951004035";
 
-        // Mapeo de IDs a números de teléfono
-        $recipientsMap = [
-            'julio-sarmiento'      => $testingMode ? $testNumber : $numeroJulioSarmiento,
-            'priscila-escobar'     => $testingMode ? $testNumber : $numeroPriscilaEscobar,
-            'central'              => $testingMode ? $testNumber : $numeroCentral,
-            'jorge-waltemath'      => $testingMode ? $testNumber : $numeroJorgeWaltemath,
-            'eduardo-esparza'      => $numeroEduardoEsparza,
-        ];
+        // Mapeo dinámico desde la base de datos
+        $dbRecipients = \App\Models\WhatsAppRecipient::where('is_active', true)->get();
+        $recipientsMap = [];
+        
+        foreach ($dbRecipients as $recipient) {
+            $recipientsMap[$recipient->identifier_id] = $testingMode ? $testNumber : $recipient->phone;
+        }
+        
+        // Eduardo Esparza
+        $recipientsMap['eduardo-esparza'] = $numeroEduardoEsparza;
 
         // Si hay destinatarios seleccionados, usar solo esos
         if (! empty($selectedRecipients)) {
@@ -351,10 +352,8 @@ class ShiftsUpdateController extends Controller
             'PE'    => 'Patrulla Escolar',
             'PG'    => 'Permiso por día compensado',
             'A'     => 'Administrativo',
-            'AE'    => 'Administrativo Extra',
             'LM'    => 'Licencia Médica',
             'S'     => 'Día Sindical',
-            'SE'    => 'Día Sindical Extra',
             'M'     => 'Mañana',
             'T'     => 'Tarde',
             'N'     => 'Noche',
@@ -362,9 +361,7 @@ class ShiftsUpdateController extends Controller
             'TE'    => 'Tarde Extra',
             'NE'    => 'Noche Extra',
             'F'     => 'Franco',
-            'FE'    => 'Franco Extra',
             'L'     => 'Libre',
-            'LE'    => 'Libre Extra',
             '1'     => 'Primer Turno',
             '2'     => 'Segundo Turno',
             '3'     => 'Tercer Turno',
