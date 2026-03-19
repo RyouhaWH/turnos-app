@@ -1025,9 +1025,10 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
         const year = selectedDate.getFullYear();
         const month = selectedDate.getMonth() + 1;
         const rolId = employee_rol_id;
-        
-        window.location.href = `/turnos-exportar?year=${year}&month=${month}&rol_id=${rolId}&format=${format}`;
-    }, [selectedDate, employee_rol_id]);
+        const orderParam = customOrder && customOrder.length > 0 ? `&custom_order=${customOrder.join(',')}` : '';
+
+        window.location.href = `/turnos-exportar?year=${year}&month=${month}&rol_id=${rolId}&format=${format}${orderParam}`;
+    }, [selectedDate, employee_rol_id, customOrder]);
 
     return (
         <>
@@ -1095,9 +1096,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         <Popover>
                                                             <PopoverTrigger asChild>
                                                                 <Button variant="outline" size="sm">
-                                                                {tempRangeStart && tempRangeEnd
-                                                                    ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
-                                                                    : 'Rango de días'}
+                                                                    {tempRangeStart && tempRangeEnd
+                                                                        ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
+                                                                        : 'Rango de días'}
                                                                 </Button>
                                                             </PopoverTrigger>
                                                             <PopoverContent className="w-auto p-3" align="start">
@@ -1106,44 +1107,44 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Inicio</div>
                                                                         <UiCalendar
                                                                             mode="single"
-                                                        selected={tempRangeStart as any}
-                                                        defaultMonth={(tempRangeStart as any) || selectedDate}
-                                                        captionLayout="dropdown"
-                                                        fromYear={2020}
-                                                        toYear={2030}
-                                                        onSelect={(d: any) => {
-                                                            if (!d) return;
-                                                            setTempRangeStart(d);
-                                                            if (tempRangeEnd && d > tempRangeEnd) {
-                                                                setTempRangeEnd(d);
-                                                            }
-                                                        }}
+                                                                            selected={tempRangeStart as any}
+                                                                            defaultMonth={(tempRangeStart as any) || selectedDate}
+                                                                            captionLayout="dropdown"
+                                                                            fromYear={2020}
+                                                                            toYear={2030}
+                                                                            onSelect={(d: any) => {
+                                                                                if (!d) return;
+                                                                                setTempRangeStart(d);
+                                                                                if (tempRangeEnd && d > tempRangeEnd) {
+                                                                                    setTempRangeEnd(d);
+                                                                                }
+                                                                            }}
                                                                         />
                                                                     </div>
                                                                     <div>
                                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Término</div>
                                                                         <UiCalendar
                                                                             mode="single"
-                                                        selected={tempRangeEnd as any}
-                                                        defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
-                                                        captionLayout="dropdown"
-                                                        fromYear={2020}
-                                                        toYear={2030}
-                                                        onSelect={(d: any) => {
-                                                            if (!d) return;
-                                                            setTempRangeEnd(d);
-                                                            if (tempRangeStart && d < tempRangeStart) {
-                                                                setTempRangeStart(d);
-                                                            }
-                                                        }}
+                                                                            selected={tempRangeEnd as any}
+                                                                            defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
+                                                                            captionLayout="dropdown"
+                                                                            fromYear={2020}
+                                                                            toYear={2030}
+                                                                            onSelect={(d: any) => {
+                                                                                if (!d) return;
+                                                                                setTempRangeEnd(d);
+                                                                                if (tempRangeStart && d < tempRangeStart) {
+                                                                                    setTempRangeStart(d);
+                                                                                }
+                                                                            }}
                                                                         />
                                                                     </div>
                                                                 </div>
                                                                 <div className="mt-2 flex justify-end gap-2">
-                                                                {(tempRangeStart || tempRangeEnd) && (
-                                                                    <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
-                                                                )}
-                                                                <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
+                                                                    {(tempRangeStart || tempRangeEnd) && (
+                                                                        <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
+                                                                    )}
+                                                                    <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
                                                                 </div>
                                                             </PopoverContent>
                                                         </Popover>
@@ -1245,8 +1246,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         size="sm"
                                                         onClick={handleToggleEmployeePanel}
                                                         className={`flex items-center gap-2 transition-all duration-300 ${showEmployeePanel
-                                                                ? 'hover:bg-slate-100 dark:hover:bg-green-800'
-                                                                : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700 dark:hover:text-green-100'
+                                                            ? 'hover:bg-slate-100 dark:hover:bg-green-800'
+                                                            : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700 dark:hover:text-green-100'
                                                             }`}
                                                         title={showEmployeePanel ? 'Ocultar gestión de empleados' : 'Mostrar gestión de empleados'}
                                                     >
@@ -1262,8 +1263,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         size="sm"
                                                         onClick={handleToggleSummary}
                                                         className={`flex items-center gap-2 transition-all duration-300 ${showSummary
-                                                                ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
-                                                                : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                            ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
+                                                            : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
                                                             }`}
                                                         title={showSummary ? 'Ocultar resumen' : 'Mostrar resumen de cambios'}
                                                     >
@@ -1317,7 +1318,7 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                                     onClick={() => handleExportExcel('talana')}
                                                                 >
                                                                     <FileSpreadsheet className="mr-2 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                                                    Subir a Talana
+                                                                    Plantilla Talana
                                                                 </Button>
                                                                 <Button
                                                                     variant="ghost"
@@ -1370,8 +1371,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                             size="sm"
                                                             onClick={handleToggleTotals}
                                                             className={`flex items-center gap-2 transition-all duration-300 ${showTotals
-                                                                    ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
-                                                                    : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
+                                                                ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
+                                                                : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
                                                                 }`}
                                                             title={showTotals ? 'Ocultar totales' : 'Mostrar totales por tipo de turno'}
                                                         >
@@ -1470,8 +1471,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         size="sm"
                                                         onClick={handleToggleShiftFilter}
                                                         className={`flex items-center gap-2 transition-all duration-300 ${showShiftFilter
-                                                                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
-                                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                            ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                                             }`}
                                                         title="Filtrar tipos de turnos"
                                                     >
@@ -2143,8 +2144,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             size="sm"
                                             onClick={handleToggleEmployeePanel}
                                             className={`flex items-center gap-2 transition-all duration-300 ${showEmployeePanel
-                                                    ? 'hover:bg-slate-100 dark:hover:bg-green-800'
-                                                    : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700'
+                                                ? 'hover:bg-slate-100 dark:hover:bg-green-800'
+                                                : 'border-green-200 bg-green-50 text-green-700 hover:border-green-300 hover:bg-green-100 dark:border-green-800 dark:bg-green-800 dark:text-green-100 dark:hover:border-green-700 dark:hover:bg-green-700'
                                                 }`}
                                             title={showEmployeePanel ? 'Ocultar gestión de empleados' : 'Mostrar gestión de empleados'}
                                         >
@@ -2159,8 +2160,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                 size="sm"
                                                 onClick={handleToggleSummary}
                                                 className={`flex items-center gap-2 transition-all duration-300 ${showSummary
-                                                        ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
-                                                        : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                    ? 'hover:bg-slate-100 dark:hover:bg-blue-800'
+                                                    : 'border-blue-200 bg-blue-50 font-medium text-blue-700 hover:border-blue-300 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
                                                     }`}
                                                 title={showSummary ? 'Ocultar resumen de cambios' : 'Mostrar resumen de cambios'}
                                             >
@@ -2175,8 +2176,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             size="sm"
                                             onClick={handleToggleShiftFilter}
                                             className={`flex items-center gap-2 transition-all duration-300 ${showShiftFilter
-                                                    ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
-                                                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                                                ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 dark:border-blue-800 dark:bg-blue-800 dark:text-blue-100 dark:hover:border-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100'
+                                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                                                 }`}
                                             title={showShiftFilter ? 'Ocultar filtro de turnos' : 'Mostrar filtro de turnos'}
                                         >
@@ -2190,8 +2191,8 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                             size="sm"
                                             onClick={handleToggleTotals}
                                             className={`flex items-center gap-2 transition-all duration-300 ${showTotals
-                                                    ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
-                                                    : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
+                                                ? 'hover:bg-slate-100 dark:hover:bg-purple-800'
+                                                : 'border-purple-200 bg-purple-50 text-purple-700 hover:border-purple-300 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-800 dark:text-purple-100 dark:hover:border-purple-700 dark:hover:bg-purple-700 dark:hover:text-purple-100'
                                                 }`}
                                             title={showTotals ? 'Ocultar totales' : 'Mostrar totales'}
                                         >
@@ -2234,9 +2235,9 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                         <Popover>
                                             <PopoverTrigger asChild>
                                                 <Button variant="outline" size="sm">
-                                                                {tempRangeStart && tempRangeEnd
-                                                                    ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
-                                                                    : 'Rango de días'}
+                                                    {tempRangeStart && tempRangeEnd
+                                                        ? `${tempRangeStart.getDate()} ${tempRangeStart.toLocaleDateString('es-CL', { month: 'short' })} - ${tempRangeEnd.getDate()} ${tempRangeEnd.toLocaleDateString('es-CL', { month: 'short' })}`
+                                                        : 'Rango de días'}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-3 z-[10050]" align="start">
@@ -2245,40 +2246,40 @@ export default function OptimizedShiftsManager({ turnos = [], employee_rol_id = 
                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Inicio</div>
                                                         <UiCalendar
                                                             mode="single"
-                                                        selected={tempRangeStart as any}
-                                                        defaultMonth={(tempRangeStart as any) || selectedDate}
-                                                        captionLayout="dropdown"
-                                                        onSelect={(d: any) => {
-                                                            if (!d) return;
-                                                            setTempRangeStart(d);
-                                                            if (tempRangeEnd && d > tempRangeEnd) {
-                                                                setTempRangeEnd(d);
-                                                            }
-                                                        }}
+                                                            selected={tempRangeStart as any}
+                                                            defaultMonth={(tempRangeStart as any) || selectedDate}
+                                                            captionLayout="dropdown"
+                                                            onSelect={(d: any) => {
+                                                                if (!d) return;
+                                                                setTempRangeStart(d);
+                                                                if (tempRangeEnd && d > tempRangeEnd) {
+                                                                    setTempRangeEnd(d);
+                                                                }
+                                                            }}
                                                         />
                                                     </div>
                                                     <div>
                                                         <div className="text-xs mb-1 text-slate-600 dark:text-slate-300">Término</div>
                                                         <UiCalendar
                                                             mode="single"
-                                                        selected={tempRangeEnd as any}
-                                                        defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
-                                                        captionLayout="dropdown"
-                                                        onSelect={(d: any) => {
-                                                            if (!d) return;
-                                                            setTempRangeEnd(d);
-                                                            if (tempRangeStart && d < tempRangeStart) {
-                                                                setTempRangeStart(d);
-                                                            }
-                                                        }}
+                                                            selected={tempRangeEnd as any}
+                                                            defaultMonth={(tempRangeEnd as any) || (tempRangeStart as any) || selectedDate}
+                                                            captionLayout="dropdown"
+                                                            onSelect={(d: any) => {
+                                                                if (!d) return;
+                                                                setTempRangeEnd(d);
+                                                                if (tempRangeStart && d < tempRangeStart) {
+                                                                    setTempRangeStart(d);
+                                                                }
+                                                            }}
                                                         />
                                                     </div>
                                                 </div>
                                                 <div className="mt-2 flex justify-end gap-2">
-                                                                {(tempRangeStart || tempRangeEnd) && (
-                                                                    <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
-                                                                )}
-                                                                <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
+                                                    {(tempRangeStart || tempRangeEnd) && (
+                                                        <Button variant="ghost" size="sm" onClick={() => { setTempRangeStart(null); setTempRangeEnd(null); }}>Limpiar</Button>
+                                                    )}
+                                                    <Button variant="default" size="sm" disabled={!tempRangeStart || !tempRangeEnd} onClick={handleApplyRange}>Aplicar</Button>
                                                 </div>
                                             </PopoverContent>
                                         </Popover>

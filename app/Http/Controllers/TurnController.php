@@ -174,6 +174,17 @@ class TurnController extends Controller
         }
         $employees = $employeesQuery->get();
 
+        $customOrder = $request->query('custom_order');
+        if ($customOrder) {
+            $orderIds = explode(',', $customOrder);
+            $employees = $employees->sortBy(function($employee) use ($orderIds) {
+                $pos = array_search((string)$employee->id, $orderIds);
+                return $pos !== false ? $pos : 999999;
+            });
+        } else {
+            $employees = $employees->sortBy('name');
+        }
+
         $daysInMonth = Carbon::create($year, $month)->daysInMonth;
 
         $fileName = $format === 'talana' ? "turnos_talana_{$year}_{$month}.xlsx" : "turnos_{$year}_{$month}.xlsx";
@@ -184,7 +195,7 @@ class TurnController extends Controller
 
         if ($format === 'talana') {
             // Header mapping Talana
-            $headers = ['Rut', 'Código Contrato'];
+            $headers = ['Nombre', 'Rut', 'Código Contrato'];
             for ($i = 1; $i <= $daysInMonth; $i++) {
                 $dateStr = sprintf('%04d-%02d-%02d', $year, $month, $i);
                 $headers[] = $dateStr;
@@ -195,6 +206,7 @@ class TurnController extends Controller
 
             foreach ($employees as $employee) {
                 $rowValues = [
+                    $employee->name ?? '',
                     $employee->rut ?? '',
                     '', // Código Contrato (vacío)
                 ];
