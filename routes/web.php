@@ -9,18 +9,21 @@ use App\Http\Controllers\ShiftTalanaMappingController;
 use App\Http\Controllers\WhatsAppRecipientController;
 use App\Http\Controllers\TurnosSimplificadoController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\SectorController;
+use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\EmployeeAssignmentController;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use function MongoDB\BSON\toJSON;
 
 /* |-------------------------------------------------------------------------- | Public Routes |-------------------------------------------------------------------------- */
 
 Route::get('/', function () {
-    if (auth()->check()) {
+    if (Auth::check()) {
         /** @var \App\Models\User $user */
-        $user = auth()->user();
+        $user = Auth::user();
         if ($user && $user->hasAnyRole(['patrullero', 'fisca', 'ciclo', 'dron'])) {
             return redirect('/turno-mensual');
         }
@@ -143,7 +146,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('/test-getShiftLog/{employeeId}', [TurnController::class , 'getShiftsChangeLogByEmployee'])
             ->name('test-shifts-history');
-            
+
         Route::get('/turnos-exportar', [TurnController::class, 'exportShiftsToExcel'])->name('shifts.export');
 
         /*
@@ -244,6 +247,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         /*
      |--------------------------------------------------------------------------
+     | Sectors & Vehicles (Admin Only)
+     |--------------------------------------------------------------------------
+     */
+
+        Route::middleware(['auth', 'admin'])->group(function () {
+            // Sectors CRUD
+            Route::prefix('platform-data/sectors')->name('sectors.')->group(function () {
+                Route::get('/',       [SectorController::class, 'index'])->name('index');
+                Route::post('/',      [SectorController::class, 'store'])->name('store');
+                Route::put('/{id}',   [SectorController::class, 'update'])->name('update');
+                Route::delete('/{id}',[SectorController::class, 'destroy'])->name('destroy');
+            });
+
+            // Vehicles CRUD
+            Route::prefix('platform-data/vehicles')->name('vehicles.')->group(function () {
+                Route::get('/',       [VehicleController::class, 'index'])->name('index');
+                Route::post('/',      [VehicleController::class, 'store'])->name('store');
+                Route::put('/{id}',   [VehicleController::class, 'update'])->name('update');
+                Route::delete('/{id}',[VehicleController::class, 'destroy'])->name('destroy');
+            });
+        });
+
+        /*
+     |--------------------------------------------------------------------------
+     | Assignments (Supervisor + Admin)
+     |--------------------------------------------------------------------------
+     */
+
+        Route::middleware(['auth', 'supervisor'])->prefix('assignments')->name('assignments.')->group(function () {
+            Route::get('/',              [EmployeeAssignmentController::class, 'index'])->name('index');
+            Route::post('/upsert',       [EmployeeAssignmentController::class, 'upsert'])->name('upsert');
+            Route::post('/bulk',         [EmployeeAssignmentController::class, 'bulkUpsert'])->name('bulk');
+        });
+
+        // Grouped view for dashboard (any authenticated user)
+        Route::middleware(['auth'])->get('/api/assignments/grouped', [EmployeeAssignmentController::class, 'grouped'])->name('assignments.grouped');
+
+        /*
+     |--------------------------------------------------------------------------
      | Platform Data Routes (Admin Only)
      |--------------------------------------------------------------------------
      */
@@ -295,7 +337,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 // Ruta para obtener roles de Spatie
                 Route::get('/spatie-roles', [PlatformDataController::class , 'getSpatieRoles'])->name('spatie-roles');
             });
-            
+
             /*
          |--------------------------------------------------------------------------
          | Talana Mappings Routes

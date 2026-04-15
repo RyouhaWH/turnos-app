@@ -1,0 +1,10 @@
+actualmente en la aplicación tengo la forma de poder clasificar por turnos a los trabajadores, el tema es que cada uno tiene asignado deferentes sectores, ya sea para patrullaje o para cubrir así como demás el indicar quien usa que móvil, por lo que aquí deberia poder asignar y luego ver dentro del mismo dashboard, quien anda en que sector en vez dependiendo la facción.
+
+Ejemplo:
+- fiscalización dado que tiene un único turno, separar en el dashboard según su sector y añadir una especie de tag a quien anda usando un móvil
+
+- Patrullaje: además de poner los nombres separados por turnos, cada uno debe tener al costado separado del nombre pero en la misma columna, el sector y un breadcrumb o tag con el móvil que usarán
+
+por lo tanto para poder realizar esto, además de tener los funcionarios, necesito agregar en base de datos quien va a que parte, "su sector" y guardar en base de datos igualmente que vehículos tenemos, su estado, así como más cosas, por ejemplo que cada sector tenga datos asociados que puedan ser añadidos más adelante, así como de los vehículos en sí.
+
+crear vistas para administrador para la creación y manejo de estos datos, supervisor que pueda crear y asignar sectores y móviles. y dejar que todos estos permisos sean otorgables por individuo.

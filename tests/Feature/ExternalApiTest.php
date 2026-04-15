@@ -4,11 +4,9 @@ use App\Models\ApiKey;
 use App\Models\Employees;
 use App\Models\EmployeeShifts;
 use Carbon\Carbon;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
-
-beforeEach(function () {
-    // migrations will run thanks to RefreshDatabase trait
-});
+uses(RefreshDatabase::class);
 
 it('returns 401 if no api key provided', function () {
     $this->getJson('/api/v1/employee-status-external')

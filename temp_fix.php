@@ -1,6 +1,6 @@
 <?php
 // Corrección para filterValidChanges
-private function filterValidChanges(array $cambios): array
+function filterValidChanges(array $cambios): array
 {
     // Cambiar de códigos originales a descripciones convertidas
     $turnosNoNotificables = ['Sin Asignar', 'Sin Turno', 'Desconocido'];

@@ -6,6 +6,7 @@ use App\Models\EmployeeShifts;
 use App\Models\Rol;
 use App\Models\ShiftChangeLog;
 use App\Models\ShiftTalanaMapping;
+use App\Services\AssignmentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -779,6 +780,9 @@ class TurnController extends Controller
             // Obtener los turnos de la fecha seleccionada
             $todayShifts = EmployeeShifts::whereDate('date', $selectedDate)->get();
 
+            // Cargar mapa de asignaciones (sector/vehículo) para la fecha
+            $assignmentMap = app(AssignmentService::class)->getAssignmentMapForDate($selectedDate->toDateString());
+
             $status = [
                 'trabajando' => [], // M, T, N, 1, 2, 3, A
                 'descanso' => [],   // F, L
@@ -815,30 +819,41 @@ class TurnController extends Controller
                     $counts['trabajando']['byRole'][$roleId] = 0;
                 }
 
+                // Datos de asignación de sector/vehículo para este funcionario
+                $assignment = $assignmentMap[$employee->id] ?? null;
+                $assignmentData = [
+                    'sector_id'    => $assignment['sector_id'] ?? null,
+                    'sector_name'  => $assignment['sector_name'] ?? null,
+                    'sector_color' => $assignment['sector_color'] ?? null,
+                    'vehicle_id'   => $assignment['vehicle_id'] ?? null,
+                    'vehicle_name' => $assignment['vehicle_name'] ?? null,
+                    'vehicle_type' => $assignment['vehicle_type'] ?? null,
+                ];
+
                 if (!$todayShift || !$todayShift->shift || trim($todayShift->shift) === '') {
                     // Sin turno asignado = NO ACTIVO HOY
-                    $status['sinTurno'][] = [
+                    $status['sinTurno'][] = array_merge([
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
-                        'reason' => 'Sin turno programado'
-                    ];
+                        'reason' => 'Sin turno programado',
+                    ], $assignmentData);
                     $counts['sinTurno']['total']++;
                     $counts['sinTurno']['byRole'][$roleId]++;
 
                 } elseif (in_array($todayShift->shift, ['F', 'L'])) {
                     // En descanso programado = ACTIVO (tienen turno asignado)
-                    $status['descanso'][] = [
+                    $status['descanso'][] = array_merge([
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
-                        'shift_label' => $todayShift->shift === 'F' ? 'Franco' : 'Libre'
-                    ];
+                        'shift_label' => $todayShift->shift === 'F' ? 'Franco' : 'Libre',
+                    ], $assignmentData);
                     $counts['descanso']['total']++;
                     $counts['descanso']['byRole'][$roleId]++;
 
@@ -850,28 +865,29 @@ class TurnController extends Controller
                         'S' => 'Sindical'
                     ];
 
-                    $status['ausente'][] = [
+                    $status['ausente'][] = array_merge([
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
-                        'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift
-                    ];
+                        'shift_label' => $shiftLabels[$todayShift->shift] ?? $todayShift->shift,
+                    ], $assignmentData);
                     $counts['ausente']['total']++;
                     $counts['ausente']['byRole'][$roleId]++;
 
                 } elseif ($todayShift->shift === 'A') {
                     // Turno administrativo = AUSENTE (no operativo)
-                    $status['ausente'][] = [
+                    $status['ausente'][] = array_merge([
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
+                        'paternal_lastname' => $employee->paternal_lastname,
                         'rol_id' => $roleId,
                         'amzoma' => $employee->amzoma,
                         'shift' => $todayShift->shift,
-                        'shift_label' => 'Día Administrativo'
-                    ];
+                        'shift_label' => 'Día Administrativo',
+                    ], $assignmentData);
                     $counts['ausente']['total']++;
                     $counts['ausente']['byRole'][$roleId]++;
                 } else {
@@ -906,7 +922,7 @@ class TurnController extends Controller
                         $shiftLabel = $shiftLabels[$todayShift->shift] ?? $todayShift->shift;
                     }
 
-                    $status['trabajando'][] = [
+                    $status['trabajando'][] = array_merge([
                         'id' => $employee->id,
                         'name' => $employee->name ?? 'Sin nombre',
                         'paternal_lastname' => $employee->paternal_lastname,
@@ -915,8 +931,8 @@ class TurnController extends Controller
                         'shift' => $todayShift->shift,
                         'shift_label' => $shiftLabel,
                         'is_extra' => $isExtraShift,
-                        'base_shift' => $baseShift
-                    ];
+                        'base_shift' => $baseShift,
+                    ], $assignmentData);
                     $counts['trabajando']['total']++;
                     $counts['trabajando']['byRole'][$roleId]++;
                 }

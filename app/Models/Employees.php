@@ -42,4 +42,14 @@ class Employees extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function assignments()
+    {
+        return $this->hasMany(EmployeeAssignment::class, 'employee_id');
+    }
+
+    public function assignmentForDate(string $date): ?EmployeeAssignment
+    {
+        return $this->assignments()->whereDate('date', $date)->first();
+    }
 }

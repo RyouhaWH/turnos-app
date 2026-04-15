@@ -14,22 +14,13 @@ export function NavFooter({
     const { props: pageProps } = usePage<{ auth: { user: any } }>();
     const user = pageProps.auth?.user;
 
-    // Verificar si el usuario tiene permisos de administrador
-    const hasAdminPermissions = user?.roles?.some((role: any) =>
-        role.name === 'Administrador'
-    ) || false;
+    const isAdmin = user?.roles?.some((r: any) => r.name === 'Administrador') ?? false;
+    const isSupervisor = isAdmin || (user?.roles?.some((r: any) => r.name === 'Supervisor') ?? false);
 
-    // Filtrar elementos según permisos
     const filteredItems = items.filter((item) => {
-        // Si el elemento es solo para administradores, verificar permisos
-        if (item.adminOnly) {
-            return hasAdminPermissions;
-        }
-        // Si es "Subir turnos", solo mostrar a administradores
-        if (item.title === 'Subir turnos') {
-            return hasAdminPermissions;
-        }
-        // Para otros elementos, mostrar a todos
+        if (item.adminOnly) return isAdmin;
+        if (item.supervisorOnly) return isSupervisor;
+        if (item.title === 'Subir turnos') return isAdmin;
         return true;
     });
 

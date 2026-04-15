@@ -1,6 +1,5 @@
 import { type NavItem } from '@/types';
-import { BookOpen, Folder, LayoutGrid, Calendar1, UserCheck2, Settings, Calendar, MessageSquare } from 'lucide-react';
-import { route } from 'ziggy-js';
+import { Folder, LayoutGrid, Calendar1, Settings, Calendar, MessageSquare, MapPin, Truck, ClipboardList } from 'lucide-react';
 
 
 const mainNavItems: NavItem[] = [
@@ -9,7 +8,6 @@ const mainNavItems: NavItem[] = [
         href: '/dashboard',
         icon: LayoutGrid,
     },
-
     {
         title: 'Turnos',
         href: '/turnos',
@@ -20,11 +18,12 @@ const mainNavItems: NavItem[] = [
         href: '/turno-mensual',
         icon: Calendar,
     },
-    // {
-    //     title: 'Personal',
-    //     href: route('staff-personal'),
-    //     icon: UserCheck2,
-    // },
+    {
+        title: 'Asignaciones',
+        href: '/assignments',
+        icon: ClipboardList,
+        supervisorOnly: true,
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -37,7 +36,19 @@ const footerNavItems: NavItem[] = [
         title: 'Datos de Plataforma',
         href: '/platform-data',
         icon: Settings,
-        adminOnly: true, // Solo visible para administradores
+        adminOnly: true,
+    },
+    {
+        title: 'Sectores',
+        href: '/platform-data/sectors',
+        icon: MapPin,
+        adminOnly: true,
+    },
+    {
+        title: 'Vehículos',
+        href: '/platform-data/vehicles',
+        icon: Truck,
+        adminOnly: true,
     },
     {
         title: 'Notificaciones WhatsApp',
@@ -45,13 +56,6 @@ const footerNavItems: NavItem[] = [
         icon: MessageSquare,
         adminOnly: true,
     },
-
-    // {
-    //     title: 'Documentation',
-    //     href: '',
-    //     icon: BookOpen,
-    // },
-
 ];
 
 export { mainNavItems, footerNavItems }
