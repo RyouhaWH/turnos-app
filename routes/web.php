@@ -105,7 +105,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
      |--------------------------------------------------------------------------
      */
 
-        Route::prefix('admin/users')->name('admin.users.')->group(function () {
+        // Solo administradores pueden crear, cambiar rol o eliminar usuarios
+        Route::middleware('admin')->prefix('admin/users')->name('admin.users.')->group(function () {
             Route::post('/', [UserManagementController::class , 'store'])->name('store');
             Route::patch('/{user}/role', [UserManagementController::class , 'updateRole'])->name('update-role');
             Route::delete('/{user}', [UserManagementController::class , 'destroy'])->name('destroy');
@@ -181,9 +182,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // API de turnos mensual (para asegurar endpoint usado por frontend)
         Route::middleware(['auth'])->get('/api/turnos/{year}/{month}/{rolId}', [TurnController::class , 'getMonthlyShifts'])->name('api.turnos.mensual');
 
-        Route::get('import-from-storage', [ShiftImportController::class , 'importFromStorage'])
-            ->name('import-from-storage');
-
         /*
      |--------------------------------------------------------------------------
      | Dashboard API Routes
@@ -206,8 +204,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::prefix('api/roles')->name('roles.')->group(function () {
             Route::get('/', [RolController::class , 'index'])->name('index');
-            Route::patch('/{id}/operational-status', [RolController::class , 'updateOperationalStatus'])->name('update-operational-status');
-            Route::patch('/update-multiple', [RolController::class , 'updateMultiple'])->name('update-multiple');
+            // Modificar roles: solo administradores
+            Route::middleware('admin')->group(function () {
+                Route::patch('/{id}/operational-status', [RolController::class , 'updateOperationalStatus'])->name('update-operational-status');
+                Route::patch('/update-multiple', [RolController::class , 'updateMultiple'])->name('update-multiple');
+            });
         }
         );
 
@@ -301,7 +302,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
          | Talana Mappings Routes
          |--------------------------------------------------------------------------
          */
-            Route::prefix('admin/talana-mappings')->name('talana-mappings.')->group(function () {
+            // Supervisores y administradores (el botón está en la grilla de turnos)
+            Route::middleware('supervisor')->prefix('admin/talana-mappings')->name('talana-mappings.')->group(function () {
                 Route::get('/', [ShiftTalanaMappingController::class, 'index'])->name('index');
                 Route::post('/', [ShiftTalanaMappingController::class, 'store'])->name('store');
                 Route::put('/{id}', [ShiftTalanaMappingController::class, 'update'])->name('update');
@@ -313,29 +315,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
          | WhatsApp Recipients Routes
          |--------------------------------------------------------------------------
          */
-            Route::prefix('admin/whatsapp-recipients')->name('whatsapp-recipients.')->group(function () {
+            // Destinatarios WhatsApp (teléfonos): solo administradores
+            Route::middleware('admin')->prefix('admin/whatsapp-recipients')->name('whatsapp-recipients.')->group(function () {
                 Route::get('/', [WhatsAppRecipientController::class, 'index'])->name('index');
                 Route::post('/', [WhatsAppRecipientController::class, 'store'])->name('store');
                 Route::put('/{id}', [WhatsAppRecipientController::class, 'update'])->name('update');
                 Route::delete('/{id}', [WhatsAppRecipientController::class, 'destroy'])->name('destroy');
             });
-
-            /*
-         |--------------------------------------------------------------------------
-         | Test Routes
-         |--------------------------------------------------------------------------
-         */
-
-            Route::get('/test', function () {
-            return view('test');
-        }
-        )->name('test');
-
-        // Ruta de test público sin middleware
-        Route::get('/test-public', function () {
-            return view('test');
-        }
-        )->name('test-public');
 
     });
 
