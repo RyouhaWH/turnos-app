@@ -1,6 +1,8 @@
 <?php
 
+use App\Http\Controllers\PlanningController;
 use App\Http\Controllers\PlatformDataController;
+use App\Http\Controllers\ShiftTypeController;
 use App\Http\Controllers\RolController;
 use App\Http\Controllers\ShiftImportController;
 use App\Http\Controllers\ShiftsController;
@@ -242,6 +244,27 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return app(\App\Http\Controllers\ShiftsUpdateController::class)->updateShifts($request);
         }
         )->name('post-updateShifts');
+
+        /*
+     |--------------------------------------------------------------------------
+     | Planificación: planilla por facción con borrador y publicación
+     |--------------------------------------------------------------------------
+     */
+
+        Route::middleware('supervisor')->prefix('planificacion')->name('planning.')->group(function () {
+            // Catálogo de turnos (solo administradores)
+            Route::middleware('admin')->group(function () {
+                Route::get('turnos', [ShiftTypeController::class, 'index'])->name('shift-types.index');
+                Route::post('turnos', [ShiftTypeController::class, 'store'])->name('shift-types.store');
+                Route::put('turnos/{shiftType}', [ShiftTypeController::class, 'update'])->name('shift-types.update');
+            });
+
+            Route::get('{rol}', [PlanningController::class, 'show'])->whereNumber('rol')->name('show');
+            Route::put('{rol}/borrador', [PlanningController::class, 'saveDraft'])->whereNumber('rol')->name('draft.save');
+            Route::delete('{rol}/borrador', [PlanningController::class, 'discardDraft'])->whereNumber('rol')->name('draft.discard');
+            Route::post('{rol}/publicar', [PlanningController::class, 'publish'])->whereNumber('rol')->name('publish');
+            Route::put('{rol}/minimos', [PlanningController::class, 'updateMinimums'])->whereNumber('rol')->name('minimums');
+        });
 
         /*
      |--------------------------------------------------------------------------

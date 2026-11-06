@@ -30,7 +30,8 @@ import {
     Radio,
     Zap,
     UserCheck2,
-    CircleDot
+    CircleDot,
+    CalendarRange
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -263,6 +264,12 @@ export default function Dashboard() {
                                                     <Clock className="mr-2 h-4 w-4" />
                                                     Gestionar Turnos
                                                     <ChevronRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                                                </Link>
+                                            </Button>
+                                            <Button asChild variant="outline" className="w-full">
+                                                <Link href={`/planificacion/${parseInt(roleId)}`}>
+                                                    <CalendarRange className="mr-2 h-4 w-4" />
+                                                    Planilla nueva (beta)
                                                 </Link>
                                             </Button>
                                             {/* Botón versión anterior a fin de mantener en caso de error */}

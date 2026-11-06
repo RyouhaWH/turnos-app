@@ -8,11 +8,13 @@ class Rol extends Model
     protected $fillable = [
         'nombre',
         'is_operational',
-        'color'
+        'color',
+        'planning_settings',
     ];
 
     protected $casts = [
-        'is_operational' => 'boolean'
+        'is_operational' => 'boolean',
+        'planning_settings' => 'array',
     ];
 
     public function usuarios()
