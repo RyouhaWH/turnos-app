@@ -1,13 +1,52 @@
 name: Deploy to Server
 
+# main = producción (amzoma.jorgewh.cl), beta = staging (beta-amzoma.jorgewh.cl)
+# Los pull requests NO despliegan: solo corren tests (ver tests.yml).
 on:
   push:
-    branches: [ main, beta ]   # main = producción, beta = staging
-  pull_request:
     branches: [ main, beta ]
 
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+
+    - name: Setup PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: mbstring, xml, ctype, iconv, intl, pdo_sqlite, zip
+        coverage: none
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: |
+        composer install --no-interaction --no-progress --prefer-dist
+        npm ci
+
+    - name: Build assets (los tests de páginas necesitan el manifest de Vite)
+      run: npm run build
+
+    - name: Run tests
+      run: |
+        cp .env.example .env
+        php artisan key:generate
+        ./vendor/bin/pest
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
@@ -53,22 +92,6 @@ jobs:
         name: app-build
         path: ${{ github.sha }}.tar.gz
 
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USERNAME }}
-        key: ${{ secrets.PRIVATE_KEY }}
-        port: ${{ secrets.PORT }}
-        script: |
-          if [[ "${{ github.ref_name }}" == "main" ]]; then
-            APP_PATH="/var/www/amzoma"
-          else
-            APP_PATH="/var/www/amzoma-beta"
-          fi
-
-          mkdir -p $APP_PATH/releases/${{ github.sha }}
-
     - name: Upload app to server
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -79,7 +102,7 @@ jobs:
         source: "${{ github.sha }}.tar.gz"
         target: "/tmp"
 
-    - name: Extract archive and create symlink
+    - name: Extract, migrate and switch release
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.HOST }}
@@ -87,56 +110,56 @@ jobs:
         key: ${{ secrets.PRIVATE_KEY }}
         port: ${{ secrets.PORT }}
         script: |
+          set -euo pipefail
+
           if [[ "${{ github.ref_name }}" == "main" ]]; then
             APP_PATH="/var/www/amzoma"
           else
             APP_PATH="/var/www/amzoma-beta"
           fi
+          RELEASE="$APP_PATH/releases/${{ github.sha }}"
 
-          mkdir -p $APP_PATH/releases/${{ github.sha }}
-          mv /tmp/${{ github.sha }}.tar.gz $APP_PATH/releases/${{ github.sha }}/
-          cd $APP_PATH/releases/${{ github.sha }}
+          mkdir -p "$RELEASE"
+          mv /tmp/${{ github.sha }}.tar.gz "$RELEASE/"
+          cd "$RELEASE"
           tar xzf ${{ github.sha }}.tar.gz
           rm -f ${{ github.sha }}.tar.gz
 
-          # Symlink storage compartido
-          rm -rf $APP_PATH/releases/${{ github.sha }}/storage
-          ln -nfs $APP_PATH/storage $APP_PATH/releases/${{ github.sha }}/storage
+          # storage y .env compartidos por entorno (prod o beta)
+          rm -rf "$RELEASE/storage"
+          ln -nfs "$APP_PATH/storage" "$RELEASE/storage"
+          ln -nfs "$APP_PATH/.env" "$RELEASE/.env"
 
-          # Symlink .env único de cada app (prod o beta)
-          ln -nfs $APP_PATH/.env $APP_PATH/releases/${{ github.sha }}/.env
-
-          # Optimizar Laravel
-          cd $APP_PATH/releases/${{ github.sha }}
-
-          # --- backup de la base de datos SQLite existente (si hay una) ---
-          # copiamos desde el release actualmente activo antes de lanzar migraciones
-          if [ -L $APP_PATH/current ] || [ -d $APP_PATH/current ]; then
-            # posibles ubicaciones conocidas
-            for dbfile in "$APP_PATH/current/database/database.sqlite" "$APP_PATH/current/storage/database.sqlite"; do
-              if [ -f "$dbfile" ]; then
-                mkdir -p $APP_PATH/backups
-                cp "$dbfile" "$APP_PATH/backups/database-$(date +'%Y%m%d%H%M%S').sqlite"
-                echo "[deploy] respaldo de SQLite guardado en $APP_PATH/backups"
-                break
-              fi
-            done
+          # --- Respaldo de la BD SQLite antes de migrar ---
+          # La ruta real sale de DB_DATABASE en el .env del entorno.
+          DB_FILE="$(grep -E '^DB_DATABASE=' "$APP_PATH/.env" | tail -1 | cut -d= -f2- | tr -d '"')"
+          if [ -n "$DB_FILE" ] && [ -f "$DB_FILE" ]; then
+            BACKUP_DIR="$APP_PATH/backups/db"
+            mkdir -p "$BACKUP_DIR" && chmod 700 "$BACKUP_DIR"
+            BACKUP_FILE="$BACKUP_DIR/predeploy-$(date +%Y%m%d-%H%M%S)-${{ github.sha }}.sqlite"
+            php -r '$p = new PDO("sqlite:" . $argv[1]); $p->exec("VACUUM INTO " . $p->quote($argv[2]));' "$DB_FILE" "$BACKUP_FILE"
+            chmod 600 "$BACKUP_FILE"
+            echo "[deploy] respaldo de BD: $BACKUP_FILE"
+            # conservar solo los últimos 10 respaldos pre-deploy
+            ls -t1 "$BACKUP_DIR"/predeploy-*.sqlite 2>/dev/null | tail -n +11 | xargs -r rm -f
+          else
+            echo "[deploy] ERROR: no se encontró la BD en '$DB_FILE'; se aborta el deploy" >&2
+            exit 1
           fi
 
-          php artisan migrate --force || true
+          # Si una migración falla, el deploy se detiene y la versión actual sigue activa
+          php artisan migrate --force
           php artisan config:cache
           php artisan route:cache
           php artisan view:cache
-          php artisan storage:link
+          php artisan storage:link || true
 
-          # Cambiar symlink de current
-          ln -nfs $APP_PATH/releases/${{ github.sha }} $APP_PATH/current
-
-          # Recargar PHP-FPM
+          # Activar el nuevo release
+          ln -nfs "$RELEASE" "$APP_PATH/current"
           sudo systemctl reload php8.3-fpm
 
-          # Limpiar releases viejas (mantener últimas 3)
-          cd $APP_PATH/releases && ls -t1 | tail -n +4 | xargs rm -rf || true
+          # Reiniciar workers de cola para que tomen el código nuevo (systemd los relanza)
+          php artisan queue:restart || true
 
-          # Reiniciar workers si aplica
-          # php artisan queue:restart
+          # Limpiar releases viejas (mantener últimas 3)
+          cd "$APP_PATH/releases" && ls -t1 | tail -n +4 | xargs -r rm -rf
